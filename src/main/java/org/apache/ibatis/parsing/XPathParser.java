@@ -47,8 +47,8 @@ public class XPathParser {
     /** 基于 DOM 和 XPath 的 XML 解析 */
 
     private Document document;
-    private boolean validation;
-    private EntityResolver entityResolver;
+    private boolean validation; // 是否启用验证
+    private EntityResolver entityResolver; // 实体解析器，加载DTD文件
     private Properties variables;
     private XPath xpath;
 
@@ -227,6 +227,12 @@ public class XPathParser {
         }
     }
 
+    /**
+     * 基于输入流构造 Document 对象
+     *
+     * @param inputSource
+     * @return
+     */
     private Document createDocument(InputSource inputSource) {
         // important: this must only be called AFTER common constructor
         try {
@@ -266,8 +272,7 @@ public class XPathParser {
         this.validation = validation;
         this.entityResolver = entityResolver;
         this.variables = variables;
-        XPathFactory factory = XPathFactory.newInstance();
-        this.xpath = factory.newXPath();
+        this.xpath = XPathFactory.newInstance().newXPath();
     }
 
 }
