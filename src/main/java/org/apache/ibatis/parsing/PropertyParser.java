@@ -29,11 +29,16 @@ public class PropertyParser {
 
     public static String parse(String string, Properties variables) {
         VariableTokenHandler handler = new VariableTokenHandler(variables);
+        // 创建 GenericTokenParser 对象，处理占位符 “${}”
         GenericTokenParser parser = new GenericTokenParser("${", "}", handler);
         return parser.parse(string);
     }
 
+    /**
+     * 从 {@link Properties} 对象中寻找指定 key 对应的属性
+     */
     private static class VariableTokenHandler implements TokenHandler {
+
         private Properties variables;
 
         public VariableTokenHandler(Properties variables) {

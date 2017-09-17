@@ -236,6 +236,7 @@ public class XPathParser {
     private Document createDocument(InputSource inputSource) {
         // important: this must only be called AFTER common constructor
         try {
+            // 创建并初始化 DocumentBuilderFactory
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setValidating(validation);
 
@@ -245,6 +246,7 @@ public class XPathParser {
             factory.setCoalescing(false);
             factory.setExpandEntityReferences(true);
 
+            // 创建并设置 DocumentBuilder
             DocumentBuilder builder = factory.newDocumentBuilder();
             builder.setEntityResolver(entityResolver);
             builder.setErrorHandler(new ErrorHandler() {
@@ -262,6 +264,7 @@ public class XPathParser {
                 public void warning(SAXParseException exception) throws SAXException {
                 }
             });
+            // 加载 XML 文件
             return builder.parse(inputSource);
         } catch (Exception e) {
             throw new BuilderException("Error creating document instance.  Cause: " + e, e);

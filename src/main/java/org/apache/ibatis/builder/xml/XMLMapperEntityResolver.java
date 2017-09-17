@@ -30,11 +30,15 @@ import java.util.Map;
 /**
  * Offline entity resolver for the MyBatis DTDs
  *
+ * 离线加载对应的 DTD 文件，封装成 {@link InputSource} 对象返回
+ *
  * @author Clinton Begin
  */
 public class XMLMapperEntityResolver implements EntityResolver {
 
     private static final Map<String, String> doctypeMap = new HashMap<String, String>();
+
+    /** 指定 mybatis-config.xml 文件和映射文件对应的 DTD 的 SystemId */
 
     private static final String IBATIS_CONFIG_PUBLIC = "-//ibatis.apache.org//DTD Config 3.0//EN".toUpperCase(Locale.ENGLISH);
     private static final String IBATIS_CONFIG_SYSTEM = "http://ibatis.apache.org/dtd/ibatis-3-config.dtd".toUpperCase(Locale.ENGLISH);
@@ -47,6 +51,8 @@ public class XMLMapperEntityResolver implements EntityResolver {
 
     private static final String MYBATIS_MAPPER_PUBLIC = "-//mybatis.org//DTD Mapper 3.0//EN".toUpperCase(Locale.ENGLISH);
     private static final String MYBATIS_MAPPER_SYSTEM = "http://mybatis.org/dtd/mybatis-3-mapper.dtd".toUpperCase(Locale.ENGLISH);
+
+    /** 指定 mybatis-config.xml 文件和映射文件对应的 DTD 的具体位置 */
 
     private static final String MYBATIS_CONFIG_DTD = "org/apache/ibatis/builder/xml/mybatis-3-config.dtd";
     private static final String MYBATIS_MAPPER_DTD = "org/apache/ibatis/builder/xml/mybatis-3-mapper.dtd";
@@ -65,13 +71,12 @@ public class XMLMapperEntityResolver implements EntityResolver {
         doctypeMap.put(MYBATIS_MAPPER_PUBLIC, MYBATIS_MAPPER_DTD);
     }
 
-    /*
+    /**
      * Converts a public DTD into a local one
      *
      * @param publicId The public id that is what comes after "PUBLIC"
      * @param systemId The system id that is what comes after the public id.
      * @return The InputSource for the DTD
-     *
      * @throws org.xml.sax.SAXException If anything goes wrong
      */
     @Override
@@ -87,10 +92,10 @@ public class XMLMapperEntityResolver implements EntityResolver {
         InputSource source = null;
         try {
             String path = doctypeMap.get(publicId);
-            source = getInputSource(path, source);
+            source = this.getInputSource(path, source);
             if (source == null) {
                 path = doctypeMap.get(systemId);
-                source = getInputSource(path, source);
+                source = this.getInputSource(path, source);
             }
         } catch (Exception e) {
             throw new SAXException(e.toString());
@@ -98,6 +103,13 @@ public class XMLMapperEntityResolver implements EntityResolver {
         return source;
     }
 
+    /**
+     * 读取 DTD 文档，生成 InputSource 对象
+     *
+     * @param path
+     * @param source
+     * @return
+     */
     private InputSource getInputSource(String path, InputSource source) {
         if (path != null) {
             InputStream in;

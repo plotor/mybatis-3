@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
+ * 对于 {@link Node} 的包装
+ *
  * @author Clinton Begin
  */
 public class XNode {
