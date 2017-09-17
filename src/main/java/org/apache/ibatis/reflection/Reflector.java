@@ -54,7 +54,7 @@ public class Reflector {
     private final String[] readablePropertyNames;
 
     /** 可写属性名称集合 */
-    private final String[] writeablePropertyNames;
+    private final String[] writablePropertyNames;
 
     /** 属性对应的 setter 方法，封装成 Invoker 对象 */
     private final Map<String, Invoker> setMethods = new HashMap<String, Invoker>();
@@ -85,11 +85,11 @@ public class Reflector {
         // 解析获取所有没有 setter/getter 方法的字段
         this.addFields(clazz);
         readablePropertyNames = getMethods.keySet().toArray(new String[getMethods.keySet().size()]);
-        writeablePropertyNames = setMethods.keySet().toArray(new String[setMethods.keySet().size()]);
+        writablePropertyNames = setMethods.keySet().toArray(new String[setMethods.keySet().size()]);
         for (String propName : readablePropertyNames) {
             caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
         }
-        for (String propName : writeablePropertyNames) {
+        for (String propName : writablePropertyNames) {
             caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
         }
     }
@@ -491,7 +491,7 @@ public class Reflector {
      * @return The array
      */
     public String[] getSetablePropertyNames() {
-        return writeablePropertyNames;
+        return writablePropertyNames;
     }
 
     /*
