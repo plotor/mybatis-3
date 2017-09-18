@@ -23,13 +23,18 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * 用于指定 {@link TypeHandler} 能够处理的 JDBC 类型集合
+ *
  * @author Eduardo Macarron
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface MappedJdbcTypes {
+
     JdbcType[] value();
 
+    /*是否包含 null 类型*/
     boolean includeNullJdbcType() default false;
+
 }

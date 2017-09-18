@@ -23,6 +23,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * 用于指定 {@link TypeHandler} 能够处理的 JAVA 类型集合
+ *
  * @author Eduardo Macarron
  */
 @Documented

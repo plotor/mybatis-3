@@ -34,6 +34,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
+ * 别名注册与管理
+ *
  * @author Clinton Begin
  */
 public class TypeAliasRegistry {
@@ -134,7 +136,8 @@ public class TypeAliasRegistry {
             // Ignore inner classes and interfaces (including package-info.java)
             // Skip also inner classes. See issue #6
             if (!type.isAnonymousClass() && !type.isInterface() && !type.isMemberClass()) {
-                registerAlias(type);
+                // 不包含内部类、接口，以及抽象类
+                this.registerAlias(type);
             }
         }
     }
@@ -145,7 +148,7 @@ public class TypeAliasRegistry {
         if (aliasAnnotation != null) {
             alias = aliasAnnotation.value();
         }
-        registerAlias(alias, type);
+        this.registerAlias(alias, type);
     }
 
     public void registerAlias(String alias, Class<?> value) {
@@ -162,7 +165,7 @@ public class TypeAliasRegistry {
 
     public void registerAlias(String alias, String value) {
         try {
-            registerAlias(alias, Resources.classForName(value));
+            this.registerAlias(alias, Resources.classForName(value));
         } catch (ClassNotFoundException e) {
             throw new TypeException("Error registering type alias " + alias + " for " + value + ". Cause: " + e, e);
         }
