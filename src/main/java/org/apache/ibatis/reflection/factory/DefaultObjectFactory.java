@@ -32,6 +32,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 /**
+ *
  * @author Clinton Begin
  */
 public class DefaultObjectFactory implements ObjectFactory, Serializable {
@@ -46,8 +47,9 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
     @SuppressWarnings("unchecked")
     @Override
     public <T> T create(Class<T> type, List<Class<?>> constructorArgTypes, List<Object> constructorArgs) {
-        Class<?> classToCreate = resolveInterface(type);
-        // we know types are assignable
+        // 如果传入的是接口类型，则选择具体的实现类型
+        Class<?> classToCreate = this.resolveInterface(type);
+        // 基于入参选择合适的构造方法进行实例化
         return (T) instantiateClass(classToCreate, constructorArgTypes, constructorArgs);
     }
 
@@ -56,9 +58,19 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
         // no props for default
     }
 
+    /**
+     * 创建对象
+     *
+     * @param type
+     * @param constructorArgTypes
+     * @param constructorArgs
+     * @param <T>
+     * @return
+     */
     <T> T instantiateClass(Class<T> type, List<Class<?>> constructorArgTypes, List<Object> constructorArgs) {
         try {
             Constructor<T> constructor;
+            // 如果没有传递构造参数类型或参数，则使用无参构造方法创建对象
             if (constructorArgTypes == null || constructorArgs == null) {
                 constructor = type.getDeclaredConstructor();
                 if (!constructor.isAccessible()) {
@@ -66,6 +78,7 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
                 }
                 return constructor.newInstance();
             }
+            // 使用对应的有参数构造方法创建对象
             constructor = type.getDeclaredConstructor(constructorArgTypes.toArray(new Class[constructorArgTypes.size()]));
             if (!constructor.isAccessible()) {
                 constructor.setAccessible(true);
@@ -78,7 +91,7 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
                     argTypes.append(argType.getSimpleName());
                     argTypes.append(",");
                 }
-                argTypes.deleteCharAt(argTypes.length() - 1); // remove trailing ,
+                argTypes.deleteCharAt(argTypes.length() - 1); // 删除最后一个 “,”
             }
             StringBuilder argValues = new StringBuilder();
             if (constructorArgs != null && !constructorArgs.isEmpty()) {
@@ -86,12 +99,18 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
                     argValues.append(String.valueOf(argValue));
                     argValues.append(",");
                 }
-                argValues.deleteCharAt(argValues.length() - 1); // remove trailing ,
+                argValues.deleteCharAt(argValues.length() - 1); // 删除最后一个 “,”
             }
             throw new ReflectionException("Error instantiating " + type + " with invalid types (" + argTypes + ") or values (" + argValues + "). Cause: " + e, e);
         }
     }
 
+    /**
+     * 解析接口类型对应的实现类型
+     *
+     * @param type
+     * @return
+     */
     protected Class<?> resolveInterface(Class<?> type) {
         Class<?> classToCreate;
         if (type == List.class || type == Collection.class || type == Iterable.class) {
