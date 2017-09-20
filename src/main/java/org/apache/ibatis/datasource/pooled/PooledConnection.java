@@ -78,7 +78,7 @@ class PooledConnection implements InvocationHandler {
     }
 
     /**
-     * Invalidates the connection
+     * 置连接为无效
      */
     public void invalidate() {
         valid = false;
