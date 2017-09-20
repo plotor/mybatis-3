@@ -28,7 +28,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MapperProxyFactory<T> {
 
+    /** 待动态代理的 Mapper */
     private final Class<T> mapperInterface;
+
     private final Map<Method, MapperMethod> methodCache = new ConcurrentHashMap<Method, MapperMethod>();
 
     public MapperProxyFactory(Class<T> mapperInterface) {
@@ -45,6 +47,7 @@ public class MapperProxyFactory<T> {
 
     @SuppressWarnings("unchecked")
     protected T newInstance(MapperProxy<T> mapperProxy) {
+        // 创建 mapperInterface 接口对应的动态代理
         return (T) Proxy.newProxyInstance(mapperInterface.getClassLoader(), new Class[] {mapperInterface}, mapperProxy);
     }
 

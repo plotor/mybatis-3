@@ -34,6 +34,7 @@ public class ParamNameResolver {
     private static final String GENERIC_NAME_PREFIX = "param";
 
     /**
+     * 记录参数在参数列表中的索引和参数名称之间的对应关系
      * <p>
      * The key is the index and the value is the name of the parameter.<br />
      * The name is obtained from {@link Param} if specified. When {@link Param} is not specified,

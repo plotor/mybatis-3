@@ -44,7 +44,10 @@ import java.util.Map;
  */
 public class MapperMethod {
 
+    /** SQL语句及其类型 */
     private final SqlCommand command;
+
+    /** Mapper 接口中对应的方法信息 */
     private final MethodSignature method;
 
     public MapperMethod(Class<?> mapperInterface, Method method, Configuration config) {
@@ -52,6 +55,13 @@ public class MapperMethod {
         this.method = new MethodSignature(config, mapperInterface, method);
     }
 
+    /**
+     * 执行对应的 SQL
+     *
+     * @param sqlSession
+     * @param args
+     * @return
+     */
     public Object execute(SqlSession sqlSession, Object[] args) {
         Object result;
         switch (command.getType()) {
@@ -209,16 +219,21 @@ public class MapperMethod {
 
     }
 
+    /**
+     * SQL语句及其类型
+     */
     public static class SqlCommand {
 
+        /** SQL语句的名称（由 Mapper 接口名称与对应的方法名称组成） */
         private final String name;
+
+        /** SQL类型 */
         private final SqlCommandType type;
 
         public SqlCommand(Configuration configuration, Class<?> mapperInterface, Method method) {
             final String methodName = method.getName();
             final Class<?> declaringClass = method.getDeclaringClass();
-            MappedStatement ms = resolveMappedStatement(mapperInterface, methodName, declaringClass,
-                    configuration);
+            MappedStatement ms = this.resolveMappedStatement(mapperInterface, methodName, declaringClass, configuration);
             if (ms == null) {
                 if (method.getAnnotation(Flush.class) != null) {
                     name = null;
@@ -244,18 +259,28 @@ public class MapperMethod {
             return type;
         }
 
-        private MappedStatement resolveMappedStatement(Class<?> mapperInterface, String methodName,
-                                                       Class<?> declaringClass, Configuration configuration) {
+        /**
+         * @param mapperInterface Mapper接口
+         * @param methodName 方法名称
+         * @param declaringClass 方法隶属的类
+         * @param configuration
+         * @return
+         */
+        private MappedStatement resolveMappedStatement(
+                Class<?> mapperInterface, String methodName, Class<?> declaringClass, Configuration configuration) {
+            // SQL语句名称 = 接口名称.方法名
             String statementId = mapperInterface.getName() + "." + methodName;
+            // 检测该SQL名称是否有对应的SQL语句
             if (configuration.hasStatement(statementId)) {
+                // 存在对应的SQL
                 return configuration.getMappedStatement(statementId);
             } else if (mapperInterface.equals(declaringClass)) {
                 return null;
             }
+            // 向上递归查找
             for (Class<?> superInterface : mapperInterface.getInterfaces()) {
                 if (declaringClass.isAssignableFrom(superInterface)) {
-                    MappedStatement ms = resolveMappedStatement(superInterface, methodName,
-                            declaringClass, configuration);
+                    MappedStatement ms = this.resolveMappedStatement(superInterface, methodName, declaringClass, configuration);
                     if (ms != null) {
                         return ms;
                     }
@@ -265,6 +290,9 @@ public class MapperMethod {
         }
     }
 
+    /**
+     * Mapper 接口中的方法信息
+     */
     public static class MethodSignature {
 
         private final boolean returnsMany;

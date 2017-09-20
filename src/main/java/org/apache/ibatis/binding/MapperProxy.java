@@ -35,8 +35,11 @@ import java.util.Map;
 public class MapperProxy<T> implements InvocationHandler, Serializable {
 
     private static final long serialVersionUID = -6424540398559729838L;
+
     private final SqlSession sqlSession;
+
     private final Class<T> mapperInterface;
+
     private final Map<Method, MapperMethod> methodCache;
 
     public MapperProxy(SqlSession sqlSession, Class<T> mapperInterface, Map<Method, MapperMethod> methodCache) {
@@ -49,17 +52,27 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         try {
             if (Object.class.equals(method.getDeclaringClass())) {
+                // 如果是一个普通类，直接 invoke
                 return method.invoke(this, args);
-            } else if (isDefaultMethod(method)) {
-                return invokeDefaultMethod(proxy, method, args);
+            } else if (this.isDefaultMethod(method)) {
+                // 支持 jdk1.7+ 动态语言
+                return this.invokeDefaultMethod(proxy, method, args);
             }
         } catch (Throwable t) {
             throw ExceptionUtil.unwrapThrowable(t);
         }
-        final MapperMethod mapperMethod = cachedMapperMethod(method);
+        final MapperMethod mapperMethod = this.cachedMapperMethod(method);
+        // 执行 SQL 语句
         return mapperMethod.execute(sqlSession, args);
     }
 
+    /**
+     * 从缓存中获取对应的 {@link MapperMethod}
+     * 如果不存在则创建新的对象，并缓存
+     *
+     * @param method
+     * @return
+     */
     private MapperMethod cachedMapperMethod(Method method) {
         MapperMethod mapperMethod = methodCache.get(method);
         if (mapperMethod == null) {
@@ -70,18 +83,15 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
     }
 
     @UsesJava7
-    private Object invokeDefaultMethod(Object proxy, Method method, Object[] args)
-            throws Throwable {
-        final Constructor<MethodHandles.Lookup> constructor = MethodHandles.Lookup.class
-                .getDeclaredConstructor(Class.class, int.class);
+    private Object invokeDefaultMethod(Object proxy, Method method, Object[] args) throws Throwable {
+        final Constructor<MethodHandles.Lookup> constructor = MethodHandles.Lookup.class.getDeclaredConstructor(Class.class, int.class);
         if (!constructor.isAccessible()) {
             constructor.setAccessible(true);
         }
         final Class<?> declaringClass = method.getDeclaringClass();
-        return constructor
-                .newInstance(declaringClass,
-                        MethodHandles.Lookup.PRIVATE | MethodHandles.Lookup.PROTECTED
-                                | MethodHandles.Lookup.PACKAGE | MethodHandles.Lookup.PUBLIC)
+        return constructor.newInstance(declaringClass,
+                MethodHandles.Lookup.PRIVATE | MethodHandles.Lookup.PROTECTED
+                        | MethodHandles.Lookup.PACKAGE | MethodHandles.Lookup.PUBLIC)
                 .unreflectSpecial(method, declaringClass).bindTo(proxy).invokeWithArguments(args);
     }
 
