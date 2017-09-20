@@ -35,6 +35,10 @@ public class ParamNameResolver {
 
     /**
      * 记录参数在参数列表中的索引和参数名称之间的对应关系
+     * 参数名称通过 {@link Param} 指定，如果没有指定则使用参数索引作为参数名称
+     * 需要注意的是，如果参数列表中包含 {@link RowBounds} 或 {@link ResultHandler} 类型的参数，
+     * 这两类参数不会记录到集合中，这个时候对于用索引表示的参数名称就会和索引不一致
+     *
      * <p>
      * The key is the index and the value is the name of the parameter.<br />
      * The name is obtained from {@link Param} if specified. When {@link Param} is not specified,
@@ -49,17 +53,23 @@ public class ParamNameResolver {
      */
     private final SortedMap<Integer, String> names;
 
+    /** 记录对应方法的参数列表是否使用了 {@link Param} 注解 */
     private boolean hasParamAnnotation;
 
     public ParamNameResolver(Configuration config, Method method) {
+        // 获取参数类型列表
         final Class<?>[] paramTypes = method.getParameterTypes();
+
+        // 获取参数列表上的注解
         final Annotation[][] paramAnnotations = method.getParameterAnnotations();
+
         final SortedMap<Integer, String> map = new TreeMap<Integer, String>();
         int paramCount = paramAnnotations.length;
-        // get names from @Param annotations
+
+        // 从 @Param 注解上获取参数名称
         for (int paramIndex = 0; paramIndex < paramCount; paramIndex++) {
             if (isSpecialParameter(paramTypes[paramIndex])) {
-                // skip special parameters
+                // 跳过 {@link RowBounds} 或 {@link ResultHandler} 类型
                 continue;
             }
             String name = null;
@@ -70,11 +80,14 @@ public class ParamNameResolver {
                     break;
                 }
             }
+            // 没有 @Param 注解
             if (name == null) {
-                // @Param was not specified.
                 if (config.isUseActualParamName()) {
-                    name = getActualParamName(method, paramIndex);
+                    // 获取参数的真实名称
+                    name = this.getActualParamName(method, paramIndex);
                 }
+
+                // 使用索引名称作为参数名称
                 if (name == null) {
                     // use the parameter index as the name ("0", "1", ...)
                     // gcode issue #71
@@ -86,6 +99,13 @@ public class ParamNameResolver {
         names = Collections.unmodifiableSortedMap(map);
     }
 
+    /**
+     * 获取参数的真实名称
+     *
+     * @param method
+     * @param paramIndex
+     * @return
+     */
     private String getActualParamName(Method method, int paramIndex) {
         if (Jdk.parameterExists) {
             return ParamNameUtil.getParamNames(method).get(paramIndex);
@@ -93,6 +113,12 @@ public class ParamNameResolver {
         return null;
     }
 
+    /**
+     * 是 {@link RowBounds} 或 {@link ResultHandler} 类型
+     *
+     * @param clazz
+     * @return
+     */
     private static boolean isSpecialParameter(Class<?> clazz) {
         return RowBounds.class.isAssignableFrom(clazz) || ResultHandler.class.isAssignableFrom(clazz);
     }
@@ -115,10 +141,13 @@ public class ParamNameResolver {
     public Object getNamedParams(Object[] args) {
         final int paramCount = names.size();
         if (args == null || paramCount == 0) {
+            // 无参数，直接返回
             return null;
         } else if (!hasParamAnnotation && paramCount == 1) {
+            // 没有 @Param 注解，且只有一个参数
             return args[names.firstKey()];
         } else {
+            // 有 @Param 注解，或存在多个参数
             final Map<String, Object> param = new ParamMap<Object>();
             int i = 0;
             for (Map.Entry<Integer, String> entry : names.entrySet()) {
