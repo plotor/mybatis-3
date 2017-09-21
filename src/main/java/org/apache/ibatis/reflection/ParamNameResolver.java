@@ -131,15 +131,15 @@ public class ParamNameResolver {
     }
 
     /**
+     * 关联传入的实参与对应参数名称
      * <p>
      * A single non-special parameter is returned without a name.<br />
      * Multiple parameters are named using the naming rule.<br />
-     * In addition to the default names, this method also adds the generic names (param1, param2,
-     * ...).
+     * In addition to the default names, this method also adds the generic names (param1, param2, ...).
      * </p>
      */
     public Object getNamedParams(Object[] args) {
-        final int paramCount = names.size();
+        final int paramCount = names.size(); // names 记录参数在参数列表中的索引和参数名称之间的对应关系
         if (args == null || paramCount == 0) {
             // 无参数，直接返回
             return null;
@@ -151,6 +151,7 @@ public class ParamNameResolver {
             final Map<String, Object> param = new ParamMap<Object>();
             int i = 0;
             for (Map.Entry<Integer, String> entry : names.entrySet()) {
+                // <参数名称，参数值>
                 param.put(entry.getValue(), args[entry.getKey()]);
                 // add generic param names (param1, param2, ...)
                 final String genericParamName = GENERIC_NAME_PREFIX + String.valueOf(i + 1);
