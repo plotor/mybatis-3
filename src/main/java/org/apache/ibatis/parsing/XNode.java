@@ -306,7 +306,7 @@ public class XNode {
 
     public Properties getChildrenAsProperties() {
         Properties properties = new Properties();
-        for (XNode child : getChildren()) {
+        for (XNode child : this.getChildren()) {
             String name = child.getStringAttribute("name");
             String value = child.getStringAttribute("value");
             if (name != null && value != null) {
