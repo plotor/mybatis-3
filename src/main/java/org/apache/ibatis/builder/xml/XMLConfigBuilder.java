@@ -143,15 +143,42 @@ public class XMLConfigBuilder extends BaseBuilder {
         }
     }
 
+    /**
+     * 解析 <settings /> 配置
+     * MyBatis 中极为重要的调整设置，它们会改变 MyBatis 的运行时行为。
+     *
+     * <settings>
+     * <setting name="cacheEnabled" value="true"/>
+     * <setting name="lazyLoadingEnabled" value="true"/>
+     * <setting name="multipleResultSetsEnabled" value="true"/>
+     * <setting name="useColumnLabel" value="true"/>
+     * <setting name="useGeneratedKeys" value="false"/>
+     * <setting name="autoMappingBehavior" value="PARTIAL"/>
+     * <setting name="autoMappingUnknownColumnBehavior" value="WARNING"/>
+     * <setting name="defaultExecutorType" value="SIMPLE"/>
+     * <setting name="defaultStatementTimeout" value="25"/>
+     * <setting name="defaultFetchSize" value="100"/>
+     * <setting name="safeRowBoundsEnabled" value="false"/>
+     * <setting name="mapUnderscoreToCamelCase" value="false"/>
+     * <setting name="localCacheScope" value="SESSION"/>
+     * <setting name="jdbcTypeForNull" value="OTHER"/>
+     * <setting name="lazyLoadTriggerMethods" value="equals,clone,hashCode,toString"/>
+     * </settings>
+     *
+     * @param context
+     * @return
+     */
     private Properties settingsAsProperties(XNode context) {
         if (context == null) {
             return new Properties();
         }
+        // 解析 <setting/> 封装成 Properties
         Properties props = context.getChildrenAsProperties();
         // Check that all settings are known to the configuration class
         MetaClass metaConfig = MetaClass.forClass(Configuration.class, localReflectorFactory);
         for (Object key : props.keySet()) {
             if (!metaConfig.hasSetter(String.valueOf(key))) {
+                // 属性不存在 setter 方法
                 throw new BuilderException("The setting " + key + " is not known.  Make sure you spelled it correctly (case sensitive).");
             }
         }
@@ -237,15 +264,23 @@ public class XMLConfigBuilder extends BaseBuilder {
     /**
      * 解析 <properties/> 结点
      *
+     * <properties resource="org/mybatis/example/config.properties">
+     * <property name="username" value="dev_user"/>
+     * <property name="password" value="F2Fa3!33TYyg"/>
+     * </properties>
+     *
      * @param context
      * @throws Exception
      */
     private void propertiesElement(XNode context) throws Exception {
         if (context != null) {
+            // 获取 <property/>
             Properties defaults = context.getChildrenAsProperties();
+            // 支持通过 resource 或 url 字段指定外部配置文件
             String resource = context.getStringAttribute("resource");
             String url = context.getStringAttribute("url");
             if (resource != null && url != null) {
+                // 二者不允许同时存在
                 throw new BuilderException("The properties element cannot specify both a URL and a resource based property file reference.  Please specify one or the other.");
             }
             if (resource != null) {
@@ -253,6 +288,7 @@ public class XMLConfigBuilder extends BaseBuilder {
             } else if (url != null) {
                 defaults.putAll(Resources.getUrlAsProperties(url));
             }
+            // 合并已有配置
             Properties vars = configuration.getVariables();
             if (vars != null) {
                 defaults.putAll(vars);
