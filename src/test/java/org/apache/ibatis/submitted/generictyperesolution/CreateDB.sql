@@ -14,13 +14,13 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
+DROP TABLE users IF EXISTS;
 
-create table users (
-  id int identity,
-  name varchar(20),
-  fld1 int,
-  fld2 int
+CREATE TABLE users (
+    id   INT identity,
+    name VARCHAR(20),
+    fld1 INT,
+    fld2 INT
 );
 
-insert into users (id, name, fld1, fld2) values(1, 'User1', 12, 34);
+INSERT INTO users (id, name, fld1, fld2) VALUES (1, 'User1', 12, 34);

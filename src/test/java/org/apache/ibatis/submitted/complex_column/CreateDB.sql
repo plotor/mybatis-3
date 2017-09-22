@@ -14,13 +14,13 @@
 --    limitations under the License.
 --
 
-create table person (
-  id int,
-  firstName varchar(100),
-  lastName varchar(100),
-  parent_id int default null,
-  parent_firstName varchar(100) default null,
-  parent_lastName varchar(100) default null
+CREATE TABLE person (
+    id               INT,
+    firstName        VARCHAR(100),
+    lastName         VARCHAR(100),
+    parent_id        INT          DEFAULT NULL,
+    parent_firstName VARCHAR(100) DEFAULT NULL,
+    parent_lastName  VARCHAR(100) DEFAULT NULL
 );
 
 INSERT INTO person (id, firstName, lastName)

@@ -1,19 +1,23 @@
 /**
- *    Copyright 2009-2016 the original author or authors.
+ * Copyright 2009-2016 the original author or authors.
  *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 package org.apache.ibatis.submitted.custom_collection_handling;
+
+import org.apache.ibatis.reflection.ReflectionException;
+import org.apache.ibatis.reflection.factory.ObjectFactory;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
@@ -28,10 +32,12 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.ibatis.reflection.ReflectionException;
-import org.apache.ibatis.reflection.factory.ObjectFactory;
-
 public class CustomObjectFactory implements ObjectFactory {
+
+    @Override
+    public void setProperties(Properties properties) {
+        // no props for default
+    }
 
     @Override
     public <T> T create(Class<T> type) {
@@ -42,13 +48,13 @@ public class CustomObjectFactory implements ObjectFactory {
     public <T> T create(Class<T> type, List<Class<?>> constructorArgTypes, List<Object> constructorArgs) {
         Class<?> classToCreate = resolveInterface(type);
         @SuppressWarnings("unchecked") // we know types are assignable
-        T created = (T) instantiateClass(classToCreate, constructorArgTypes, constructorArgs);
+                T created = (T) instantiateClass(classToCreate, constructorArgTypes, constructorArgs);
         return created;
     }
 
     @Override
-    public void setProperties(Properties properties) {
-        // no props for default
+    public <T> boolean isCollection(Class<T> type) {
+        return CustomCollection.class.isAssignableFrom(type);
     }
 
     private <T> T instantiateClass(Class<T> type, List<Class<?>> constructorArgTypes, List<Object> constructorArgs) {
@@ -100,15 +106,10 @@ public class CustomObjectFactory implements ObjectFactory {
         }
         return classToCreate;
     }
-    
-    @Override
-    public <T> boolean isCollection(Class<T> type) {
-      return CustomCollection.class.isAssignableFrom(type);
-    }
 
     @SuppressWarnings("unchecked")
     public <T> T[] createArray(Class<T> type, int size) {
-      return (T[]) Array.newInstance(type, size);
+        return (T[]) Array.newInstance(type, size);
     }
 
 }

@@ -14,32 +14,32 @@
 --    limitations under the License.
 --
 
-DROP TABLE parent if exists;
-DROP TABLE child if exists;
-create table parent(
-	id integer, 
-	value varchar(20)
+DROP TABLE parent IF EXISTS;
+DROP TABLE child IF EXISTS;
+CREATE TABLE parent (
+    id    INTEGER,
+    value VARCHAR(20)
 );
 
-create table child(
-	id integer, 
-	value varchar(20)
+CREATE TABLE child (
+    id    INTEGER,
+    value VARCHAR(20)
 );
 
-create table parent_child(
-	idparent integer, 
-	idchild_from integer, 
-	idchild_to integer
+CREATE TABLE parent_child (
+    idparent     INTEGER,
+    idchild_from INTEGER,
+    idchild_to   INTEGER
 );
 
-insert into parent (id, value) values (1, 'parent1');
-insert into parent (id, value) values (2, 'parent2');
+INSERT INTO parent (id, value) VALUES (1, 'parent1');
+INSERT INTO parent (id, value) VALUES (2, 'parent2');
 
-insert into child (id, value) values (1, 'child1');
-insert into child (id, value) values (2, 'child2');
-insert into child (id, value) values (3, 'child3');
-insert into child (id, value) values (4, 'child4');
+INSERT INTO child (id, value) VALUES (1, 'child1');
+INSERT INTO child (id, value) VALUES (2, 'child2');
+INSERT INTO child (id, value) VALUES (3, 'child3');
+INSERT INTO child (id, value) VALUES (4, 'child4');
 
-insert into parent_child (idparent, idchild_from, idchild_to) values (1, 1, 2);
-insert into parent_child (idparent, idchild_from, idchild_to) values (2, 2, 3);
-insert into parent_child (idparent, idchild_from, idchild_to) values (2, 1, 2);
+INSERT INTO parent_child (idparent, idchild_from, idchild_to) VALUES (1, 1, 2);
+INSERT INTO parent_child (idparent, idchild_from, idchild_to) VALUES (2, 2, 3);
+INSERT INTO parent_child (idparent, idchild_from, idchild_to) VALUES (2, 1, 2);

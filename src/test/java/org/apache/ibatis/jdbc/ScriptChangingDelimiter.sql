@@ -14,13 +14,13 @@
 --    limitations under the License.
 --
 
-drop table signon;
+DROP TABLE signon;
 
---//@DELIMITER /
-create table signon (
-username varchar(25) not null,
-password varchar(25)  not null,
-constraint pk_signon primary key (username)
+--//@ DELIMITER /
+CREATE TABLE signon (
+    username VARCHAR(25) NOT NULL,
+    password VARCHAR(25) NOT NULL,
+    CONSTRAINT pk_signon PRIMARY KEY (username)
 )
-/
---//@DELIMITER ;
+    /
+    - - / / @ DELIMITER;

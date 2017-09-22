@@ -14,15 +14,22 @@
 --    limitations under the License.
 --
 
-drop table if exists person;
-create table person (person_id int, person_name varchar(32));
+DROP TABLE IF EXISTS person;
+CREATE TABLE person (
+    person_id   INT,
+    person_name VARCHAR(32)
+);
 
-drop table if exists pet;
-create table pet (pet_id int, owner_id int, pet_name varchar(32));
+DROP TABLE IF EXISTS pet;
+CREATE TABLE pet (
+    pet_id   INT,
+    owner_id INT,
+    pet_name VARCHAR(32)
+);
 
-insert into person (person_id, person_name) values (1, 'John');
-insert into person (person_id, person_name) values (2, 'Rebecca');
+INSERT INTO person (person_id, person_name) VALUES (1, 'John');
+INSERT INTO person (person_id, person_name) VALUES (2, 'Rebecca');
 
-insert into pet (pet_id, owner_id, pet_name) values (1, 1, 'Kotetsu');
-insert into pet (pet_id, owner_id, pet_name) values (2, 1, 'Chien');
-insert into pet (pet_id, owner_id, pet_name) values (3, 2, 'Ren');
+INSERT INTO pet (pet_id, owner_id, pet_name) VALUES (1, 1, 'Kotetsu');
+INSERT INTO pet (pet_id, owner_id, pet_name) VALUES (2, 1, 'Chien');
+INSERT INTO pet (pet_id, owner_id, pet_name) VALUES (3, 2, 'Ren');

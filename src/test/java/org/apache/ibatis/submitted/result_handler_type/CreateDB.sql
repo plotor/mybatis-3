@@ -14,8 +14,11 @@
 --    limitations under the License.
 --
 
-drop table if exists person;
-create table person (id int, name varchar(32));
+DROP TABLE IF EXISTS person;
+CREATE TABLE person (
+    id   INT,
+    name VARCHAR(32)
+);
 
-insert into person (id, name) values (1, 'John');
-insert into person (id, name) values (2, 'Rebecca');
+INSERT INTO person (id, name) VALUES (1, 'John');
+INSERT INTO person (id, name) VALUES (2, 'Rebecca');

@@ -14,17 +14,17 @@
 --    limitations under the License.
 --
 
-drop table names if exists;
+DROP TABLE names IF EXISTS;
 
-create table names (
-  ID int,
-  FIRST_NAME varchar(20),
-  LAST_NAME varchar(20)
+CREATE TABLE names (
+    ID         INT,
+    FIRST_NAME VARCHAR(20),
+    LAST_NAME  VARCHAR(20)
 );
 
-insert into names (ID, FIRST_NAME, LAST_NAME) values(1, 'Fred', 'Flintstone');
-insert into names (ID, FIRST_NAME, LAST_NAME) values(2, 'Wilma', 'Flintstone');
-insert into names (ID, FIRST_NAME, LAST_NAME) values(3, 'Pebbles', 'Flintstone');
-insert into names (ID, FIRST_NAME, LAST_NAME) values(4, 'Barney', 'Rubble');
-insert into names (ID, FIRST_NAME, LAST_NAME) values(5, 'Betty', 'Rubble');
-insert into names (ID, FIRST_NAME, LAST_NAME) values(6, 'Bamm Bamm', 'Rubble');
+INSERT INTO names (ID, FIRST_NAME, LAST_NAME) VALUES (1, 'Fred', 'Flintstone');
+INSERT INTO names (ID, FIRST_NAME, LAST_NAME) VALUES (2, 'Wilma', 'Flintstone');
+INSERT INTO names (ID, FIRST_NAME, LAST_NAME) VALUES (3, 'Pebbles', 'Flintstone');
+INSERT INTO names (ID, FIRST_NAME, LAST_NAME) VALUES (4, 'Barney', 'Rubble');
+INSERT INTO names (ID, FIRST_NAME, LAST_NAME) VALUES (5, 'Betty', 'Rubble');
+INSERT INTO names (ID, FIRST_NAME, LAST_NAME) VALUES (6, 'Bamm Bamm', 'Rubble');

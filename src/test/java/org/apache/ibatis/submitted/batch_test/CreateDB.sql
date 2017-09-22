@@ -14,22 +14,22 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
+DROP TABLE users IF EXISTS;
 
-create table users (
-  id int,
-  name varchar(20) ,
-  dept_id int
+CREATE TABLE users (
+    id      INT,
+    name    VARCHAR(20),
+    dept_id INT
 );
 
-insert into users (id, name,dept_id) values(1, 'User1',1);
+INSERT INTO users (id, name, dept_id) VALUES (1, 'User1', 1);
 
-drop table depts if exists;
+DROP TABLE depts IF EXISTS;
 
-create table depts (
-  id int,
-  name varchar(20)
+CREATE TABLE depts (
+    id   INT,
+    name VARCHAR(20)
 );
 
-insert into depts (id, name) values(1, 'Dept1');
+INSERT INTO depts (id, name) VALUES (1, 'Dept1');
 

@@ -14,18 +14,18 @@
 --    limitations under the License.
 --
 
-drop table user_profile if exists;
-drop table user_account if exists;
+DROP TABLE user_profile IF EXISTS;
+DROP TABLE user_account IF EXISTS;
 
-create table user_profile (
-  id int,
-  name varchar(20)
+CREATE TABLE user_profile (
+    id   INT,
+    name VARCHAR(20)
 );
 
-create table user_account (
-  id int,
-  name varchar(20)
+CREATE TABLE user_account (
+    id   INT,
+    name VARCHAR(20)
 );
 
-insert into user_profile (id, name) values(1, 'Profile1');
-insert into user_account (id, name) values(1, 'Account1');
+INSERT INTO user_profile (id, name) VALUES (1, 'Profile1');
+INSERT INTO user_account (id, name) VALUES (1, 'Account1');

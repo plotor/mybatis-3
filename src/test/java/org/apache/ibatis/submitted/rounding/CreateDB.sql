@@ -14,27 +14,27 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
-drop table users2 if exists;
+DROP TABLE users IF EXISTS;
+DROP TABLE users2 IF EXISTS;
 
-create table users (
-  id int,
-  name varchar(20),
-  funkyNumber decimal(38),
-  roundingMode int
+CREATE TABLE users (
+    id           INT,
+    name         VARCHAR(20),
+    funkyNumber  DECIMAL(38),
+    roundingMode INT
 );
 
-insert into users (id, name, funkyNumber, roundingMode) 
-values(1, 'User1', 123456789.9876543212345678987654321, 0);
+INSERT INTO users (id, name, funkyNumber, roundingMode)
+VALUES (1, 'User1', 123456789.9876543212345678987654321, 0);
 
 
-create table users2 (
-  id int,
-  name varchar(20),
-  funkyNumber decimal(38),
-  roundingMode varchar(12)
+CREATE TABLE users2 (
+    id           INT,
+    name         VARCHAR(20),
+    funkyNumber  DECIMAL(38),
+    roundingMode VARCHAR(12)
 );
 
-insert into users2 (id, name, funkyNumber, roundingMode) 
-values(1, 'User1', 123456789.9876543212345678987654321, 'UP');
+INSERT INTO users2 (id, name, funkyNumber, roundingMode)
+VALUES (1, 'User1', 123456789.9876543212345678987654321, 'UP');
 

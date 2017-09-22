@@ -14,10 +14,10 @@
 --    limitations under the License.
 --
 
-create table user (
-id int,
-username varchar(32) not null,
-password varchar(128) not null,
-administrator boolean,
-primary key (id)
+CREATE TABLE user (
+    id            INT,
+    username      VARCHAR(32)  NOT NULL,
+    password      VARCHAR(128) NOT NULL,
+    administrator BOOLEAN,
+    PRIMARY KEY (id)
 );

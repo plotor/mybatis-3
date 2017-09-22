@@ -17,7 +17,7 @@
 DROP TABLE country IF EXISTS;
 
 CREATE TABLE country (
-  Id int IDENTITY,
-  countryname varchar(255) DEFAULT NULL,
-  countrycode varchar(255) DEFAULT NULL,
+    Id          INT IDENTITY,
+    countryname VARCHAR(255) DEFAULT NULL,
+    countrycode VARCHAR(255) DEFAULT NULL,
 );

@@ -14,10 +14,10 @@
 --    limitations under the License.
 --
 
-drop table properties if exists;
+DROP TABLE properties IF EXISTS;
 
-create table properties (
-	item_id int, 
-	property_id int, 
-	value varchar(20)
+CREATE TABLE properties (
+    item_id     INT,
+    property_id INT,
+    value       VARCHAR(20)
 );

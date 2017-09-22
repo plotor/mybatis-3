@@ -14,14 +14,14 @@
 --    limitations under the License.
 --
 
-create table Child (
-  id int,
-  name varchar(100),
-  father_id int
+CREATE TABLE Child (
+    id        INT,
+    name      VARCHAR(100),
+    father_id INT
 );
-create table Father (
-  id int,
-  name varchar(100)
+CREATE TABLE Father (
+    id   INT,
+    name VARCHAR(100)
 );
 
 INSERT INTO Child (id, name, father_id)

@@ -14,15 +14,15 @@
 --    limitations under the License.
 --
 
-drop table permissions if exists;
+DROP TABLE permissions IF EXISTS;
 
-create table permissions (
-  resourceName varchar(20),
-  principalName varchar(20),
-  permission varchar(20)
+CREATE TABLE permissions (
+    resourceName  VARCHAR(20),
+    principalName VARCHAR(20),
+    permission    VARCHAR(20)
 );
 
-insert into permissions values ('resource1', 'user1', 'read');
-insert into permissions values ('resource1', 'user1', 'create');
-insert into permissions values ('resource2', 'user1', 'delete');
-insert into permissions values ('resource2', 'user1', 'update');
+INSERT INTO permissions VALUES ('resource1', 'user1', 'read');
+INSERT INTO permissions VALUES ('resource1', 'user1', 'create');
+INSERT INTO permissions VALUES ('resource2', 'user1', 'delete');
+INSERT INTO permissions VALUES ('resource2', 'user1', 'update');

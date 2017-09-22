@@ -14,42 +14,42 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
+DROP TABLE users IF EXISTS;
 
-drop table books if exists;
+DROP TABLE books IF EXISTS;
 
-create table users (
-  id int,
-  name varchar(20),
-  phone varchar(20),
-  phone_number bigint
+CREATE TABLE users (
+    id           INT,
+    name         VARCHAR(20),
+    phone        VARCHAR(20),
+    phone_number BIGINT
 );
 
-create table books (
-  version int,
-  name varchar(20)
+CREATE TABLE books (
+    version INT,
+    name    VARCHAR(20)
 );
 
-create table pets (
-  id int,
-  owner int,
-  breeder int,
-  name varchar(20)
+CREATE TABLE pets (
+    id      INT,
+    owner   INT,
+    breeder INT,
+    name    VARCHAR(20)
 );
 
-create table breeder (
-  id int,
-  name varchar(20)
+CREATE TABLE breeder (
+    id   INT,
+    name VARCHAR(20)
 );
 
 -- '+86 12345678901' can't be converted to a number
-insert into users (id, name, phone, phone_number) values(1, 'User1', '+86 12345678901', 12345678901);
-insert into users (id, name, phone, phone_number) values(2, 'User2', '+86 12345678902', 12345678902);
+INSERT INTO users (id, name, phone, phone_number) VALUES (1, 'User1', '+86 12345678901', 12345678901);
+INSERT INTO users (id, name, phone, phone_number) VALUES (2, 'User2', '+86 12345678902', 12345678902);
 
-insert into books (version, name) values(99, 'Learn Java');
+INSERT INTO books (version, name) VALUES (99, 'Learn Java');
 
-insert into pets (id, owner, breeder, name) values(11, 1, null, 'Ren');
-insert into pets (id, owner, breeder, name) values(12, 2, 101, 'Chien');
-insert into pets (id, owner, breeder, name) values(13, 2, null, 'Kotetsu');
+INSERT INTO pets (id, owner, breeder, name) VALUES (11, 1, NULL, 'Ren');
+INSERT INTO pets (id, owner, breeder, name) VALUES (12, 2, 101, 'Chien');
+INSERT INTO pets (id, owner, breeder, name) VALUES (13, 2, NULL, 'Kotetsu');
 
-insert into breeder (id, name) values(101, 'John');
+INSERT INTO breeder (id, name) VALUES (101, 'John');

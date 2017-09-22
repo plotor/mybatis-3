@@ -17,24 +17,24 @@
 
 -->
 <!DOCTYPE mapper
-    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="org.apache.ibatis.submitted.named_constructor_args.Mapper">
 
-  <resultMap type="org.apache.ibatis.submitted.named_constructor_args.User"
-    id="threeArgsConstructorRM">
-    <constructor>
-      <idArg column="id" name="id" />
-      <!-- As the type of the arg 'team' is different from -->
-      <!-- the property's type, javaType must be specified.  -->
-      <arg column="team" name="team" javaType="string" />
-      <arg column="name" name="name" />
-    </constructor>
-  </resultMap>
+    <resultMap type="org.apache.ibatis.submitted.named_constructor_args.User"
+               id="threeArgsConstructorRM">
+        <constructor>
+            <idArg column="id" name="id"/>
+            <!-- As the type of the arg 'team' is different from -->
+            <!-- the property's type, javaType must be specified.  -->
+            <arg column="team" name="team" javaType="string"/>
+            <arg column="name" name="name"/>
+        </constructor>
+    </resultMap>
 
-  <select id="mapConstructorWithParamAnnosXml" resultMap="threeArgsConstructorRM">
-    select * from users where id = #{id}
-  </select>
+    <select id="mapConstructorWithParamAnnosXml" resultMap="threeArgsConstructorRM">
+        select * from users where id = #{id}
+    </select>
 
 </mapper>

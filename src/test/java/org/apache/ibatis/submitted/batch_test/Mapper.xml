@@ -17,20 +17,20 @@
 
 -->
 <!DOCTYPE mapper
-    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="org.apache.ibatis.submitted.batch_test.Mapper">
     <resultMap id="userResultMap" type="org.apache.ibatis.submitted.batch_test.User">
-        <id property="id" column="id" />
-        <result property="name" column="name" />
-        <association property="dept" column="dept_id"  select="getDept"/>
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <association property="dept" column="dept_id" select="getDept"/>
     </resultMap>
-	<select id="getUser" resultMap="userResultMap">
-		select * from users where id = #{id}
-	</select>
+    <select id="getUser" resultMap="userResultMap">
+        select * from users where id = #{id}
+    </select>
 
-    <select id="getDept" resultType="org.apache.ibatis.submitted.batch_test.Dept" >
+    <select id="getDept" resultType="org.apache.ibatis.submitted.batch_test.Dept">
         select * from depts where id = #{id}
     </select>
 

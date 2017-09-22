@@ -14,13 +14,13 @@
 --    limitations under the License.
 --
 
-drop table car if exists;
+DROP TABLE car IF EXISTS;
 
-create table car (
-  name varchar(20),
-  doors int
+CREATE TABLE car (
+    name  VARCHAR(20),
+    doors INT
 );
 
-insert into car (name, doors) values('Audi', 4);
-insert into car (name, doors) values('Ford', 4);
-insert into car (name, doors) values('Fiat', 4);
+INSERT INTO car (name, doors) VALUES ('Audi', 4);
+INSERT INTO car (name, doors) VALUES ('Ford', 4);
+INSERT INTO car (name, doors) VALUES ('Fiat', 4);

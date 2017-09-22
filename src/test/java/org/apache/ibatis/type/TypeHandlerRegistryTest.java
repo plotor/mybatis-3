@@ -1,21 +1,29 @@
 /**
- *    Copyright 2009-2017 the original author or authors.
+ * Copyright 2009-2017 the original author or authors.
  *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 package org.apache.ibatis.type;
 
-import static org.junit.Assert.*;
+import org.apache.ibatis.domain.misc.RichType;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.net.URI;
 import java.sql.CallableStatement;
@@ -25,185 +33,191 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.ibatis.domain.misc.RichType;
-import org.junit.Before;
-import org.junit.Test;
-
 public class TypeHandlerRegistryTest {
 
-  private TypeHandlerRegistry typeHandlerRegistry;
+    private TypeHandlerRegistry typeHandlerRegistry;
 
-  @Before
-  public void setup() {
-    typeHandlerRegistry = new TypeHandlerRegistry();
-  }
-
-  @Test
-  public void shouldRegisterAndRetrieveTypeHandler() {
-    TypeHandler<String> stringTypeHandler = typeHandlerRegistry.getTypeHandler(String.class);
-    typeHandlerRegistry.register(String.class, JdbcType.LONGVARCHAR, stringTypeHandler);
-    assertEquals(stringTypeHandler, typeHandlerRegistry.getTypeHandler(String.class, JdbcType.LONGVARCHAR));
-
-    assertTrue(typeHandlerRegistry.hasTypeHandler(String.class));
-    assertFalse(typeHandlerRegistry.hasTypeHandler(RichType.class));
-    assertTrue(typeHandlerRegistry.hasTypeHandler(String.class, JdbcType.LONGVARCHAR));
-    assertTrue(typeHandlerRegistry.hasTypeHandler(String.class, JdbcType.INTEGER));
-    assertTrue(typeHandlerRegistry.getUnknownTypeHandler() instanceof UnknownTypeHandler);
-  }
-
-  @Test
-  public void shouldRegisterAndRetrieveComplexTypeHandler() {
-    TypeHandler<List<URI>> fakeHandler = new TypeHandler<List<URI>>() {
-
-    @Override
-    public void setParameter( PreparedStatement ps, int i, List<URI> parameter, JdbcType jdbcType )
-      throws SQLException {
-      // do nothing, fake method
+    @Before
+    public void setup() {
+        typeHandlerRegistry = new TypeHandlerRegistry();
     }
 
-    @Override
-    public List<URI> getResult( CallableStatement cs, int columnIndex )
-      throws SQLException {
-      // do nothing, fake method
-      return null;
+    @Test
+    public void shouldRegisterAndRetrieveTypeHandler() {
+        TypeHandler<String> stringTypeHandler = typeHandlerRegistry.getTypeHandler(String.class);
+        typeHandlerRegistry.register(String.class, JdbcType.LONGVARCHAR, stringTypeHandler);
+        assertEquals(stringTypeHandler, typeHandlerRegistry.getTypeHandler(String.class, JdbcType.LONGVARCHAR));
+
+        assertTrue(typeHandlerRegistry.hasTypeHandler(String.class));
+        assertFalse(typeHandlerRegistry.hasTypeHandler(RichType.class));
+        assertTrue(typeHandlerRegistry.hasTypeHandler(String.class, JdbcType.LONGVARCHAR));
+        assertTrue(typeHandlerRegistry.hasTypeHandler(String.class, JdbcType.INTEGER));
+        assertTrue(typeHandlerRegistry.getUnknownTypeHandler() instanceof UnknownTypeHandler);
     }
 
-    @Override
-    public List<URI> getResult( ResultSet rs, int columnIndex )
-      throws SQLException {
-      // do nothing, fake method
-      return null;
+    @Test
+    public void shouldRegisterAndRetrieveComplexTypeHandler() {
+        TypeHandler<List<URI>> fakeHandler = new TypeHandler<List<URI>>() {
+
+            @Override
+            public void setParameter(PreparedStatement ps, int i, List<URI> parameter, JdbcType jdbcType)
+                    throws SQLException {
+                // do nothing, fake method
+            }
+
+            @Override
+            public List<URI> getResult(ResultSet rs, String columnName)
+                    throws SQLException {
+                // do nothing, fake method
+                return null;
+            }
+
+            @Override
+            public List<URI> getResult(ResultSet rs, int columnIndex)
+                    throws SQLException {
+                // do nothing, fake method
+                return null;
+            }
+
+            @Override
+            public List<URI> getResult(CallableStatement cs, int columnIndex)
+                    throws SQLException {
+                // do nothing, fake method
+                return null;
+            }
+
+        };
+
+        TypeReference<List<URI>> type = new TypeReference<List<URI>>() {
+        };
+
+        typeHandlerRegistry.register(type, fakeHandler);
+        assertSame(fakeHandler, typeHandlerRegistry.getTypeHandler(type));
     }
 
-    @Override
-    public List<URI> getResult( ResultSet rs, String columnName )
-      throws SQLException {
-      // do nothing, fake method
-      return null;
+    @Test
+    public void shouldAutoRegisterAndRetrieveComplexTypeHandler() {
+        TypeHandler<List<URI>> fakeHandler = new BaseTypeHandler<List<URI>>() {
+
+            @Override
+            public void setNonNullParameter(PreparedStatement ps, int i, List<URI> parameter, JdbcType jdbcType)
+                    throws SQLException {
+                // do nothing, fake method
+            }
+
+            @Override
+            public List<URI> getNullableResult(ResultSet rs, String columnName)
+                    throws SQLException {
+                // do nothing, fake method
+                return null;
+            }
+
+            @Override
+            public List<URI> getNullableResult(ResultSet rs, int columnIndex)
+                    throws SQLException {
+                // do nothing, fake method
+                return null;
+            }
+
+            @Override
+            public List<URI> getNullableResult(CallableStatement cs, int columnIndex)
+                    throws SQLException {
+                // do nothing, fake method
+                return null;
+            }
+
+        };
+
+        typeHandlerRegistry.register(fakeHandler);
+
+        assertSame(fakeHandler, typeHandlerRegistry.getTypeHandler(new TypeReference<List<URI>>() {
+        }));
     }
 
-    };
-
-    TypeReference<List<URI>> type = new TypeReference<List<URI>>(){};
-
-    typeHandlerRegistry.register(type, fakeHandler);
-    assertSame(fakeHandler, typeHandlerRegistry.getTypeHandler(type));
-  }
-
-  @Test
-  public void shouldAutoRegisterAndRetrieveComplexTypeHandler() {
-    TypeHandler<List<URI>> fakeHandler = new BaseTypeHandler<List<URI>>() {
-
-      @Override
-      public void setNonNullParameter( PreparedStatement ps, int i, List<URI> parameter, JdbcType jdbcType )
-        throws SQLException {
-        // do nothing, fake method
-      }
-
-      @Override
-      public List<URI> getNullableResult( ResultSet rs, String columnName )
-        throws SQLException {
-        // do nothing, fake method
-        return null;
-      }
-
-      @Override
-      public List<URI> getNullableResult( ResultSet rs, int columnIndex )
-        throws SQLException {
-        // do nothing, fake method
-        return null;
-      }
-
-      @Override
-      public List<URI> getNullableResult( CallableStatement cs, int columnIndex )
-        throws SQLException {
-        // do nothing, fake method
-        return null;
-      }
-
-    };
-
-    typeHandlerRegistry.register(fakeHandler);
-
-    assertSame(fakeHandler, typeHandlerRegistry.getTypeHandler(new TypeReference<List<URI>>(){}));
-  }
-
-  @Test
-  public void shouldBindHandlersToWrapersAndPrimitivesIndividually() {
-    typeHandlerRegistry.register(Integer.class, DateTypeHandler.class);
-    assertSame(IntegerTypeHandler.class, typeHandlerRegistry.getTypeHandler(int.class).getClass());
-    typeHandlerRegistry.register(Integer.class, IntegerTypeHandler.class);
-    typeHandlerRegistry.register(int.class, DateTypeHandler.class);
-    assertSame(IntegerTypeHandler.class, typeHandlerRegistry.getTypeHandler(Integer.class).getClass());
-    typeHandlerRegistry.register(Integer.class, IntegerTypeHandler.class);
-  }
-
-  @Test
-  public void shouldReturnHandlerForSuperclassIfRegistered() {
-    class MyDate extends Date {
-      private static final long serialVersionUID = 1L;
+    @Test
+    public void shouldBindHandlersToWrapersAndPrimitivesIndividually() {
+        typeHandlerRegistry.register(Integer.class, DateTypeHandler.class);
+        assertSame(IntegerTypeHandler.class, typeHandlerRegistry.getTypeHandler(int.class).getClass());
+        typeHandlerRegistry.register(Integer.class, IntegerTypeHandler.class);
+        typeHandlerRegistry.register(int.class, DateTypeHandler.class);
+        assertSame(IntegerTypeHandler.class, typeHandlerRegistry.getTypeHandler(Integer.class).getClass());
+        typeHandlerRegistry.register(Integer.class, IntegerTypeHandler.class);
     }
-    assertEquals(DateTypeHandler.class, typeHandlerRegistry.getTypeHandler(MyDate.class).getClass());
-  }
 
-  @Test
-  public void shouldReturnHandlerForSuperSuperclassIfRegistered() {
-    class MyDate1 extends Date {
-      private static final long serialVersionUID = 1L;
+    @Test
+    public void shouldReturnHandlerForSuperclassIfRegistered() {
+        class MyDate extends Date {
+            private static final long serialVersionUID = 1L;
+        }
+        assertEquals(DateTypeHandler.class, typeHandlerRegistry.getTypeHandler(MyDate.class).getClass());
     }
-    class MyDate2 extends MyDate1 {
-      private static final long serialVersionUID = 1L;
-    }
-    assertEquals(DateTypeHandler.class, typeHandlerRegistry.getTypeHandler(MyDate2.class).getClass());
-  }
 
-  interface SomeInterface {
-  }
-  interface ExtendingSomeInterface extends SomeInterface {
-  }
-  interface NoTypeHandlerInterface {
-  }
-
-  enum SomeEnum implements SomeInterface {
-  }
-  enum ExtendingSomeEnum implements ExtendingSomeInterface {
-  }
-  enum ImplementingMultiInterfaceSomeEnum implements NoTypeHandlerInterface, ExtendingSomeInterface {
-  }
-  enum NoTypeHandlerInterfaceEnum implements NoTypeHandlerInterface {
-  }
-
-  class SomeClass implements SomeInterface {
-  }
-
-  @MappedTypes(SomeInterface.class)
-  public static class SomeInterfaceTypeHandler<E extends Enum<E> & SomeInterface> extends BaseTypeHandler<E> {
-    @Override
-    public void setNonNullParameter(PreparedStatement ps, int i, E parameter, JdbcType jdbcType)
-        throws SQLException {
+    @Test
+    public void shouldReturnHandlerForSuperSuperclassIfRegistered() {
+        class MyDate1 extends Date {
+            private static final long serialVersionUID = 1L;
+        }
+        class MyDate2 extends MyDate1 {
+            private static final long serialVersionUID = 1L;
+        }
+        assertEquals(DateTypeHandler.class, typeHandlerRegistry.getTypeHandler(MyDate2.class).getClass());
     }
-    @Override
-    public E getNullableResult(ResultSet rs, String columnName) throws SQLException {
-      return null;
-    }
-    @Override
-    public E getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
-      return null;
-    }
-    @Override
-    public E getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
-      return null;
-    }
-  }
 
-  @Test
-  public void demoTypeHandlerForSuperInterface() {
-    typeHandlerRegistry.register(SomeInterfaceTypeHandler.class);
-    assertNull("Registering interface works only for enums.", typeHandlerRegistry.getTypeHandler(SomeClass.class));
-    assertSame("When type handler for interface is not exist, apply default enum type handler.",
-      EnumTypeHandler.class, typeHandlerRegistry.getTypeHandler(NoTypeHandlerInterfaceEnum.class).getClass());
-    assertSame(SomeInterfaceTypeHandler.class, typeHandlerRegistry.getTypeHandler(SomeEnum.class).getClass());
-    assertSame(SomeInterfaceTypeHandler.class, typeHandlerRegistry.getTypeHandler(ExtendingSomeEnum.class).getClass());
-    assertSame(SomeInterfaceTypeHandler.class, typeHandlerRegistry.getTypeHandler(ImplementingMultiInterfaceSomeEnum.class).getClass());
-  }
+    @Test
+    public void demoTypeHandlerForSuperInterface() {
+        typeHandlerRegistry.register(SomeInterfaceTypeHandler.class);
+        assertNull("Registering interface works only for enums.", typeHandlerRegistry.getTypeHandler(SomeClass.class));
+        assertSame("When type handler for interface is not exist, apply default enum type handler.",
+                EnumTypeHandler.class, typeHandlerRegistry.getTypeHandler(NoTypeHandlerInterfaceEnum.class).getClass());
+        assertSame(SomeInterfaceTypeHandler.class, typeHandlerRegistry.getTypeHandler(SomeEnum.class).getClass());
+        assertSame(SomeInterfaceTypeHandler.class, typeHandlerRegistry.getTypeHandler(ExtendingSomeEnum.class).getClass());
+        assertSame(SomeInterfaceTypeHandler.class, typeHandlerRegistry.getTypeHandler(ImplementingMultiInterfaceSomeEnum.class).getClass());
+    }
+
+    enum SomeEnum implements SomeInterface {
+    }
+
+    enum ExtendingSomeEnum implements ExtendingSomeInterface {
+    }
+
+    enum ImplementingMultiInterfaceSomeEnum implements NoTypeHandlerInterface, ExtendingSomeInterface {
+    }
+
+    enum NoTypeHandlerInterfaceEnum implements NoTypeHandlerInterface {
+    }
+
+    interface SomeInterface {
+    }
+
+    interface ExtendingSomeInterface extends SomeInterface {
+    }
+
+    interface NoTypeHandlerInterface {
+    }
+
+    @MappedTypes(SomeInterface.class)
+    public static class SomeInterfaceTypeHandler<E extends Enum<E> & SomeInterface> extends BaseTypeHandler<E> {
+        @Override
+        public void setNonNullParameter(PreparedStatement ps, int i, E parameter, JdbcType jdbcType)
+                throws SQLException {
+        }
+
+        @Override
+        public E getNullableResult(ResultSet rs, String columnName) throws SQLException {
+            return null;
+        }
+
+        @Override
+        public E getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
+            return null;
+        }
+
+        @Override
+        public E getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
+            return null;
+        }
+    }
+
+    class SomeClass implements SomeInterface {
+    }
 }

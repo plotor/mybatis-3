@@ -14,18 +14,18 @@
 --    limitations under the License.
 --
 
-drop table person if exists;
-drop table country if exists;
+DROP TABLE person IF EXISTS;
+DROP TABLE country IF EXISTS;
 
-create table person(
-	id int IDENTITY,
-	name varchar(20)
+CREATE TABLE person (
+    id   INT IDENTITY,
+    name VARCHAR(20)
 );
 
-create table country(
-	id bigint IDENTITY,
-	name varchar(20)
+CREATE TABLE country (
+    id   BIGINT IDENTITY,
+    name VARCHAR(20)
 );
 
-insert into person (id, name) values (1, 'Jane'), (2, 'John'); 
-insert into country (id, name) values (1, 'Japan'), (2, 'New Zealand'); 
+INSERT INTO person (id, name) VALUES (1, 'Jane'), (2, 'John');
+INSERT INTO country (id, name) VALUES (1, 'Japan'), (2, 'New Zealand');

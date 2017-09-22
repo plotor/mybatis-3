@@ -15,10 +15,10 @@
 --
 
 -- WARNING: this file MUST be saved in UTF-8
-create table names (
-id int,
-firstName varchar(20),
-lastName varchar(20)
+CREATE TABLE names (
+    id        INT,
+    firstName VARCHAR(20),
+    lastName  VARCHAR(20)
 );
 
-insert into names (id, firstName, lastName) values(1, 'first', 'last');
+INSERT INTO names (id, firstName, lastName) VALUES (1, 'first', 'last');

@@ -17,18 +17,18 @@
 
 -->
 <!DOCTYPE mapper
-    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="org.apache.ibatis.submitted.cursor_simple.Mapper">
 
-	<select id="getAllUsers" resultMap="results" resultOrdered="true">
-		select * from users order by id
-	</select>
-	
-	<resultMap type="org.apache.ibatis.submitted.cursor_simple.User" id="results">
-		<id column="id" property="id"/>
-    <result property="name" column="name"/>
-	</resultMap>
+    <select id="getAllUsers" resultMap="results" resultOrdered="true">
+        select * from users order by id
+    </select>
+
+    <resultMap type="org.apache.ibatis.submitted.cursor_simple.User" id="results">
+        <id column="id" property="id"/>
+        <result property="name" column="name"/>
+    </resultMap>
 
 </mapper>

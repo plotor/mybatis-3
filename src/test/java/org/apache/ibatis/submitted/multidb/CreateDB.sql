@@ -14,16 +14,16 @@
 --    limitations under the License.
 --
 
-create table common (
-id int,
-name varchar(20)
+CREATE TABLE common (
+    id   INT,
+    name VARCHAR(20)
 );
 
-create table hsql (
-id int,
-name varchar(20)
+CREATE TABLE hsql (
+    id   INT,
+    name VARCHAR(20)
 );
 
-insert into common (id, name) values(1, 'common');
+INSERT INTO common (id, name) VALUES (1, 'common');
 
-insert into hsql (id, name) values(1, 'hsql');
+INSERT INTO hsql (id, name) VALUES (1, 'hsql');

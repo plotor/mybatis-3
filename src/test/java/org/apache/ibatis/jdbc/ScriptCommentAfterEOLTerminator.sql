@@ -14,4 +14,5 @@
 --    limitations under the License.
 --
 
-ALTER TABLE product ALTER COLUMN name varchar(80);       -- that should not make the ScriptRunner failing
+ALTER TABLE product
+    ALTER COLUMN name VARCHAR (80); -- that should not make the ScriptRunner failing

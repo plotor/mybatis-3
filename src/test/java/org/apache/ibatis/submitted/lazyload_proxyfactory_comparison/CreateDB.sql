@@ -14,20 +14,20 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
-drop table groups if exists;
-drop table categories if exists;
+DROP TABLE users IF EXISTS;
+DROP TABLE groups IF EXISTS;
+DROP TABLE categories IF EXISTS;
 
-create table users (
-  id int,
-  name varchar(20),
-  owner_id int
+CREATE TABLE users (
+    id       INT,
+    name     VARCHAR(20),
+    owner_id INT
 );
 
-create table groups (
-  id int,
-  name varchar(20)
+CREATE TABLE groups (
+    id   INT,
+    name VARCHAR(20)
 );
 
-insert into groups  (id, name) values(1, 'Group1');
-insert into users (id, name, owner_id) values(1, 'User1', 1);
+INSERT INTO groups (id, name) VALUES (1, 'Group1');
+INSERT INTO users (id, name, owner_id) VALUES (1, 'User1', 1);

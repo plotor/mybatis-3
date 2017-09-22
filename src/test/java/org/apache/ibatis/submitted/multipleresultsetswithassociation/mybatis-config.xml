@@ -17,16 +17,16 @@
 
 -->
 <!DOCTYPE configuration
-    PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
-    "http://mybatis.org/dtd/mybatis-3-config.dtd">
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
 
 <configuration>
 
     <settings>
         <setting name="cacheEnabled" value="true"/>
         <setting name="lazyLoadingEnabled" value="true"/>
-        <setting name="multipleResultSetsEnabled" value="true"/>	
-        <setting name="mapUnderscoreToCamelCase" value="true" />
+        <setting name="multipleResultSetsEnabled" value="true"/>
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
     </settings>
 
     <environments default="development">
@@ -41,7 +41,7 @@
     </environments>
 
     <mappers>
-        <mapper resource="org/apache/ibatis/submitted/multipleresultsetswithassociation/Mapper.xml" />
+        <mapper resource="org/apache/ibatis/submitted/multipleresultsetswithassociation/Mapper.xml"/>
     </mappers>
 
 </configuration>

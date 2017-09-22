@@ -14,13 +14,13 @@
 --    limitations under the License.
 --
 
-drop table SomeTable if exists;
+DROP TABLE SomeTable IF EXISTS;
 
-create table SomeTable (
-  id int,
-  field1 varchar(20),
-  field2 varchar(20),
-  field3 varchar(20)
+CREATE TABLE SomeTable (
+    id     INT,
+    field1 VARCHAR(20),
+    field2 VARCHAR(20),
+    field3 VARCHAR(20)
 );
 
-insert into SomeTable (id, field1, field2, field3) values(1, 'a', 'b', 'c');
+INSERT INTO SomeTable (id, field1, field2, field3) VALUES (1, 'a', 'b', 'c');

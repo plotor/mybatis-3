@@ -14,106 +14,106 @@
 --    limitations under the License.
 --
 
-drop table if exists person;
-create table person (
-id int,
-name varchar(32),
-billing_address_id int,
-shipping_address_id int,
-room_id int
+DROP TABLE IF EXISTS person;
+CREATE TABLE person (
+    id                  INT,
+    name                VARCHAR(32),
+    billing_address_id  INT,
+    shipping_address_id INT,
+    room_id             INT
 );
 
-drop table if exists address;
-create table address (
-id int,
-state varchar(32),
-city varchar(32),
-phone1_id int,
-phone2_id int,
-addr_type int,
-caution varchar(64)
+DROP TABLE IF EXISTS address;
+CREATE TABLE address (
+    id        INT,
+    state     VARCHAR(32),
+    city      VARCHAR(32),
+    phone1_id INT,
+    phone2_id INT,
+    addr_type INT,
+    caution   VARCHAR(64)
 );
 
-drop table if exists zip;
-create table zip (
-state varchar(32),
-city varchar(32),
-zip_code int
+DROP TABLE IF EXISTS zip;
+CREATE TABLE zip (
+    state    VARCHAR(32),
+    city     VARCHAR(32),
+    zip_code INT
 );
 
-drop table if exists phone;
-create table phone (
-id int,
-phone varchar(32),
-area_code varchar(2)
+DROP TABLE IF EXISTS phone;
+CREATE TABLE phone (
+    id        INT,
+    phone     VARCHAR(32),
+    area_code VARCHAR(2)
 );
 
-drop table if exists pet;
-create table pet (
-id int,
-owner_id int,
-name varchar(32),
-room_id int
+DROP TABLE IF EXISTS pet;
+CREATE TABLE pet (
+    id       INT,
+    owner_id INT,
+    name     VARCHAR(32),
+    room_id  INT
 );
 
-drop table if exists state_bird;
-create table state_bird (
-state varchar(32),
-bird varchar(32)
+DROP TABLE IF EXISTS state_bird;
+CREATE TABLE state_bird (
+    state VARCHAR(32),
+    bird  VARCHAR(32)
 );
 
-drop table if exists room;
-create table room (
-room_id int,
-room_name varchar(32)
+DROP TABLE IF EXISTS room;
+CREATE TABLE room (
+    room_id   INT,
+    room_name VARCHAR(32)
 );
 
-drop table if exists brand;
-create table brand (
-id int,
-name varchar(32)
+DROP TABLE IF EXISTS brand;
+CREATE TABLE brand (
+    id   INT,
+    name VARCHAR(32)
 );
 
 -- make columns case sensitive
-drop table if exists product;
-create table product (
-"product_id" int,
-"product_name" varchar(32),
-brand_id int
+DROP TABLE IF EXISTS product;
+CREATE TABLE product (
+    "product_id"   INT,
+    "product_name" VARCHAR(32),
+    brand_id       INT
 );
 
-insert into room (room_id, room_name) values (31, 'Sakura');
-insert into room (room_id, room_name) values (32, 'Ume');
-insert into room (room_id, room_name) values (33, 'Tsubaki');
+INSERT INTO room (room_id, room_name) VALUES (31, 'Sakura');
+INSERT INTO room (room_id, room_name) VALUES (32, 'Ume');
+INSERT INTO room (room_id, room_name) VALUES (33, 'Tsubaki');
 
-insert into pet (id, owner_id, name, room_id) values (100, 1, 'Kotetsu', 32);
-insert into pet (id, owner_id, name, room_id) values (101, 1, 'Chien', null);
-insert into pet (id, owner_id, name, room_id) values (102, 3, 'Dodo', 31);
+INSERT INTO pet (id, owner_id, name, room_id) VALUES (100, 1, 'Kotetsu', 32);
+INSERT INTO pet (id, owner_id, name, room_id) VALUES (101, 1, 'Chien', NULL);
+INSERT INTO pet (id, owner_id, name, room_id) VALUES (102, 3, 'Dodo', 31);
 
-insert into phone (id, phone, area_code) values (1000, '0123', '11');
-insert into phone (id, phone, area_code) values (1001, '4567', '33');
-insert into phone (id, phone, area_code) values (1002, '8888', '55');
-insert into phone (id, phone, area_code) values (1003, '9999', '77');
+INSERT INTO phone (id, phone, area_code) VALUES (1000, '0123', '11');
+INSERT INTO phone (id, phone, area_code) VALUES (1001, '4567', '33');
+INSERT INTO phone (id, phone, area_code) VALUES (1002, '8888', '55');
+INSERT INTO phone (id, phone, area_code) VALUES (1003, '9999', '77');
 
-insert into state_bird (state, bird) values ('IL', 'Cardinal');
-insert into state_bird (state, bird) values ('CA', 'California Valley Quail');
-insert into state_bird (state, bird) values ('TX', 'Mockingbird');
+INSERT INTO state_bird (state, bird) VALUES ('IL', 'Cardinal');
+INSERT INTO state_bird (state, bird) VALUES ('CA', 'California Valley Quail');
+INSERT INTO state_bird (state, bird) VALUES ('TX', 'Mockingbird');
 
-insert into zip (state, city, zip_code) values ('IL', 'Chicago', 81);
-insert into zip (state, city, zip_code) values ('CA', 'San Francisco', 82);
-insert into zip (state, city, zip_code) values ('CA', 'Los Angeles', 83);
-insert into zip (state, city, zip_code) values ('TX', 'Dallas', 84);
+INSERT INTO zip (state, city, zip_code) VALUES ('IL', 'Chicago', 81);
+INSERT INTO zip (state, city, zip_code) VALUES ('CA', 'San Francisco', 82);
+INSERT INTO zip (state, city, zip_code) VALUES ('CA', 'Los Angeles', 83);
+INSERT INTO zip (state, city, zip_code) VALUES ('TX', 'Dallas', 84);
 
-insert into address (id, state, city, phone1_id, phone2_id, addr_type, caution) values (10, 'IL', 'Chicago', 1000, 1001, 0, null);
-insert into address (id, state, city, phone1_id, phone2_id, addr_type, caution) values (11, 'CA', 'San Francisco', 1002, null, 1, 'Has a big dog.');
-insert into address (id, state, city, phone1_id, phone2_id, addr_type, caution) values (12, 'CA', 'Los Angeles', null, null, 1, 'No door bell.');
-insert into address (id, state, city, phone1_id, phone2_id, addr_type, caution) values (13, 'TX', 'Dallas', 1003, 1001, 0, null);
+INSERT INTO address (id, state, city, phone1_id, phone2_id, addr_type, caution) VALUES (10, 'IL', 'Chicago', 1000, 1001, 0, NULL);
+INSERT INTO address (id, state, city, phone1_id, phone2_id, addr_type, caution) VALUES (11, 'CA', 'San Francisco', 1002, NULL, 1, 'Has a big dog.');
+INSERT INTO address (id, state, city, phone1_id, phone2_id, addr_type, caution) VALUES (12, 'CA', 'Los Angeles', NULL, NULL, 1, 'No door bell.');
+INSERT INTO address (id, state, city, phone1_id, phone2_id, addr_type, caution) VALUES (13, 'TX', 'Dallas', 1003, 1001, 0, NULL);
 
-insert into person (id, name, billing_address_id, shipping_address_id, room_id) values (1, 'John', 10, 11, 33);
-insert into person (id, name, billing_address_id, shipping_address_id, room_id) values (2, 'Rebecca', 12, null, null);
-insert into person (id, name, billing_address_id, shipping_address_id, room_id) values (3, 'Keith', null, 13, null);
+INSERT INTO person (id, name, billing_address_id, shipping_address_id, room_id) VALUES (1, 'John', 10, 11, 33);
+INSERT INTO person (id, name, billing_address_id, shipping_address_id, room_id) VALUES (2, 'Rebecca', 12, NULL, NULL);
+INSERT INTO person (id, name, billing_address_id, shipping_address_id, room_id) VALUES (3, 'Keith', NULL, 13, NULL);
 
-insert into brand (id, name) values (1, 'alpha');
+INSERT INTO brand (id, name) VALUES (1, 'alpha');
 
-insert into product ("product_id", "product_name", brand_id) values (10, 'alpha', 1);
-insert into product ("product_id", "product_name", brand_id) values (20, 'beta', 1);
+INSERT INTO product ("product_id", "product_name", brand_id) VALUES (10, 'alpha', 1);
+INSERT INTO product ("product_id", "product_name", brand_id) VALUES (20, 'beta', 1);

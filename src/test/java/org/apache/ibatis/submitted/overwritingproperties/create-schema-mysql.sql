@@ -16,8 +16,8 @@
 
 CREATE TABLE FOO
 (
-field1 integer,
-field2 integer,
-field3 integer,
-field4 integer
+    field1 INTEGER,
+    field2 INTEGER,
+    field3 INTEGER,
+    field4 INTEGER
 );

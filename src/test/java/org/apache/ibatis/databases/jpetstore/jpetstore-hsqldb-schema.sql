@@ -14,171 +14,171 @@
 --    limitations under the License.
 --
 
-drop index productCat if exists;
-drop index productName if exists;
-drop index itemProd if exists;
+DROP INDEX productCat IF EXISTS;
+DROP INDEX productName IF EXISTS;
+DROP INDEX itemProd IF EXISTS;
 
-drop table lineitem if exists;
-drop table orderstatus if exists;
-drop table orders if exists;
-drop table bannerdata if exists;
-drop table profile if exists;
-drop table signon if exists;
-drop table inventory if exists;
-drop table item if exists;
-drop table product if exists;
-drop table account if exists;
-drop table category if exists;
-drop table supplier if exists;
-drop table sequence if exists;
+DROP TABLE lineitem IF EXISTS;
+DROP TABLE orderstatus IF EXISTS;
+DROP TABLE orders IF EXISTS;
+DROP TABLE bannerdata IF EXISTS;
+DROP TABLE profile IF EXISTS;
+DROP TABLE signon IF EXISTS;
+DROP TABLE inventory IF EXISTS;
+DROP TABLE item IF EXISTS;
+DROP TABLE product IF EXISTS;
+DROP TABLE account IF EXISTS;
+DROP TABLE category IF EXISTS;
+DROP TABLE supplier IF EXISTS;
+DROP TABLE sequence IF EXISTS;
 
-create table supplier (
-suppid int not null,
-name varchar(80) null,
-status varchar(2) not null,
-addr1 varchar(80) null,
-addr2 varchar(80) null,
-city varchar(80) null,
-state varchar(80) null,
-zip varchar(5) null,
-phone varchar(80) null,
-constraint pk_supplier primary key (suppid)
+CREATE TABLE supplier (
+    suppid INT         NOT NULL,
+    name   VARCHAR(80) NULL,
+    status VARCHAR(2)  NOT NULL,
+    addr1  VARCHAR(80) NULL,
+    addr2  VARCHAR(80) NULL,
+    city   VARCHAR(80) NULL,
+    state  VARCHAR(80) NULL,
+    zip    VARCHAR(5)  NULL,
+    phone  VARCHAR(80) NULL,
+    CONSTRAINT pk_supplier PRIMARY KEY (suppid)
 );
 
-create table signon (
-username varchar(25) not null,
-password varchar(25)  not null,
-constraint pk_signon primary key (username)
+CREATE TABLE signon (
+    username VARCHAR(25) NOT NULL,
+    password VARCHAR(25) NOT NULL,
+    CONSTRAINT pk_signon PRIMARY KEY (username)
 );
 
-create table account (
-userid varchar(80) not null,
-email varchar(80) not null,
-firstname varchar(80) not null,
-lastname varchar(80) not null,
-status varchar(2)  null,
-addr1 varchar(80) not null,
-addr2 varchar(40) null,
-city varchar(80) not  null,
-state varchar(80) not null,
-zip varchar(20) not null,
-country varchar(20) not null,
-phone varchar(80) not null,
-constraint pk_account primary key (userid)
+CREATE TABLE account (
+    userid    VARCHAR(80) NOT NULL,
+    email     VARCHAR(80) NOT NULL,
+    firstname VARCHAR(80) NOT NULL,
+    lastname  VARCHAR(80) NOT NULL,
+    status    VARCHAR(2)  NULL,
+    addr1     VARCHAR(80) NOT NULL,
+    addr2     VARCHAR(40) NULL,
+    city      VARCHAR(80) NOT NULL,
+    state     VARCHAR(80) NOT NULL,
+    zip       VARCHAR(20) NOT NULL,
+    country   VARCHAR(20) NOT NULL,
+    phone     VARCHAR(80) NOT NULL,
+    CONSTRAINT pk_account PRIMARY KEY (userid)
 );
 
-create table profile (
-userid varchar(80) not null,
-langpref varchar(80) not null,
-favcategory varchar(30),
-mylistopt int,
-banneropt int,
-constraint pk_profile primary key (userid)
+CREATE TABLE profile (
+    userid      VARCHAR(80) NOT NULL,
+    langpref    VARCHAR(80) NOT NULL,
+    favcategory VARCHAR(30),
+    mylistopt   INT,
+    banneropt   INT,
+    CONSTRAINT pk_profile PRIMARY KEY (userid)
 );
 
-create table bannerdata (
-favcategory varchar(80) not null,
-bannername varchar(255)  null,
-constraint pk_bannerdata primary key (favcategory)
+CREATE TABLE bannerdata (
+    favcategory VARCHAR(80)  NOT NULL,
+    bannername  VARCHAR(255) NULL,
+    CONSTRAINT pk_bannerdata PRIMARY KEY (favcategory)
 );
 
-create table orders (
-orderid int not null,
-userid varchar(80) not null,
-orderdate date not null,
-shipaddr1 varchar(80) not null,
-shipaddr2 varchar(80) null,
-shipcity varchar(80) not null,
-shipstate varchar(80) not null,
-shipzip varchar(20) not null,
-shipcountry varchar(20) not null,
-billaddr1 varchar(80) not null,
-billaddr2 varchar(80)  null,
-billcity varchar(80) not null,
-billstate varchar(80) not null,
-billzip varchar(20) not null,
-billcountry varchar(20) not null,
-courier varchar(80) not null,
-totalprice decimal(10,2) not null,
-billtofirstname varchar(80) not null,
-billtolastname varchar(80) not null,
-shiptofirstname varchar(80) not null,
-shiptolastname varchar(80) not null,
-creditcard varchar(80) not null,
-exprdate varchar(7) not null,
-cardtype varchar(80) not null,
-locale varchar(80) not null,
-constraint pk_orders primary key (orderid)
+CREATE TABLE orders (
+    orderid         INT            NOT NULL,
+    userid          VARCHAR(80)    NOT NULL,
+    orderdate       DATE           NOT NULL,
+    shipaddr1       VARCHAR(80)    NOT NULL,
+    shipaddr2       VARCHAR(80)    NULL,
+    shipcity        VARCHAR(80)    NOT NULL,
+    shipstate       VARCHAR(80)    NOT NULL,
+    shipzip         VARCHAR(20)    NOT NULL,
+    shipcountry     VARCHAR(20)    NOT NULL,
+    billaddr1       VARCHAR(80)    NOT NULL,
+    billaddr2       VARCHAR(80)    NULL,
+    billcity        VARCHAR(80)    NOT NULL,
+    billstate       VARCHAR(80)    NOT NULL,
+    billzip         VARCHAR(20)    NOT NULL,
+    billcountry     VARCHAR(20)    NOT NULL,
+    courier         VARCHAR(80)    NOT NULL,
+    totalprice      DECIMAL(10, 2) NOT NULL,
+    billtofirstname VARCHAR(80)    NOT NULL,
+    billtolastname  VARCHAR(80)    NOT NULL,
+    shiptofirstname VARCHAR(80)    NOT NULL,
+    shiptolastname  VARCHAR(80)    NOT NULL,
+    creditcard      VARCHAR(80)    NOT NULL,
+    exprdate        VARCHAR(7)     NOT NULL,
+    cardtype        VARCHAR(80)    NOT NULL,
+    locale          VARCHAR(80)    NOT NULL,
+    CONSTRAINT pk_orders PRIMARY KEY (orderid)
 );
 
-create table orderstatus (
-orderid int not null,
-linenum int not null,
-timestamp date not null,
-status varchar(2) not null,
-constraint pk_orderstatus primary key (orderid, linenum)
+CREATE TABLE orderstatus (
+    orderid   INT        NOT NULL,
+    linenum   INT        NOT NULL,
+    timestamp DATE       NOT NULL,
+    status    VARCHAR(2) NOT NULL,
+    CONSTRAINT pk_orderstatus PRIMARY KEY (orderid, linenum)
 );
 
-create table lineitem (
-orderid int not null,
-linenum int not null,
-itemid varchar(10) not null,
-quantity int not null,
-unitprice decimal(10,2) not null,
-constraint pk_lineitem primary key (orderid, linenum)
+CREATE TABLE lineitem (
+    orderid   INT            NOT NULL,
+    linenum   INT            NOT NULL,
+    itemid    VARCHAR(10)    NOT NULL,
+    quantity  INT            NOT NULL,
+    unitprice DECIMAL(10, 2) NOT NULL,
+    CONSTRAINT pk_lineitem PRIMARY KEY (orderid, linenum)
 );
 
-create table category (
-catid varchar(10) not null,
-name varchar(80) null,
-descn varchar(255) null,
-constraint pk_category primary key (catid)
+CREATE TABLE category (
+    catid VARCHAR(10)  NOT NULL,
+    name  VARCHAR(80)  NULL,
+    descn VARCHAR(255) NULL,
+    CONSTRAINT pk_category PRIMARY KEY (catid)
 );
 
-create table product (
-productid varchar(10) not null,
-category varchar(10) not null,
-name varchar(80) null,
-descn varchar(255) null,
-constraint pk_product primary key (productid),
-constraint fk_product_1 foreign key (category)
-references category (catid)
+CREATE TABLE product (
+    productid VARCHAR(10)  NOT NULL,
+    category  VARCHAR(10)  NOT NULL,
+    name      VARCHAR(80)  NULL,
+    descn     VARCHAR(255) NULL,
+    CONSTRAINT pk_product PRIMARY KEY (productid),
+    CONSTRAINT fk_product_1 FOREIGN KEY (category)
+    REFERENCES category (catid)
 );
 
-create index productCat on product (category);
-create index productName on product (name);
+CREATE INDEX productCat ON product (category);
+CREATE INDEX productName ON product (name);
 
-create table item (
-itemid varchar(10) not null,
-productid varchar(10) not null,
-listprice decimal(10,2) null,
-unitcost decimal(10,2) null,
-supplier int null,
-status varchar(2) null,
-attr1 varchar(80) null,
-attr2 varchar(80) null,
-attr3 varchar(80) null,
-attr4 varchar(80) null,
-attr5 varchar(80) null,
-constraint pk_item primary key (itemid),
-constraint fk_item_1 foreign key (productid)
-references product (productid),
-constraint fk_item_2 foreign key (supplier)
-references supplier (suppid)
+CREATE TABLE item (
+    itemid    VARCHAR(10)    NOT NULL,
+    productid VARCHAR(10)    NOT NULL,
+    listprice DECIMAL(10, 2) NULL,
+    unitcost  DECIMAL(10, 2) NULL,
+    supplier  INT            NULL,
+    status    VARCHAR(2)     NULL,
+    attr1     VARCHAR(80)    NULL,
+    attr2     VARCHAR(80)    NULL,
+    attr3     VARCHAR(80)    NULL,
+    attr4     VARCHAR(80)    NULL,
+    attr5     VARCHAR(80)    NULL,
+    CONSTRAINT pk_item PRIMARY KEY (itemid),
+    CONSTRAINT fk_item_1 FOREIGN KEY (productid)
+    REFERENCES product (productid),
+    CONSTRAINT fk_item_2 FOREIGN KEY (supplier)
+    REFERENCES supplier (suppid)
 );
 
-create index itemProd on item (productid);
+CREATE INDEX itemProd ON item (productid);
 
-create table inventory (
-itemid varchar(10) not null,
-qty int not null,
-constraint pk_inventory primary key (itemid)
+CREATE TABLE inventory (
+    itemid VARCHAR(10) NOT NULL,
+    qty    INT         NOT NULL,
+    CONSTRAINT pk_inventory PRIMARY KEY (itemid)
 );
 
 CREATE TABLE sequence
 (
-name               varchar(30)  not null,
-nextid             int          not null,
-constraint pk_sequence primary key (name)
+    name   VARCHAR(30) NOT NULL,
+    nextid INT         NOT NULL,
+    CONSTRAINT pk_sequence PRIMARY KEY (name)
 );
 

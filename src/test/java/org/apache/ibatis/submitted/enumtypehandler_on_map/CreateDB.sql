@@ -14,11 +14,11 @@
 --    limitations under the License.
 --
 
-create table person (
-  id int,
-  firstName varchar(100),
-  lastName varchar(100),
-  personType varchar(100) DEFAULT NULL
+CREATE TABLE person (
+    id         INT,
+    firstName  VARCHAR(100),
+    lastName   VARCHAR(100),
+    personType VARCHAR(100) DEFAULT NULL
 );
 
 INSERT INTO person (id, firstName, lastName, personType)

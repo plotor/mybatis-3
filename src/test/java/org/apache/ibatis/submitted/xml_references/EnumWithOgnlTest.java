@@ -1,22 +1,20 @@
 /**
- *    Copyright 2009-2017 the original author or authors.
+ * Copyright 2009-2017 the original author or authors.
  *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-package org.apache.ibatis.submitted.xml_references;
 
-import java.io.Reader;
-import java.util.Properties;
+package org.apache.ibatis.submitted.xml_references;
 
 import org.apache.ibatis.datasource.unpooled.UnpooledDataSourceFactory;
 import org.apache.ibatis.io.Resources;
@@ -28,8 +26,11 @@ import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import org.junit.Test;
 
+import java.io.Reader;
+import java.util.Properties;
+
 public class EnumWithOgnlTest {
-    
+
     @Test
     public void testConfiguration() {
         UnpooledDataSourceFactory dataSourceFactory = new UnpooledDataSourceFactory();
@@ -46,11 +47,12 @@ public class EnumWithOgnlTest {
         configuration.addMapper(PersonMapper2.class);
         new DefaultSqlSessionFactory(configuration);
     }
+
     @Test
     public void testMixedConfiguration() throws Exception {
-      Reader reader = Resources.getResourceAsReader("org/apache/ibatis/submitted/xml_references/ibatisConfig.xml");
-      SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);
-      sqlSessionFactory.getConfiguration().addMapper(PersonMapper2.class);
-      reader.close();
+        Reader reader = Resources.getResourceAsReader("org/apache/ibatis/submitted/xml_references/ibatisConfig.xml");
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);
+        sqlSessionFactory.getConfiguration().addMapper(PersonMapper2.class);
+        reader.close();
     }
 }

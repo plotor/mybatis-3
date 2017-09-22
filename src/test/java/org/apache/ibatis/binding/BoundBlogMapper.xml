@@ -23,12 +23,12 @@
 <mapper namespace="org.apache.ibatis.binding.BoundBlogMapper">
 
     <select id="selectRandom" resultType="int">
-    select CAST(RANDOM()*1000000 as INTEGER) a from SYSIBM.SYSDUMMY1
-  </select>
+        select CAST(RANDOM()*1000000 as INTEGER) a from SYSIBM.SYSDUMMY1
+    </select>
 
     <select id="selectBlogsFromXML" resultType="org.apache.ibatis.domain.blog.Blog">
-    SELECT * FROM blog
-  </select>
+        SELECT * FROM blog
+    </select>
 
     <resultMap id="blogWithPosts" type="Blog">
         <id property="id" column="id"/>
@@ -75,65 +75,65 @@
         </constructor>
     </resultMap>
 
-  <select id="selectBlogWithPostsUsingSubSelect" parameterType="int" resultMap="blogWithPosts">
-    select * from Blog where id = #{id}
-  </select>
+    <select id="selectBlogWithPostsUsingSubSelect" parameterType="int" resultMap="blogWithPosts">
+        select * from Blog where id = #{id}
+    </select>
 
-  <select id="selectAuthorWithInlineParams"
+    <select id="selectAuthorWithInlineParams"
             parameterType="int"
             resultType="org.apache.ibatis.domain.blog.Author">
-    select * from author where id = #{id}
-  </select>
+        select * from author where id = #{id}
+    </select>
 
-  <select id="selectPostsForBlog" parameterType="int" resultType="Post">
-    select * from Post where blog_id = #{blog_id}
-  </select>
+    <select id="selectPostsForBlog" parameterType="int" resultType="Post">
+        select * from Post where blog_id = #{blog_id}
+    </select>
 
-  <select id="selectBlogByIdUsingConstructor" parameterType="int" resultMap="blogUsingConstructor">
-    select * from Blog where id = #{id}
-  </select>
+    <select id="selectBlogByIdUsingConstructor" parameterType="int" resultMap="blogUsingConstructor">
+        select * from Blog where id = #{id}
+    </select>
 
     <select id="selectBlogUsingConstructorWithResultMap" parameterType="int"
             resultMap="blogUsingConstructorWithResultMap">
-      select b.*, 
-      	a.id as author_id, 
-      	a.username as author_username, 
-      	a.password as author_password, 
-      	a.email as author_email, 
-      	a.bio as author_bio, 
-      	a.favourite_section 
-      from Blog b join Author a 
-      on b.author_id = a.id 
-      where b.id = #{id}
+        select b.*,
+        a.id as author_id,
+        a.username as author_username,
+        a.password as author_password,
+        a.email as author_email,
+        a.bio as author_bio,
+        a.favourite_section
+        from Blog b join Author a
+        on b.author_id = a.id
+        where b.id = #{id}
     </select>
 
     <select id="selectBlogUsingConstructorWithResultMapAndProperties" parameterType="int"
             resultMap="blogUsingConstructorWithResultMapAndProperties">
-      select b.*, 
-      	a.id as author_id, 
-      	a.username as author_username, 
-      	a.password as author_password, 
-      	a.email as author_email, 
-      	a.bio as author_bio, 
-      	a.favourite_section 
-      from Blog b join Author a 
-      on b.author_id = a.id 
-      where b.id = #{id}
+        select b.*,
+        a.id as author_id,
+        a.username as author_username,
+        a.password as author_password,
+        a.email as author_email,
+        a.bio as author_bio,
+        a.favourite_section
+        from Blog b join Author a
+        on b.author_id = a.id
+        where b.id = #{id}
     </select>
-    
+
     <select id="selectBlogUsingConstructorWithResultMapCollection" parameterType="int"
             resultMap="blogUsingConstructorWithResultMapCollection">
-      select b.*, p.*,
-      	a.id as author_id, 
-      	a.username as author_username, 
-      	a.password as author_password, 
-      	a.email as author_email, 
-      	a.bio as author_bio, 
-      	a.favourite_section 
-      from Blog b 
-          join Author a on b.author_id = a.id
-          join Post p on b.id = p.blog_id 
-      where b.id = #{id}
+        select b.*, p.*,
+        a.id as author_id,
+        a.username as author_username,
+        a.password as author_password,
+        a.email as author_email,
+        a.bio as author_bio,
+        a.favourite_section
+        from Blog b
+        join Author a on b.author_id = a.id
+        join Post p on b.id = p.blog_id
+        where b.id = #{id}
     </select>
-    
+
 </mapper>

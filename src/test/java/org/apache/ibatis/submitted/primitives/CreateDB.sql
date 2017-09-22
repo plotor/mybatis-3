@@ -14,23 +14,23 @@
 --    limitations under the License.
 --
 
-drop table a if exists;
-drop table b if exists;
+DROP TABLE a IF EXISTS;
+DROP TABLE b IF EXISTS;
 
-create table a (
-  id int,
-  name varchar(20)
+CREATE TABLE a (
+    id   INT,
+    name VARCHAR(20)
 );
 
-create table b (
-  ref int,
-  entry int
+CREATE TABLE b (
+    ref   INT,
+    entry INT
 );
 
-insert into a (id, name) values(0, 'some');
-insert into a (id, name) values(1, 'other');
+INSERT INTO a (id, name) VALUES (0, 'some');
+INSERT INTO a (id, name) VALUES (1, 'other');
 
-insert into b (ref,entry) values (0, 1);
-insert into b (ref,entry) values (1, 2);
-insert into b (ref,entry) values (0, 3);
+INSERT INTO b (ref, entry) VALUES (0, 1);
+INSERT INTO b (ref, entry) VALUES (1, 2);
+INSERT INTO b (ref, entry) VALUES (0, 3);
 

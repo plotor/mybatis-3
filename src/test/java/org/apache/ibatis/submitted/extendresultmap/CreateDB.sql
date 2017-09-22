@@ -14,12 +14,12 @@
 --    limitations under the License.
 --
 
-drop table test if exists;
+DROP TABLE test IF EXISTS;
 
-create table test (
-	A VARCHAR(32) not null,
-	B VARCHAR(32) not null
+CREATE TABLE test (
+    A VARCHAR(32) NOT NULL,
+    B VARCHAR(32) NOT NULL
 );
 
-INSERT INTO test VALUES('A1', 'B1');
-INSERT INTO test VALUES('A2', 'B2');
+INSERT INTO test VALUES ('A1', 'B1');
+INSERT INTO test VALUES ('A2', 'B2');

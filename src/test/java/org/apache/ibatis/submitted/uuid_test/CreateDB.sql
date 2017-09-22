@@ -14,11 +14,11 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
+DROP TABLE users IF EXISTS;
 
-create table users (
-  id varchar(36),
-  name varchar(20)
+CREATE TABLE users (
+    id   VARCHAR(36),
+    name VARCHAR(20)
 );
 
-insert into users (id, name) values('38400000-8cf0-11bd-b23e-10b96e4ef00d', 'User1');
+INSERT INTO users (id, name) VALUES ('38400000-8cf0-11bd-b23e-10b96e4ef00d', 'User1');

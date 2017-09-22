@@ -14,25 +14,25 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
+DROP TABLE users IF EXISTS;
 
-create table Parent (
-  id int,
-  Name varchar(20),
-  SurName varchar(20)
+CREATE TABLE Parent (
+    id      INT,
+    Name    VARCHAR(20),
+    SurName VARCHAR(20)
 );
 
-create table Child (
-  id int,
-  Name varchar(20),
-  SurName varchar(20),
-  Age int,
-  ParentId varchar(20)
+CREATE TABLE Child (
+    id       INT,
+    Name     VARCHAR(20),
+    SurName  VARCHAR(20),
+    Age      INT,
+    ParentId VARCHAR(20)
 );
 
-insert into Parent values (1, 'Jose', 'Garcia');
-insert into Parent values (2, 'Juan', 'Perez');
+INSERT INTO Parent VALUES (1, 'Jose', 'Garcia');
+INSERT INTO Parent VALUES (2, 'Juan', 'Perez');
 
-insert into Child values (1, 'Ana', 'Garcia', 1, 1);
-insert into Child values (2, 'Rosa', 'Garcia', 4, 1);
+INSERT INTO Child VALUES (1, 'Ana', 'Garcia', 1, 1);
+INSERT INTO Child VALUES (2, 'Rosa', 'Garcia', 4, 1);
 

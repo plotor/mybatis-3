@@ -14,12 +14,12 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
+DROP TABLE users IF EXISTS;
 
-create table users (
-  id int,
-  name varchar(20),
-  unknownObject varchar(20)
+CREATE TABLE users (
+    id            INT,
+    name          VARCHAR(20),
+    unknownObject VARCHAR(20)
 );
 
-insert into users (id, name, unknownObject) values(1, 'User1', 'unknownObject');
+INSERT INTO users (id, name, unknownObject) VALUES (1, 'User1', 'unknownObject');

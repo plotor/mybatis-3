@@ -14,11 +14,11 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
+DROP TABLE users IF EXISTS;
 
-create table users (
-  id int,
-  color int
+CREATE TABLE users (
+    id    INT,
+    color INT
 );
 
-insert into users (id, color) values (1, 2);
+INSERT INTO users (id, color) VALUES (1, 2);

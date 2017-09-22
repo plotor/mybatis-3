@@ -14,20 +14,20 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
+DROP TABLE users IF EXISTS;
 
-create table users (
-  id int,
-  name varchar(20),
-  group_id int,
-  state varchar(20)
+CREATE TABLE users (
+    id       INT,
+    name     VARCHAR(20),
+    group_id INT,
+    state    VARCHAR(20)
 );
 
-create table groups (
-  id int,
-  state varchar(20)
+CREATE TABLE groups (
+    id    INT,
+    state VARCHAR(20)
 );
 
-insert into groups (id, state) values (1, 'active');
-insert into users (id, name, group_id, state) values (1, 'User1', 1, 'active');
-insert into users (id, name, group_id, state) values (2, 'User2', null, null);
+INSERT INTO groups (id, state) VALUES (1, 'active');
+INSERT INTO users (id, name, group_id, state) VALUES (1, 'User1', 1, 'active');
+INSERT INTO users (id, name, group_id, state) VALUES (2, 'User2', NULL, NULL);

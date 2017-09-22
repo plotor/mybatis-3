@@ -14,26 +14,26 @@
 --    limitations under the License.
 --
 
-drop table persons if exists;
-drop table items if exists;
+DROP TABLE persons IF EXISTS;
+DROP TABLE items IF EXISTS;
 
-create table persons (
-  id int,
-  name varchar(20)
+CREATE TABLE persons (
+    id   INT,
+    name VARCHAR(20)
 );
 
-create table items (
-  id int,
-  owner int,
-  name varchar(20)
+CREATE TABLE items (
+    id    INT,
+    owner INT,
+    name  VARCHAR(20)
 );
- 
-insert into persons (id, name) values (1, 'grandma');
-insert into persons (id, name) values (2, 'sister');
-insert into persons (id, name) values (3, 'brother');
 
-insert into items (id, owner, name) values (1, 1, 'book');
-insert into items (id, owner, name) values (2, 1, 'tv');
-insert into items (id, owner, name) values (3, 2, 'shoes');
-insert into items (id, owner, name) values (4, 3, 'car');
-insert into items (id, owner, name) values (5, 2, 'phone');
+INSERT INTO persons (id, name) VALUES (1, 'grandma');
+INSERT INTO persons (id, name) VALUES (2, 'sister');
+INSERT INTO persons (id, name) VALUES (3, 'brother');
+
+INSERT INTO items (id, owner, name) VALUES (1, 1, 'book');
+INSERT INTO items (id, owner, name) VALUES (2, 1, 'tv');
+INSERT INTO items (id, owner, name) VALUES (3, 2, 'shoes');
+INSERT INTO items (id, owner, name) VALUES (4, 3, 'car');
+INSERT INTO items (id, owner, name) VALUES (5, 2, 'phone');

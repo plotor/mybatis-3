@@ -18,22 +18,22 @@
 -->
 
 <!DOCTYPE mapper
-    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="org.apache.ibatis.submitted.include_property.DuplicatedIncludePropertiesMapper">
 
-  <sql id="colsSuffix">
-    col_${suffix}
-  </sql>
+    <sql id="colsSuffix">
+        col_${suffix}
+    </sql>
 
-  <select id="select" resultType="string">
-    select
-    <include refid="colsSuffix">
-      <property name="suffix" value="a" />
-      <property name="suffix" value="b" />
-    </include>
-    from table1
-  </select>
+    <select id="select" resultType="string">
+        select
+        <include refid="colsSuffix">
+            <property name="suffix" value="a"/>
+            <property name="suffix" value="b"/>
+        </include>
+        from table1
+    </select>
 
 </mapper>

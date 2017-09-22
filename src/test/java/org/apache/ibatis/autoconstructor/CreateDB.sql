@@ -18,11 +18,11 @@ DROP TABLE subject
 IF EXISTS;
 
 CREATE TABLE subject (
-  id     INT NOT NULL,
-  name   VARCHAR(20),
-  age    INT NOT NULL,
-  height INT,
-  weight INT
+    id     INT NOT NULL,
+    name   VARCHAR(20),
+    age    INT NOT NULL,
+    height INT,
+    weight INT
 );
 
 INSERT INTO subject (id, name, age, height, weight) VALUES (1, 'a', 10, 100, 45);

@@ -14,29 +14,29 @@
 --    limitations under the License.
 --
 
-drop table if exists contact;
-drop table if exists person;
-create table person (
-    id int, 
-    name varchar(32),
-    primary key (id)
+DROP TABLE IF EXISTS contact;
+DROP TABLE IF EXISTS person;
+CREATE TABLE person (
+    id   INT,
+    name VARCHAR(32),
+    PRIMARY KEY (id)
 );
 
-insert into person (id, name) values (1, 'John');
-insert into person (id, name) values (2, 'Rebecca');
+INSERT INTO person (id, name) VALUES (1, 'John');
+INSERT INTO person (id, name) VALUES (2, 'Rebecca');
 
-create table contact (
-    id int, 
-    address varchar(100), 
-    phone varchar(32), 
-    person_id int,
-    foreign key (person_id) references person(id)
+CREATE TABLE contact (
+    id        INT,
+    address   VARCHAR(100),
+    phone     VARCHAR(32),
+    person_id INT,
+    FOREIGN KEY (person_id) REFERENCES person (id)
 );
 
-insert into contact (id, address, phone, person_id)
-    values (1, '123 St. Devel', '555-555-555', 1);
-insert into contact (id, address, phone, person_id)
-    values (2, '3 Wall Street', '111-111-111', 1);
-insert into contact (id, address, phone, person_id)
-    values (3, 'White House', '000-999-888', 2);
+INSERT INTO contact (id, address, phone, person_id)
+VALUES (1, '123 St. Devel', '555-555-555', 1);
+INSERT INTO contact (id, address, phone, person_id)
+VALUES (2, '3 Wall Street', '111-111-111', 1);
+INSERT INTO contact (id, address, phone, person_id)
+VALUES (3, 'White House', '000-999-888', 2);
 

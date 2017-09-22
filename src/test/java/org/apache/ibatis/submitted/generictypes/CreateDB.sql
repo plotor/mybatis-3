@@ -14,13 +14,13 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
+DROP TABLE users IF EXISTS;
 
-create table groups (
-id int,
-owner varchar(16),
-members varchar(256)
+CREATE TABLE groups (
+    id      INT,
+    owner   VARCHAR(16),
+    members VARCHAR(256)
 );
 
-insert into groups values(1, 'Pocoyo', 'User1,User2,User3');
-insert into groups values(2, 'Valentina', 'User1,User2,User3');
+INSERT INTO groups VALUES (1, 'Pocoyo', 'User1,User2,User3');
+INSERT INTO groups VALUES (2, 'Valentina', 'User1,User2,User3');

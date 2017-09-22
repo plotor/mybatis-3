@@ -1,18 +1,19 @@
 /**
- *    Copyright 2009-2017 the original author or authors.
+ * Copyright 2009-2017 the original author or authors.
  *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 package org.apache.ibatis.submitted.association_nested;
 
 import org.apache.ibatis.io.Resources;
@@ -33,43 +34,42 @@ import java.util.List;
  */
 public class FolderMapperTest {
 
-  @Test
-  public void testFindWithChildren() throws Exception {
-    Connection conn = DriverManager.getConnection("jdbc:hsqldb:mem:association_nested", "SA", "");
-    Statement stmt = conn.createStatement();
-    stmt.execute("create table folder (id int, name varchar(100), parent_id int)");
+    @Test
+    public void testFindWithChildren() throws Exception {
+        Connection conn = DriverManager.getConnection("jdbc:hsqldb:mem:association_nested", "SA", "");
+        Statement stmt = conn.createStatement();
+        stmt.execute("create table folder (id int, name varchar(100), parent_id int)");
 
+        stmt.execute("insert into folder (id, name) values(1, 'Root')");
+        stmt.execute("insert into folder values(2, 'Folder 1', 1)");
+        stmt.execute("insert into folder values(3, 'Folder 2', 1)");
+        stmt.execute("insert into folder values(4, 'Folder 2_1', 3)");
+        stmt.execute("insert into folder values(5, 'Folder 2_2', 3)");
 
-    stmt.execute("insert into folder (id, name) values(1, 'Root')");
-    stmt.execute("insert into folder values(2, 'Folder 1', 1)");
-    stmt.execute("insert into folder values(3, 'Folder 2', 1)");
-    stmt.execute("insert into folder values(4, 'Folder 2_1', 3)");
-    stmt.execute("insert into folder values(5, 'Folder 2_2', 3)");
+        stmt.close();
+        conn.close();
 
-    stmt.close();
-    conn.close();
+        /**
+         * Root/
+         *    Folder 1/
+         *    Folder 2/
+         *      Folder 2_1
+         *      Folder 2_2
+         */
 
-    /**
-     * Root/
-     *    Folder 1/
-     *    Folder 2/
-     *      Folder 2_1
-     *      Folder 2_2
-     */
+        String resource = "org/apache/ibatis/submitted/association_nested/mybatis-config.xml";
+        InputStream inputStream = Resources.getResourceAsStream(resource);
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
 
-    String resource = "org/apache/ibatis/submitted/association_nested/mybatis-config.xml";
-    InputStream inputStream = Resources.getResourceAsStream(resource);
-    SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+        SqlSession session = sqlSessionFactory.openSession();
+        FolderMapper postMapper = session.getMapper(FolderMapper.class);
 
-    SqlSession session = sqlSessionFactory.openSession();
-    FolderMapper postMapper = session.getMapper(FolderMapper.class);
+        List<FolderFlatTree> folders = postMapper.findWithSubFolders("Root");
 
-    List<FolderFlatTree> folders = postMapper.findWithSubFolders("Root");
+        Assert.assertEquals(3, folders.size());
 
-    Assert.assertEquals(3, folders.size());
-
-    inputStream.close();
-    session.close();
-  }
+        inputStream.close();
+        session.close();
+    }
 
 }

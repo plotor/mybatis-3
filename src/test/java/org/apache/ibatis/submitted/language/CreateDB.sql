@@ -14,14 +14,14 @@
 --    limitations under the License.
 --
 
-create table names (
-  id int,
-  firstName varchar(20),
-  lastName varchar(20)
+CREATE TABLE names (
+    id        INT,
+    firstName VARCHAR(20),
+    lastName  VARCHAR(20)
 );
 
-insert into names (id, firstName, lastName) values(1, 'Fred', 'Flintstone');
-insert into names (id, firstName, lastName) values(2, 'Wilma', 'Flintstone');
-insert into names (id, firstName, lastName) values(3, 'Pebbles', 'Flintstone');
-insert into names (id, firstName, lastName) values(4, 'Barney', 'Rubble');
-insert into names (id, firstName, lastName) values(5, 'Betty', 'Rubble');
+INSERT INTO names (id, firstName, lastName) VALUES (1, 'Fred', 'Flintstone');
+INSERT INTO names (id, firstName, lastName) VALUES (2, 'Wilma', 'Flintstone');
+INSERT INTO names (id, firstName, lastName) VALUES (3, 'Pebbles', 'Flintstone');
+INSERT INTO names (id, firstName, lastName) VALUES (4, 'Barney', 'Rubble');
+INSERT INTO names (id, firstName, lastName) VALUES (5, 'Betty', 'Rubble');

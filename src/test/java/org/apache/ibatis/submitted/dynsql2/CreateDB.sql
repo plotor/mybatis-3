@@ -14,17 +14,17 @@
 --    limitations under the License.
 --
 
-create schema ibtest authorization dba;
+CREATE SCHEMA ibtest authorization dba;
 
-create table ibtest.names (
-id int,
-firstName varchar(20),
-lastName varchar(20)
+CREATE TABLE ibtest.names (
+    id        INT,
+    firstName VARCHAR(20),
+    lastName  VARCHAR(20)
 );
 
-insert into ibtest.names (id, firstName, lastName) values(1, 'Fred', 'Flintstone');
-insert into ibtest.names (id, firstName, lastName) values(2, 'Wilma', 'Flintstone');
-insert into ibtest.names (id, firstName, lastName) values(3, 'Pebbles', 'Flintstone');
-insert into ibtest.names (id, firstName, lastName) values(4, 'Barney', 'Rubble');
-insert into ibtest.names (id, firstName, lastName) values(5, 'Betty', 'Rubble');
-insert into ibtest.names (id, firstName, lastName) values(6, 'Bamm Bamm', 'Rubble');
+INSERT INTO ibtest.names (id, firstName, lastName) VALUES (1, 'Fred', 'Flintstone');
+INSERT INTO ibtest.names (id, firstName, lastName) VALUES (2, 'Wilma', 'Flintstone');
+INSERT INTO ibtest.names (id, firstName, lastName) VALUES (3, 'Pebbles', 'Flintstone');
+INSERT INTO ibtest.names (id, firstName, lastName) VALUES (4, 'Barney', 'Rubble');
+INSERT INTO ibtest.names (id, firstName, lastName) VALUES (5, 'Betty', 'Rubble');
+INSERT INTO ibtest.names (id, firstName, lastName) VALUES (6, 'Bamm Bamm', 'Rubble');

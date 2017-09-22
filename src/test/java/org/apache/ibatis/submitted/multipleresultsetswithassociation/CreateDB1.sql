@@ -14,22 +14,22 @@
 --    limitations under the License.
 --
 
-    DROP PROCEDURE GetOrderDetailsAndHeaders IF EXISTS;
-    DROP TABLE order_detail IF EXISTS;
-    DROP TABLE order_header IF EXISTS;
+DROP PROCEDURE GetOrderDetailsAndHeaders IF EXISTS;
+DROP TABLE order_detail IF EXISTS;
+DROP TABLE order_header IF EXISTS;
 
-    CREATE TABLE order_detail
-    (
-        order_id integer NOT NULL,
-        line_number integer NOT NULL,
-        quantity integer NOT NULL,
-        item_description varchar(50) NOT NULL,
-        PRIMARY KEY (order_id, line_number)
-    );
+CREATE TABLE order_detail
+(
+    order_id         INTEGER     NOT NULL,
+    line_number      INTEGER     NOT NULL,
+    quantity         INTEGER     NOT NULL,
+    item_description VARCHAR(50) NOT NULL,
+    PRIMARY KEY (order_id, line_number)
+);
 
-    CREATE TABLE order_header
-    (
-        order_id integer NOT NULL,
-        cust_name varchar(50) NOT NULL,
-        PRIMARY KEY (order_id)
-    );
+CREATE TABLE order_header
+(
+    order_id  INTEGER     NOT NULL,
+    cust_name VARCHAR(50) NOT NULL,
+    PRIMARY KEY (order_id)
+);

@@ -14,15 +14,15 @@
 --    limitations under the License.
 --
 
-create table person (
-id int,
-firstName varchar(100),
-lastName varchar(100),
-parent int DEFAULT NULL
+CREATE TABLE person (
+    id        INT,
+    firstName VARCHAR(100),
+    lastName  VARCHAR(100),
+    parent    INT DEFAULT NULL
 );
 
 INSERT INTO person (id, firstName, lastName, parent)
-VALUES (1, 'John sr.', 'Smith', null);
+VALUES (1, 'John sr.', 'Smith', NULL);
 INSERT INTO person (id, firstName, lastName, parent)
 VALUES (2, 'John', 'Smith', 1);
 INSERT INTO person (id, firstName, lastName, parent)

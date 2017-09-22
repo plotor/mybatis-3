@@ -14,21 +14,30 @@
 --    limitations under the License.
 --
 
-drop table if exists person;
-create table person (id int, nr_department int);
+DROP TABLE IF EXISTS person;
+CREATE TABLE person (
+    id            INT,
+    nr_department INT
+);
 
-insert into person (id,  nr_department) 
-values (1, 1);
+INSERT INTO person (id, nr_department)
+VALUES (1, 1);
 
-drop table if exists productattribute;
-create table productattribute (nr_id int);
+DROP TABLE IF EXISTS productattribute;
+CREATE TABLE productattribute (
+    nr_id INT
+);
 
-insert into productattribute(nr_id) 
-values (1);
+INSERT INTO productattribute (nr_id)
+VALUES (1);
 
-drop table if exists department;
-create table department (nr_id int,nr_attribute int,person int);
+DROP TABLE IF EXISTS department;
+CREATE TABLE department (
+    nr_id        INT,
+    nr_attribute INT,
+    person       INT
+);
 
-insert into department(nr_id,nr_attribute,person) 
-values (1,1,1);
+INSERT INTO department (nr_id, nr_attribute, person)
+VALUES (1, 1, 1);
 

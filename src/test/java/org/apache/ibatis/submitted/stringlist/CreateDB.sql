@@ -14,16 +14,16 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
+DROP TABLE users IF EXISTS;
 
-create table users (
-  id int,
-  name varchar(20),
-  group_id int,
-  rol_id int
+CREATE TABLE users (
+    id       INT,
+    name     VARCHAR(20),
+    group_id INT,
+    rol_id   INT
 );
 
-insert into users values(1, 'User1', 1, 1);
-insert into users values(1, 'User1', 1, 2);
-insert into users values(1, 'User1', 2, 1);
-insert into users values(1, 'User1', 2, 2);
+INSERT INTO users VALUES (1, 'User1', 1, 1);
+INSERT INTO users VALUES (1, 'User1', 1, 2);
+INSERT INTO users VALUES (1, 'User1', 2, 1);
+INSERT INTO users VALUES (1, 'User1', 2, 2);

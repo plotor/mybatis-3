@@ -1,18 +1,19 @@
 /**
- *    Copyright 2009-2016 the original author or authors.
+ * Copyright 2009-2016 the original author or authors.
  *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 package org.apache.ibatis.session;
 
 import org.apache.ibatis.BaseDataTest;
@@ -24,69 +25,20 @@ import org.apache.ibatis.transaction.TransactionFactory;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.log4j.varia.NullAppender;
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.sql.DataSource;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import javax.sql.DataSource;
 
 /**
  * Tests for specify the behavior when detects an unknown column (or unknown property type) of automatic mapping target.
  *
- * @since 3.4.0
  * @author Kazuki Shimizu
+ * @since 3.4.0
  */
 public class AutoMappingUnknownColumnBehaviorTest {
-
-    interface Mapper {
-        @Select({
-                "SELECT ",
-                "  ID,",
-                "  USERNAME as USERNAMEEEE,", // unknown column
-                "  PASSWORD,",
-                "  EMAIL,",
-                "  BIO",
-                "FROM AUTHOR WHERE ID = #{id}"})
-        Author selectAuthor(int id);
-
-        @Select({
-                "SELECT ",
-                "  ID,", // unknown property type
-                "  USERNAME",
-                "FROM AUTHOR WHERE ID = #{id}"})
-        SimpleAuthor selectSimpleAuthor(int id);
-    }
-
-    static class SimpleAuthor {
-        private AtomicInteger id; // unknown property type
-        private String username;
-
-        public AtomicInteger getId() {
-            return id;
-        }
-
-        public void setId(AtomicInteger id) {
-            this.id = id;
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-    }
-
-    public static class LastEventSavedAppender extends NullAppender {
-        private static LoggingEvent event;
-
-        public void doAppend(LoggingEvent event) {
-            LastEventSavedAppender.event = event;
-        }
-    }
 
     private static SqlSessionFactory sqlSessionFactory;
 
@@ -150,6 +102,54 @@ public class AutoMappingUnknownColumnBehaviorTest {
             session.close();
         }
 
+    }
+
+    interface Mapper {
+        @Select({
+                "SELECT ",
+                "  ID,",
+                "  USERNAME as USERNAMEEEE,", // unknown column
+                "  PASSWORD,",
+                "  EMAIL,",
+                "  BIO",
+                "FROM AUTHOR WHERE ID = #{id}"})
+        Author selectAuthor(int id);
+
+        @Select({
+                "SELECT ",
+                "  ID,", // unknown property type
+                "  USERNAME",
+                "FROM AUTHOR WHERE ID = #{id}"})
+        SimpleAuthor selectSimpleAuthor(int id);
+    }
+
+    static class SimpleAuthor {
+        private AtomicInteger id; // unknown property type
+        private String username;
+
+        public AtomicInteger getId() {
+            return id;
+        }
+
+        public void setId(AtomicInteger id) {
+            this.id = id;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+    }
+
+    public static class LastEventSavedAppender extends NullAppender {
+        private static LoggingEvent event;
+
+        public void doAppend(LoggingEvent event) {
+            LastEventSavedAppender.event = event;
+        }
     }
 
 }

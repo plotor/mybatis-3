@@ -17,17 +17,17 @@
 
 -->
 <!DOCTYPE mapper
-    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="org.apache.ibatis.submitted.keygen.CountryMapper" >
-  <insert id="insertList" parameterType="org.apache.ibatis.submitted.keygen.Country" useGeneratedKeys="true" keyProperty="id">
-      insert into country (countryname,countrycode)
-      values
-      <foreach collection="list" separator="," item="country">
-          (#{country.countryname},#{country.countrycode})
-      </foreach>
-  </insert>
-  <insert id="insertUndefineKeyProperty" parameterType="org.apache.ibatis.submitted.keygen.Country" useGeneratedKeys="true" keyProperty="country_id">
-      insert into country (countryname,countrycode) values (#{countryname},#{countrycode})
-  </insert>
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.apache.ibatis.submitted.keygen.CountryMapper">
+    <insert id="insertList" parameterType="org.apache.ibatis.submitted.keygen.Country" useGeneratedKeys="true" keyProperty="id">
+        insert into country (countryname,countrycode)
+        values
+        <foreach collection="list" separator="," item="country">
+            (#{country.countryname},#{country.countrycode})
+        </foreach>
+    </insert>
+    <insert id="insertUndefineKeyProperty" parameterType="org.apache.ibatis.submitted.keygen.Country" useGeneratedKeys="true" keyProperty="country_id">
+        insert into country (countryname,countrycode) values (#{countryname},#{countrycode})
+    </insert>
 </mapper>

@@ -14,43 +14,43 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
-drop table friend if exists;
+DROP TABLE users IF EXISTS;
+DROP TABLE friend IF EXISTS;
 
-create table users (
-  id int,
-  name varchar(20)
+CREATE TABLE users (
+    id   INT,
+    name VARCHAR(20)
 );
 
-create table friend (
-  user_id int,
-  friend_id int
+CREATE TABLE friend (
+    user_id   INT,
+    friend_id INT
 );
 
-insert into users (id, name) values
-(1, 'User1'), (2, 'User2'), (3, 'User3');
+INSERT INTO users (id, name) VALUES
+    (1, 'User1'), (2, 'User2'), (3, 'User3');
 
-insert into friend (user_id, friend_id) values
-(1, 2), (2, 2), (2, 3);
+INSERT INTO friend (user_id, friend_id) VALUES
+    (1, 2), (2, 2), (2, 3);
 
-drop table blog if exists;
-drop table author if exists;
+DROP TABLE blog IF EXISTS;
+DROP TABLE author IF EXISTS;
 
-create table blog (
-  id int,
-  title varchar(16),
-  author_id int,
-  co_author_id int
+CREATE TABLE blog (
+    id           INT,
+    title        VARCHAR(16),
+    author_id    INT,
+    co_author_id INT
 );
 
-create table author (
-  id int,
-  name varchar(16),
-  reputation int
+CREATE TABLE author (
+    id         INT,
+    name       VARCHAR(16),
+    reputation INT
 );
 
-insert into blog (id, title, author_id, co_author_id) values
-(1, 'Blog1', 1, 2), (2, 'Blog2', 2, 3);
+INSERT INTO blog (id, title, author_id, co_author_id) VALUES
+    (1, 'Blog1', 1, 2), (2, 'Blog2', 2, 3);
 
-insert into author (id, name, reputation) values
-(1, 'Author1', 1), (2, 'Author2', 2), (3, 'Author3', 3);
+INSERT INTO author (id, name, reputation) VALUES
+    (1, 'Author1', 1), (2, 'Author2', 2), (3, 'Author3', 3);

@@ -14,23 +14,23 @@
 --    limitations under the License.
 --
 
-drop table users if exists;
-drop table product if exists;
+DROP TABLE users IF EXISTS;
+DROP TABLE product IF EXISTS;
 
-create table users (
-  id int,
-  name varchar(20),
-  city varchar(20),
-  state char(20)
+CREATE TABLE users (
+    id    INT,
+    name  VARCHAR(20),
+    city  VARCHAR(20),
+    state CHAR(20)
 );
 
-create table product (
-  id int identity,
-  name varchar(20)
+CREATE TABLE product (
+    id   INT identity,
+    name VARCHAR(20)
 );
 
-insert into users (id, name, city, state) values(1, '   User1', '  Carmel  ', '  IN ');
+INSERT INTO users (id, name, city, state) VALUES (1, '   User1', '  Carmel  ', '  IN ');
 
-insert into product (id, name) values
-(1, 'iPod'),
-(2, 'iPad');
+INSERT INTO product (id, name) VALUES
+    (1, 'iPod'),
+    (2, 'iPad');

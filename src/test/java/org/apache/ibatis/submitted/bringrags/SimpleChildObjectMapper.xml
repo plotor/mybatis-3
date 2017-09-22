@@ -17,8 +17,8 @@
 
 -->
 <!DOCTYPE mapper
-    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="org.apache.ibatis.submitted.bringrags.SimpleChildObjectMapper">
 
@@ -30,16 +30,16 @@
 
     <resultMap id="SimpleChildObjectMap" type="org.apache.ibatis.submitted.bringrags.SimpleChildObject">
         <constructor>
-            <idArg column="sco_id" javaType="String" />
+            <idArg column="sco_id" javaType="String"/>
         </constructor>
-        <association property="parentSimpleObject" resultMap="SimpleObjectMap" />
+        <association property="parentSimpleObject" resultMap="SimpleObjectMap"/>
     </resultMap>
 
     <resultMap id="SimpleObjectMap" type="org.apache.ibatis.submitted.bringrags.SimpleObject">
         <constructor>
-            <idArg column="so_id" javaType="String" />
+            <idArg column="so_id" javaType="String"/>
         </constructor>
-        <collection property="simpleChildObjects" javaType="List" ofType="org.apache.ibatis.submitted.bringrags.SimpleChildObject" resultMap="SimpleChildObjectMap" />
+        <collection property="simpleChildObjects" javaType="List" ofType="org.apache.ibatis.submitted.bringrags.SimpleChildObject" resultMap="SimpleChildObjectMap"/>
     </resultMap>
 
 </mapper>

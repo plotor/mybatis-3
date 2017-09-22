@@ -14,24 +14,24 @@
 --    limitations under the License.
 --
 
-drop table car if exists;
-drop table part if exists;
+DROP TABLE car IF EXISTS;
+DROP TABLE part IF EXISTS;
 
-create table car (
-  car_id int,
-  name varchar(20)
+CREATE TABLE car (
+    car_id INT,
+    name   VARCHAR(20)
 );
 
-create table part (
-  part_id int,
-  name varchar(20),
-  car_id int
+CREATE TABLE part (
+    part_id INT,
+    name    VARCHAR(20),
+    car_id  INT
 );
 
-insert into car (car_id, name) values(1, 'Audi');
-insert into car (car_id, name) values(2, 'Ford');
-insert into car (car_id, name) values(3, 'Fiat');
+INSERT INTO car (car_id, name) VALUES (1, 'Audi');
+INSERT INTO car (car_id, name) VALUES (2, 'Ford');
+INSERT INTO car (car_id, name) VALUES (3, 'Fiat');
 
-insert into part (part_id, name, car_id) values(100, 'door', 1);
-insert into part (part_id, name, car_id) values(101, 'windshield', 1);
-insert into part (part_id, name, car_id) values(101, 'brakes', 1);
+INSERT INTO part (part_id, name, car_id) VALUES (100, 'door', 1);
+INSERT INTO part (part_id, name, car_id) VALUES (101, 'windshield', 1);
+INSERT INTO part (part_id, name, car_id) VALUES (101, 'brakes', 1);

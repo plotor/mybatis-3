@@ -14,14 +14,14 @@
 --    limitations under the License.
 --
 
-drop table table1 if exists;
+DROP TABLE table1 IF EXISTS;
 
-create table table1 (
-  id int,
-  a varchar(20),
-  col_a varchar(20),
-  col_b varchar(20),
-  col_c varchar(20)
+CREATE TABLE table1 (
+    id    INT,
+    a     VARCHAR(20),
+    col_a VARCHAR(20),
+    col_b VARCHAR(20),
+    col_c VARCHAR(20)
 );
 
-insert into table1 (id, a, col_a, col_b, col_c) values(1, 'a value', 'col_a value', 'col_b value', 'col_c value');
+INSERT INTO table1 (id, a, col_a, col_b, col_c) VALUES (1, 'a value', 'col_a value', 'col_b value', 'col_c value');
