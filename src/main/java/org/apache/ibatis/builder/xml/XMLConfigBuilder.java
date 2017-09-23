@@ -185,6 +185,12 @@ public class XMLConfigBuilder extends BaseBuilder {
         return props;
     }
 
+    /**
+     * 获取VFS实现
+     *
+     * @param props
+     * @throws ClassNotFoundException
+     */
     private void loadCustomVfs(Properties props) throws ClassNotFoundException {
         String value = props.getProperty("vfsImpl");
         if (value != null) {
@@ -199,20 +205,33 @@ public class XMLConfigBuilder extends BaseBuilder {
         }
     }
 
+    /**
+     * 解析 <typeAliases /> 配置
+     *
+     * @param parent
+     */
     private void typeAliasesElement(XNode parent) {
         if (parent != null) {
             for (XNode child : parent.getChildren()) {
                 if ("package".equals(child.getName())) {
+                    /*
+                     * 如果子节点是 <package name=""/>
+                     * 如果指定了一个包名，MyBatis 会在包名下面搜索需要的 Java Bean，并处理 @Alias 处理，
+                     * 在没有注解的情况下，会使用 Bean 的首字母小写的非限定类名来作为它的别名。
+                     */
                     String typeAliasPackage = child.getStringAttribute("name");
                     configuration.getTypeAliasRegistry().registerAliases(typeAliasPackage);
                 } else {
+                    /*如果子节点是 <typeAlias alias="" type=""/>*/
                     String alias = child.getStringAttribute("alias");
                     String type = child.getStringAttribute("type");
                     try {
                         Class<?> clazz = Resources.classForName(type);
                         if (alias == null) {
+                            // 先尝试获取 @Alias 注解，如果没有则使用类的 simple name
                             typeAliasRegistry.registerAlias(clazz);
                         } else {
+                            // 使用配置指定的 alias 进行注册
                             typeAliasRegistry.registerAlias(alias, clazz);
                         }
                     } catch (ClassNotFoundException e) {
@@ -223,10 +242,18 @@ public class XMLConfigBuilder extends BaseBuilder {
         }
     }
 
+    /**
+     * 解析 <plugins interceptor=""/> 配置
+     *
+     * @param parent
+     * @throws Exception
+     */
     private void pluginElement(XNode parent) throws Exception {
         if (parent != null) {
             for (XNode child : parent.getChildren()) {
+                // 获取 interceptor 属性
                 String interceptor = child.getStringAttribute("interceptor");
+                // 获取属性配置
                 Properties properties = child.getChildrenAsProperties();
                 Interceptor interceptorInstance = (Interceptor) resolveClass(interceptor).newInstance();
                 interceptorInstance.setProperties(properties);
@@ -235,6 +262,12 @@ public class XMLConfigBuilder extends BaseBuilder {
         }
     }
 
+    /**
+     * 解析 <objectFactory /> 配置
+     *
+     * @param context
+     * @throws Exception
+     */
     private void objectFactoryElement(XNode context) throws Exception {
         if (context != null) {
             String type = context.getStringAttribute("type");
@@ -298,6 +331,12 @@ public class XMLConfigBuilder extends BaseBuilder {
         }
     }
 
+    /**
+     * http://www.mybatis.org/mybatis-3/zh/configuration.html#settings
+     *
+     * @param props
+     * @throws Exception
+     */
     private void settingsElement(Properties props) throws Exception {
         configuration.setAutoMappingBehavior(AutoMappingBehavior.valueOf(props.getProperty("autoMappingBehavior", "PARTIAL")));
         configuration.setAutoMappingUnknownColumnBehavior(AutoMappingUnknownColumnBehavior.valueOf(props.getProperty("autoMappingUnknownColumnBehavior", "NONE")));
@@ -331,16 +370,23 @@ public class XMLConfigBuilder extends BaseBuilder {
         configuration.setConfigurationFactory(resolveClass(props.getProperty("configurationFactory")));
     }
 
+    /**
+     * 解析 <environments /> 配置，标记多套配置环境（开发、测试、生产）
+     *
+     * @param context
+     * @throws Exception
+     */
     private void environmentsElement(XNode context) throws Exception {
         if (context != null) {
             if (environment == null) {
+                // 未使用 <environment/> 指定使用的具体环境，则使用 default
                 environment = context.getStringAttribute("default");
             }
             for (XNode child : context.getChildren()) {
                 String id = child.getStringAttribute("id");
-                if (isSpecifiedEnvironment(id)) {
-                    TransactionFactory txFactory = transactionManagerElement(child.evalNode("transactionManager"));
-                    DataSourceFactory dsFactory = dataSourceElement(child.evalNode("dataSource"));
+                if (this.isSpecifiedEnvironment(id)) {
+                    TransactionFactory txFactory = this.transactionManagerElement(child.evalNode("transactionManager"));
+                    DataSourceFactory dsFactory = this.dataSourceElement(child.evalNode("dataSource"));
                     DataSource dataSource = dsFactory.getDataSource();
                     Environment.Builder environmentBuilder = new Environment.Builder(id)
                             .transactionFactory(txFactory)
@@ -351,13 +397,25 @@ public class XMLConfigBuilder extends BaseBuilder {
         }
     }
 
+    /**
+     * 解析 <databaseIdProvider/> 配置
+     *
+     * <databaseIdProvider type="DB_VENDOR">
+     * <property name="SQL Server" value="sqlserver"/>
+     * <property name="DB2" value="db2"/>
+     * <property name="Oracle" value="oracle" />
+     * </databaseIdProvider>
+     *
+     * @param context
+     * @throws Exception
+     */
     private void databaseIdProviderElement(XNode context) throws Exception {
         DatabaseIdProvider databaseIdProvider = null;
         if (context != null) {
             String type = context.getStringAttribute("type");
             // awful patch to keep backward compatibility
             if ("VENDOR".equals(type)) {
-                type = "DB_VENDOR";
+                type = "DB_VENDOR"; // 保持兼容
             }
             Properties properties = context.getChildrenAsProperties();
             databaseIdProvider = (DatabaseIdProvider) resolveClass(type).newInstance();
@@ -392,19 +450,27 @@ public class XMLConfigBuilder extends BaseBuilder {
         throw new BuilderException("Environment declaration requires a DataSourceFactory.");
     }
 
+    /**
+     * 解析 <typeHandlers /> 配置
+     *
+     * @param parent
+     * @throws Exception
+     */
     private void typeHandlerElement(XNode parent) throws Exception {
         if (parent != null) {
             for (XNode child : parent.getChildren()) {
                 if ("package".equals(child.getName())) {
+                    // 如果是 <package name=""> 配置
                     String typeHandlerPackage = child.getStringAttribute("name");
                     typeHandlerRegistry.register(typeHandlerPackage);
                 } else {
+                    // 如果是 <typeHandler javaType="" jdbcType="" handler=""> 配置
                     String javaTypeName = child.getStringAttribute("javaType");
                     String jdbcTypeName = child.getStringAttribute("jdbcType");
                     String handlerTypeName = child.getStringAttribute("handler");
-                    Class<?> javaTypeClass = resolveClass(javaTypeName);
-                    JdbcType jdbcType = resolveJdbcType(jdbcTypeName);
-                    Class<?> typeHandlerClass = resolveClass(handlerTypeName);
+                    Class<?> javaTypeClass = this.resolveClass(javaTypeName);
+                    JdbcType jdbcType = this.resolveJdbcType(jdbcTypeName);
+                    Class<?> typeHandlerClass = this.resolveClass(handlerTypeName);
                     if (javaTypeClass != null) {
                         if (jdbcType == null) {
                             typeHandlerRegistry.register(javaTypeClass, typeHandlerClass);
@@ -419,10 +485,22 @@ public class XMLConfigBuilder extends BaseBuilder {
         }
     }
 
+    /**
+     * 解析 <mappers /> 配置
+     *
+     * @param parent
+     * @throws Exception
+     */
     private void mapperElement(XNode parent) throws Exception {
         if (parent != null) {
             for (XNode child : parent.getChildren()) {
                 if ("package".equals(child.getName())) {
+                    /*
+                     * 配置了 package 属性，从指定包下面去寻找
+                     * <mappers>
+                     *      <package name="org.mybatis.builder"/>
+                     * </mappers>
+                     */
                     String mapperPackage = child.getStringAttribute("name");
                     configuration.addMappers(mapperPackage);
                 } else {
@@ -430,16 +508,40 @@ public class XMLConfigBuilder extends BaseBuilder {
                     String url = child.getStringAttribute("url");
                     String mapperClass = child.getStringAttribute("class");
                     if (resource != null && url == null && mapperClass == null) {
+                        /*
+                         * <!-- Using classpath relative resources -->
+                         * <mappers>
+                         *      <mapper resource="org/mybatis/builder/AuthorMapper.xml"/>
+                         *      <mapper resource="org/mybatis/builder/BlogMapper.xml"/>
+                         *      <mapper resource="org/mybatis/builder/PostMapper.xml"/>
+                         * </mappers>
+                         */
                         ErrorContext.instance().resource(resource);
                         InputStream inputStream = Resources.getResourceAsStream(resource);
                         XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
                         mapperParser.parse();
                     } else if (resource == null && url != null && mapperClass == null) {
+                        /*
+                         * <!-- Using url fully qualified paths -->
+                         * <mappers>
+                         *      <mapper url="file:///var/mappers/AuthorMapper.xml"/>
+                         *      <mapper url="file:///var/mappers/BlogMapper.xml"/>
+                         *      <mapper url="file:///var/mappers/PostMapper.xml"/>
+                         * </mappers>
+                         */
                         ErrorContext.instance().resource(url);
                         InputStream inputStream = Resources.getUrlAsStream(url);
                         XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url, configuration.getSqlFragments());
                         mapperParser.parse();
                     } else if (resource == null && url == null && mapperClass != null) {
+                        /*
+                         * <!-- Using mapper interface classes -->
+                         * <mappers>
+                         *      <mapper class="org.mybatis.builder.AuthorMapper"/>
+                         *      <mapper class="org.mybatis.builder.BlogMapper"/>
+                         *      <mapper class="org.mybatis.builder.PostMapper"/>
+                         * </mappers>
+                         */
                         Class<?> mapperInterface = Resources.classForName(mapperClass);
                         configuration.addMapper(mapperInterface);
                     } else {

@@ -120,7 +120,7 @@ public abstract class BaseBuilder {
             return null;
         }
         try {
-            return resolveAlias(alias);
+            return this.resolveAlias(alias);
         } catch (Exception e) {
             throw new BuilderException("Error resolving class. Cause: " + e, e);
         }

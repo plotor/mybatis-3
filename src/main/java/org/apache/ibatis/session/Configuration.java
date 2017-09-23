@@ -156,14 +156,19 @@ public class Configuration {
     protected final Map<String, XNode> sqlFragments = new StrictMap<XNode>("XML fragments parsed from previous mappers");
 
     protected final Collection<XMLStatementBuilder> incompleteStatements = new LinkedList<XMLStatementBuilder>();
+
+    /** 记录当前解析出现异常的 {@link CacheRefResolver} */
     protected final Collection<CacheRefResolver> incompleteCacheRefs = new LinkedList<CacheRefResolver>();
     protected final Collection<ResultMapResolver> incompleteResultMaps = new LinkedList<ResultMapResolver>();
     protected final Collection<MethodResolver> incompleteMethods = new LinkedList<MethodResolver>();
 
-    /*
+    /**
      * A map holds cache-ref relationship. The key is the namespace that
      * references a cache bound to another namespace and the value is the
      * namespace which the actual cache is bound to.
+     *
+     * key: <cache-ref/> 结点所在的 namespace
+     * value: <cache-ref /> 结点引用的 namespace
      */
     protected final Map<String, String> cacheRefMap = new HashMap<String, String>();
 
@@ -766,7 +771,7 @@ public class Configuration {
         cacheRefMap.put(namespace, referencedNamespace);
     }
 
-    /*
+    /**
      * Parses all the unprocessed statement nodes in the cache. It is recommended
      * to call this method once all the mappers are added as it provides fail-fast
      * statement validation.
@@ -798,7 +803,7 @@ public class Configuration {
         }
     }
 
-    /*
+    /**
      * Extracts namespace from fully qualified statement id.
      *
      * @param statementId
@@ -843,6 +848,11 @@ public class Configuration {
         }
     }
 
+    /**
+     * 相对于 {@link HashMap} 更加严格，比如当存在重复 key 时，直接抛出异常
+     *
+     * @param <V>
+     */
     protected static class StrictMap<V> extends HashMap<String, V> {
 
         private static final long serialVersionUID = -4950446264854982944L;
