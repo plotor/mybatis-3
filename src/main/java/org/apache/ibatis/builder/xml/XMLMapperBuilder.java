@@ -371,7 +371,8 @@ public class XMLMapperBuilder extends BaseBuilder {
         }
     }
 
-    private Discriminator processDiscriminatorElement(XNode context, Class<?> resultType, List<ResultMapping> resultMappings) throws Exception {
+    private Discriminator processDiscriminatorElement(XNode context, Class<?> resultType, List<ResultMapping> resultMappings)
+            throws Exception {
         String column = context.getStringAttribute("column");
         String javaType = context.getStringAttribute("javaType");
         String jdbcType = context.getStringAttribute("jdbcType");
@@ -439,17 +440,17 @@ public class XMLMapperBuilder extends BaseBuilder {
         String jdbcType = context.getStringAttribute("jdbcType");
         String nestedSelect = context.getStringAttribute("select");
         String nestedResultMap = context.getStringAttribute("resultMap",
-                processNestedResultMappings(context, Collections.<ResultMapping>emptyList()));
+                this.processNestedResultMappings(context, Collections.<ResultMapping>emptyList()));
         String notNullColumn = context.getStringAttribute("notNullColumn");
         String columnPrefix = context.getStringAttribute("columnPrefix");
         String typeHandler = context.getStringAttribute("typeHandler");
         String resultSet = context.getStringAttribute("resultSet");
         String foreignColumn = context.getStringAttribute("foreignColumn");
         boolean lazy = "lazy".equals(context.getStringAttribute("fetchType", configuration.isLazyLoadingEnabled() ? "lazy" : "eager"));
-        Class<?> javaTypeClass = resolveClass(javaType);
+        Class<?> javaTypeClass = this.resolveClass(javaType);
         @SuppressWarnings("unchecked")
         Class<? extends TypeHandler<?>> typeHandlerClass = (Class<? extends TypeHandler<?>>) resolveClass(typeHandler);
-        JdbcType jdbcTypeEnum = resolveJdbcType(jdbcType);
+        JdbcType jdbcTypeEnum = this.resolveJdbcType(jdbcType);
         return builderAssistant.buildResultMapping(resultType, property, column, javaTypeClass, jdbcTypeEnum, nestedSelect, nestedResultMap, notNullColumn, columnPrefix, typeHandlerClass, flags, resultSet, foreignColumn, lazy);
     }
 

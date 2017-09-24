@@ -201,8 +201,9 @@ public class MapperBuilderAssistant extends BaseBuilder {
             Discriminator discriminator,
             List<ResultMapping> resultMappings,
             Boolean autoMapping) {
-        id = applyCurrentNamespace(id, false);
-        extend = applyCurrentNamespace(extend, true);
+        // namespace.id
+        id = this.applyCurrentNamespace(id, false);
+        extend = this.applyCurrentNamespace(extend, true);
 
         if (extend != null) {
             if (!configuration.hasResultMap(extend)) {
@@ -379,6 +380,25 @@ public class MapperBuilderAssistant extends BaseBuilder {
         return resultMaps;
     }
 
+    /**
+     * 创建对应的 {@link ResultMapping} 对象
+     *
+     * @param resultType
+     * @param property
+     * @param column
+     * @param javaType
+     * @param jdbcType
+     * @param nestedSelect
+     * @param nestedResultMap
+     * @param notNullColumn
+     * @param columnPrefix
+     * @param typeHandler
+     * @param flags
+     * @param resultSet
+     * @param foreignColumn
+     * @param lazy
+     * @return
+     */
     public ResultMapping buildResultMapping(
             Class<?> resultType,
             String property,
@@ -394,7 +414,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
             String resultSet,
             String foreignColumn,
             boolean lazy) {
-        Class<?> javaTypeClass = resolveResultJavaType(resultType, property, javaType);
+        Class<?> javaTypeClass = this.resolveResultJavaType(resultType, property, javaType);
         TypeHandler<?> typeHandlerInstance = resolveTypeHandler(javaTypeClass, typeHandler);
         List<ResultMapping> composites = parseCompositeColumnName(column);
         return new ResultMapping.Builder(configuration, property, column, javaTypeClass)
