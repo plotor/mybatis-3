@@ -122,24 +122,26 @@ public class MapperAnnotationBuilder {
     public void parse() {
         String resource = type.toString();
         if (!configuration.isResourceLoaded(resource)) {
-            loadXmlResource();
+            this.loadXmlResource();
             configuration.addLoadedResource(resource);
             assistant.setCurrentNamespace(type.getName());
-            parseCache();
-            parseCacheRef();
+            this.parseCache(); // 解析 @CacheNamespace
+            this.parseCacheRef(); // 解析 @CacheNamespaceRef
             Method[] methods = type.getMethods();
             for (Method method : methods) {
                 try {
                     // issue #237
                     if (!method.isBridge()) {
-                        parseStatement(method);
+                        // 解析 @SelectKey， @ResultMap
+                        this.parseStatement(method);
                     }
                 } catch (IncompleteElementException e) {
+                    // 记录解析异常的方法，后续处理
                     configuration.addIncompleteMethod(new MethodResolver(this, method));
                 }
             }
         }
-        parsePendingMethods();
+        this.parsePendingMethods();
     }
 
     private void parsePendingMethods() {

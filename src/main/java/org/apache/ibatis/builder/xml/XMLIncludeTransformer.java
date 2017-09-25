@@ -63,30 +63,42 @@ public class XMLIncludeTransformer {
      * @param variablesContext Current context for static variables with values
      */
     private void applyIncludes(Node source, final Properties variablesContext, boolean included) {
-        if (source.getNodeName().equals("include")) {
-            Node toInclude = findSqlFragment(getStringAttribute(source, "refid"), variablesContext);
-            Properties toIncludeContext = getVariablesContext(source, variablesContext);
-            applyIncludes(toInclude, toIncludeContext, true);
+        if (source.getNodeName().equals("include")) { // 如果是 <include /> 子节点
+            // 查找 refid 属性指向的 <sql/> 节点， 返回节点的 Node 对象（深拷贝）
+            Node toInclude = this.findSqlFragment(this.getStringAttribute(source, "refid"), variablesContext);
+            // 获取 <include/> 下的 <property/> 属性，封装进 variablesContext 返回
+            Properties toIncludeContext = this.getVariablesContext(source, variablesContext);
+            // 递归处理
+            this.applyIncludes(toInclude, toIncludeContext, true);
             if (toInclude.getOwnerDocument() != source.getOwnerDocument()) {
                 toInclude = source.getOwnerDocument().importNode(toInclude, true);
             }
+            // 替换 <include/> 节点为 <sql/> 节点
             source.getParentNode().replaceChild(toInclude, source);
             while (toInclude.hasChildNodes()) {
+                // 将 <sql/> 的子节点添加到 <sql/> 节点的前面
                 toInclude.getParentNode().insertBefore(toInclude.getFirstChild(), toInclude);
             }
+            // 删除 <sql/> 节点
             toInclude.getParentNode().removeChild(toInclude);
         } else if (source.getNodeType() == Node.ELEMENT_NODE) {
+            // 遍历处理当前 SQL 语句的子节点
             NodeList children = source.getChildNodes();
             for (int i = 0; i < children.getLength(); i++) {
-                applyIncludes(children.item(i), variablesContext, included);
+                this.applyIncludes(children.item(i), variablesContext, included);
             }
-        } else if (included && source.getNodeType() == Node.TEXT_NODE
-                && !variablesContext.isEmpty()) {
-            // replace variables ins all text nodes
+        } else if (included && source.getNodeType() == Node.TEXT_NODE && !variablesContext.isEmpty()) {
+            // 替换占位符为对应的变量
             source.setNodeValue(PropertyParser.parse(source.getNodeValue(), variablesContext));
         }
     }
 
+    /**
+     *
+     * @param refid
+     * @param variables
+     * @return
+     */
     private Node findSqlFragment(String refid, Properties variables) {
         refid = PropertyParser.parse(refid, variables);
         refid = builderAssistant.applyCurrentNamespace(refid, true);
