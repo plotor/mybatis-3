@@ -30,12 +30,17 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ * 表示配置文件中定义的 SQL 节点
+ *
  * @author Clinton Begin
  */
 public final class MappedStatement {
 
+    /** 节点中的 id 属性（包括命名空间前缀） */
     private String resource;
+
     private Configuration configuration;
+
     private String id;
     private Integer fetchSize;
     private Integer timeout;

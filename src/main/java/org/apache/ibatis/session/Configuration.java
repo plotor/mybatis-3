@@ -723,7 +723,7 @@ public class Configuration {
 
     public MappedStatement getMappedStatement(String id, boolean validateIncompleteStatements) {
         if (validateIncompleteStatements) {
-            buildAllStatements();
+            this.buildAllStatements();
         }
         return mappedStatements.get(id);
     }
@@ -762,7 +762,7 @@ public class Configuration {
 
     public boolean hasStatement(String statementName, boolean validateIncompleteStatements) {
         if (validateIncompleteStatements) {
-            buildAllStatements();
+            this.buildAllStatements();
         }
         return mappedStatements.containsKey(statementName);
     }
