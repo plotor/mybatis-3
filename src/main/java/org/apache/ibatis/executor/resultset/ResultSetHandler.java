@@ -1,18 +1,19 @@
 /**
- *    Copyright 2009-2015 the original author or authors.
+ * Copyright 2009-2015 the original author or authors.
  *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 package org.apache.ibatis.executor.resultset;
 
 import org.apache.ibatis.cursor.Cursor;
@@ -27,10 +28,32 @@ import java.util.List;
  */
 public interface ResultSetHandler {
 
-  <E> List<E> handleResultSets(Statement stmt) throws SQLException;
+    /**
+     * 处理结果集，返回结果对象集合
+     *
+     * @param stmt
+     * @param <E>
+     * @return
+     * @throws SQLException
+     */
+    <E> List<E> handleResultSets(Statement stmt) throws SQLException;
 
-  <E> Cursor<E> handleCursorResultSets(Statement stmt) throws SQLException;
+    /**
+     * 处理结果集，返回对应的游标对象
+     *
+     * @param stmt
+     * @param <E>
+     * @return
+     * @throws SQLException
+     */
+    <E> Cursor<E> handleCursorResultSets(Statement stmt) throws SQLException;
 
-  void handleOutputParameters(CallableStatement cs) throws SQLException;
+    /**
+     * 处理存储过程中的输出参数
+     *
+     * @param cs
+     * @throws SQLException
+     */
+    void handleOutputParameters(CallableStatement cs) throws SQLException;
 
 }

@@ -22,12 +22,30 @@ import org.apache.ibatis.mapping.MappedStatement;
 import java.sql.Statement;
 
 /**
+ * 获取插入过程中生成的自增主键
+ *
  * @author Clinton Begin
  */
 public interface KeyGenerator {
 
+    /**
+     * 在 insert 之前执行， order=BEFORE
+     *
+     * @param executor
+     * @param ms
+     * @param stmt
+     * @param parameter
+     */
     void processBefore(Executor executor, MappedStatement ms, Statement stmt, Object parameter);
 
+    /**
+     * 在 insert 之后执行， order=AFTER
+     *
+     * @param executor
+     * @param ms
+     * @param stmt
+     * @param parameter
+     */
     void processAfter(Executor executor, MappedStatement ms, Statement stmt, Object parameter);
 
 }
