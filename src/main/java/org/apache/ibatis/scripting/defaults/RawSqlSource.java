@@ -30,6 +30,8 @@ import java.util.HashMap;
  * Static SqlSource. It is faster than {@link DynamicSqlSource} because mappings are
  * calculated during startup.
  *
+ * 处理静态SQL
+ *
  * @author Eduardo Macarron
  * @since 3.2.0
  */
@@ -47,6 +49,13 @@ public class RawSqlSource implements SqlSource {
         sqlSource = sqlSourceParser.parse(sql, clazz, new HashMap<String, Object>());
     }
 
+    /**
+     * 完成 SQL 的拼装与初步解析
+     *
+     * @param configuration
+     * @param rootSqlNode
+     * @return
+     */
     private static String getSql(Configuration configuration, SqlNode rootSqlNode) {
         DynamicContext context = new DynamicContext(configuration, null);
         rootSqlNode.apply(context);

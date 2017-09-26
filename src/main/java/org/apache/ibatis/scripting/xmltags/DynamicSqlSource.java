@@ -24,6 +24,8 @@ import org.apache.ibatis.session.Configuration;
 import java.util.Map;
 
 /**
+ * 处理动态SQL
+ *
  * @author Clinton Begin
  */
 public class DynamicSqlSource implements SqlSource {
@@ -39,10 +41,16 @@ public class DynamicSqlSource implements SqlSource {
     @Override
     public BoundSql getBoundSql(Object parameterObject) {
         DynamicContext context = new DynamicContext(configuration, parameterObject);
+
+        // 调用整个树型结构中全部的 apply 方法，各司其职追加 SQL 片段到 context 中
         rootSqlNode.apply(context);
+
+        // 创建 SqlSourceBuilder 对象，解析参数属性，并将 SQL 语句中的 ‘#{}’ 占位符替换成 ‘？’
         SqlSourceBuilder sqlSourceParser = new SqlSourceBuilder(configuration);
         Class<?> parameterType = parameterObject == null ? Object.class : parameterObject.getClass();
         SqlSource sqlSource = sqlSourceParser.parse(context.getSql(), parameterType, context.getBindings());
+
+        // 创建 BoundSql，并将 DynamicContext.bindings 中的参数信息复制到 additionalParameters 集合中保存
         BoundSql boundSql = sqlSource.getBoundSql(parameterObject);
         for (Map.Entry<String, Object> entry : context.getBindings().entrySet()) {
             boundSql.setAdditionalParameter(entry.getKey(), entry.getValue());

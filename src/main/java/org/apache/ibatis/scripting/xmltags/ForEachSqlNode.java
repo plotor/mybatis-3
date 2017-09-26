@@ -1,222 +1,248 @@
 /**
- *    Copyright 2009-2017 the original author or authors.
+ * Copyright 2009-2017 the original author or authors.
  *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-package org.apache.ibatis.scripting.xmltags;
 
-import java.util.Map;
+package org.apache.ibatis.scripting.xmltags;
 
 import org.apache.ibatis.parsing.GenericTokenParser;
 import org.apache.ibatis.parsing.TokenHandler;
 import org.apache.ibatis.session.Configuration;
 
+import java.util.Map;
+
 /**
  * @author Clinton Begin
  */
 public class ForEachSqlNode implements SqlNode {
-  public static final String ITEM_PREFIX = "__frch_";
+    public static final String ITEM_PREFIX = "__frch_";
 
-  private final ExpressionEvaluator evaluator;
-  private final String collectionExpression;
-  private final SqlNode contents;
-  private final String open;
-  private final String close;
-  private final String separator;
-  private final String item;
-  private final String index;
-  private final Configuration configuration;
+    /** 用于判断循环的终止条件 */
+    private final ExpressionEvaluator evaluator;
 
-  public ForEachSqlNode(Configuration configuration, SqlNode contents, String collectionExpression, String index, String item, String open, String close, String separator) {
-    this.evaluator = new ExpressionEvaluator();
-    this.collectionExpression = collectionExpression;
-    this.contents = contents;
-    this.open = open;
-    this.close = close;
-    this.separator = separator;
-    this.index = index;
-    this.item = item;
-    this.configuration = configuration;
-  }
+    /** 迭代的集合表达式 */
+    private final String collectionExpression;
 
-  @Override
-  public boolean apply(DynamicContext context) {
-    Map<String, Object> bindings = context.getBindings();
-    final Iterable<?> iterable = evaluator.evaluateIterable(collectionExpression, bindings);
-    if (!iterable.iterator().hasNext()) {
-      return true;
-    }
-    boolean first = true;
-    applyOpen(context);
-    int i = 0;
-    for (Object o : iterable) {
-      DynamicContext oldContext = context;
-      if (first || separator == null) {
-        context = new PrefixedContext(context, "");
-      } else {
-        context = new PrefixedContext(context, separator);
-      }
-      int uniqueNumber = context.getUniqueNumber();
-      // Issue #709 
-      if (o instanceof Map.Entry) {
-        @SuppressWarnings("unchecked") 
-        Map.Entry<Object, Object> mapEntry = (Map.Entry<Object, Object>) o;
-        applyIndex(context, mapEntry.getKey(), uniqueNumber);
-        applyItem(context, mapEntry.getValue(), uniqueNumber);
-      } else {
-        applyIndex(context, i, uniqueNumber);
-        applyItem(context, o, uniqueNumber);
-      }
-      contents.apply(new FilteredDynamicContext(configuration, context, index, item, uniqueNumber));
-      if (first) {
-        first = !((PrefixedContext) context).isPrefixApplied();
-      }
-      context = oldContext;
-      i++;
-    }
-    applyClose(context);
-    context.getBindings().remove(item);
-    context.getBindings().remove(index);
-    return true;
-  }
+    /** 记录子节点 */
+    private final SqlNode contents;
 
-  private void applyIndex(DynamicContext context, Object o, int i) {
-    if (index != null) {
-      context.bind(index, o);
-      context.bind(itemizeItem(index, i), o);
-    }
-  }
+    /** open 标识 */
+    private final String open;
 
-  private void applyItem(DynamicContext context, Object o, int i) {
-    if (item != null) {
-      context.bind(item, o);
-      context.bind(itemizeItem(item, i), o);
-    }
-  }
+    /** close 标识 */
+    private final String close;
 
-  private void applyOpen(DynamicContext context) {
-    if (open != null) {
-      context.appendSql(open);
-    }
-  }
+    /** 循环过程中，各项之间的分隔符 */
+    private final String separator;
 
-  private void applyClose(DynamicContext context) {
-    if (close != null) {
-      context.appendSql(close);
-    }
-  }
-
-  private static String itemizeItem(String item, int i) {
-    return new StringBuilder(ITEM_PREFIX).append(item).append("_").append(i).toString();
-  }
-
-  private static class FilteredDynamicContext extends DynamicContext {
-    private final DynamicContext delegate;
-    private final int index;
-    private final String itemIndex;
+    /** index 是迭代的次数，item 是当前迭代的元素 */
     private final String item;
+    private final String index;
 
-    public FilteredDynamicContext(Configuration configuration,DynamicContext delegate, String itemIndex, String item, int i) {
-      super(configuration, null);
-      this.delegate = delegate;
-      this.index = i;
-      this.itemIndex = itemIndex;
-      this.item = item;
+    private final Configuration configuration;
+
+    public ForEachSqlNode(Configuration configuration, SqlNode contents, String collectionExpression, String index, String item, String open, String close, String separator) {
+        this.evaluator = new ExpressionEvaluator();
+        this.collectionExpression = collectionExpression;
+        this.contents = contents;
+        this.open = open;
+        this.close = close;
+        this.separator = separator;
+        this.index = index;
+        this.item = item;
+        this.configuration = configuration;
     }
 
     @Override
-    public Map<String, Object> getBindings() {
-      return delegate.getBindings();
-    }
-
-    @Override
-    public void bind(String name, Object value) {
-      delegate.bind(name, value);
-    }
-
-    @Override
-    public String getSql() {
-      return delegate.getSql();
-    }
-
-    @Override
-    public void appendSql(String sql) {
-      GenericTokenParser parser = new GenericTokenParser("#{", "}", new TokenHandler() {
-        @Override
-        public String handleToken(String content) {
-          String newContent = content.replaceFirst("^\\s*" + item + "(?![^.,:\\s])", itemizeItem(item, index));
-          if (itemIndex != null && newContent.equals(content)) {
-            newContent = content.replaceFirst("^\\s*" + itemIndex + "(?![^.,:\\s])", itemizeItem(itemIndex, index));
-          }
-          return new StringBuilder("#{").append(newContent).append("}").toString();
+    public boolean apply(DynamicContext context) {
+        // 解析集合表达式，获取对应的实参
+        Map<String, Object> bindings = context.getBindings();
+        final Iterable<?> iterable = evaluator.evaluateIterable(collectionExpression, bindings);
+        if (!iterable.iterator().hasNext()) {
+            return true;
         }
-      });
-
-      delegate.appendSql(parser.parse(sql));
+        boolean first = true;
+        // 添加 open 前缀标识
+        this.applyOpen(context);
+        int i = 0;
+        for (Object o : iterable) {
+            DynamicContext oldContext = context;
+            if (first || separator == null) {
+                context = new PrefixedContext(context, "");
+            } else {
+                context = new PrefixedContext(context, separator);
+            }
+            int uniqueNumber = context.getUniqueNumber();
+            // Issue #709
+            if (o instanceof Map.Entry) {
+                @SuppressWarnings("unchecked")
+                Map.Entry<Object, Object> mapEntry = (Map.Entry<Object, Object>) o;
+                applyIndex(context, mapEntry.getKey(), uniqueNumber);
+                applyItem(context, mapEntry.getValue(), uniqueNumber);
+            } else {
+                applyIndex(context, i, uniqueNumber);
+                applyItem(context, o, uniqueNumber);
+            }
+            contents.apply(new FilteredDynamicContext(configuration, context, index, item, uniqueNumber));
+            if (first) {
+                first = !((PrefixedContext) context).isPrefixApplied();
+            }
+            context = oldContext;
+            i++;
+        }
+        // 添加 close 后缀标识
+        this.applyClose(context);
+        context.getBindings().remove(item);
+        context.getBindings().remove(index);
+        return true;
     }
 
-    @Override
-    public int getUniqueNumber() {
-      return delegate.getUniqueNumber();
+    private void applyIndex(DynamicContext context, Object o, int i) {
+        if (index != null) {
+            context.bind(index, o);
+            context.bind(itemizeItem(index, i), o);
+        }
     }
 
-  }
-
-
-  private class PrefixedContext extends DynamicContext {
-    private final DynamicContext delegate;
-    private final String prefix;
-    private boolean prefixApplied;
-
-    public PrefixedContext(DynamicContext delegate, String prefix) {
-      super(configuration, null);
-      this.delegate = delegate;
-      this.prefix = prefix;
-      this.prefixApplied = false;
+    private void applyItem(DynamicContext context, Object o, int i) {
+        if (item != null) {
+            context.bind(item, o);
+            context.bind(itemizeItem(item, i), o);
+        }
     }
 
-    public boolean isPrefixApplied() {
-      return prefixApplied;
+    private void applyOpen(DynamicContext context) {
+        if (open != null) {
+            context.appendSql(open);
+        }
     }
 
-    @Override
-    public Map<String, Object> getBindings() {
-      return delegate.getBindings();
+    private void applyClose(DynamicContext context) {
+        if (close != null) {
+            context.appendSql(close);
+        }
     }
 
-    @Override
-    public void bind(String name, Object value) {
-      delegate.bind(name, value);
+    private static String itemizeItem(String item, int i) {
+        return new StringBuilder(ITEM_PREFIX).append(item).append("_").append(i).toString();
     }
 
-    @Override
-    public void appendSql(String sql) {
-      if (!prefixApplied && sql != null && sql.trim().length() > 0) {
-        delegate.appendSql(prefix);
-        prefixApplied = true;
-      }
-      delegate.appendSql(sql);
+    /**
+     * 处理占位符，在占位符前面追加 ‘_frch_’ 固定前缀
+     */
+    private static class FilteredDynamicContext extends DynamicContext {
+
+        private final DynamicContext delegate;
+        private final int index;
+        private final String itemIndex;
+        private final String item;
+
+        public FilteredDynamicContext(Configuration configuration, DynamicContext delegate, String itemIndex, String item, int i) {
+            super(configuration, null);
+            this.delegate = delegate;
+            this.index = i;
+            this.itemIndex = itemIndex;
+            this.item = item;
+        }
+
+        @Override
+        public Map<String, Object> getBindings() {
+            return delegate.getBindings();
+        }
+
+        @Override
+        public void bind(String name, Object value) {
+            delegate.bind(name, value);
+        }
+
+        @Override
+        public String getSql() {
+            return delegate.getSql();
+        }
+
+        @Override
+        public void appendSql(String sql) {
+            GenericTokenParser parser = new GenericTokenParser("#{", "}", new TokenHandler() {
+                @Override
+                public String handleToken(String content) {
+                    String newContent = content.replaceFirst("^\\s*" + item + "(?![^.,:\\s])", itemizeItem(item, index));
+                    if (itemIndex != null && newContent.equals(content)) {
+                        newContent = content.replaceFirst("^\\s*" + itemIndex + "(?![^.,:\\s])", itemizeItem(itemIndex, index));
+                    }
+                    return new StringBuilder("#{").append(newContent).append("}").toString();
+                }
+            });
+
+            delegate.appendSql(parser.parse(sql));
+        }
+
+        @Override
+        public int getUniqueNumber() {
+            return delegate.getUniqueNumber();
+        }
+
     }
 
-    @Override
-    public String getSql() {
-      return delegate.getSql();
-    }
+    private class PrefixedContext extends DynamicContext {
+        private final DynamicContext delegate;
 
-    @Override
-    public int getUniqueNumber() {
-      return delegate.getUniqueNumber();
+        /** 指定的前缀 */
+        private final String prefix;
+
+        /** 标记是否已经处理过前缀 */
+        private boolean prefixApplied;
+
+        public PrefixedContext(DynamicContext delegate, String prefix) {
+            super(configuration, null);
+            this.delegate = delegate;
+            this.prefix = prefix;
+            this.prefixApplied = false;
+        }
+
+        public boolean isPrefixApplied() {
+            return prefixApplied;
+        }
+
+        @Override
+        public Map<String, Object> getBindings() {
+            return delegate.getBindings();
+        }
+
+        @Override
+        public void bind(String name, Object value) {
+            delegate.bind(name, value);
+        }
+
+        @Override
+        public void appendSql(String sql) {
+            if (!prefixApplied && sql != null && sql.trim().length() > 0) {
+                // 追加前缀
+                delegate.appendSql(prefix);
+                prefixApplied = true;
+            }
+            delegate.appendSql(sql);
+        }
+
+        @Override
+        public String getSql() {
+            return delegate.getSql();
+        }
+
+        @Override
+        public int getUniqueNumber() {
+            return delegate.getUniqueNumber();
+        }
     }
-  }
 
 }

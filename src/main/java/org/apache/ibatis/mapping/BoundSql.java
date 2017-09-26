@@ -36,10 +36,17 @@ import java.util.Map;
  */
 public class BoundSql {
 
+    /** 记录 SQL 语句，其中可能包含 ‘？’ */
     private final String sql;
+
+    /** SQL 中的参数属性集合 */
     private final List<ParameterMapping> parameterMappings;
+
+    /** 执行SQL时传入的实参 */
     private final Object parameterObject;
+
     private final Map<String, Object> additionalParameters;
+
     private final MetaObject metaParameters;
 
     public BoundSql(Configuration configuration, String sql, List<ParameterMapping> parameterMappings, Object parameterObject) {

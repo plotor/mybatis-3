@@ -29,7 +29,7 @@ public interface SqlSource {
     /**
      * 获取配置的 SQL，并基于传入的参数返回可执行的 SQL
      *
-     * @param parameterObject
+     * @param parameterObject 用户传递的实参
      * @return
      */
     BoundSql getBoundSql(Object parameterObject);
