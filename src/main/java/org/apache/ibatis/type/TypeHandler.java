@@ -22,6 +22,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
+ * 完成 JDBC 类型和 JAVA 类型的相互映射
+ *
  * @author Clinton Begin
  */
 public interface TypeHandler<T> {

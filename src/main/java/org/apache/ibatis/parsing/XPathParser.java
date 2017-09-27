@@ -40,95 +40,102 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 
 /**
+ * 基于 DOM 和 XPath 的 XML 解析器
+ *
  * @author Clinton Begin
  */
 public class XPathParser {
 
-    /** 基于 DOM 和 XPath 的 XML 解析 */
-
+    /** XML文件对应的{@link Document} 对象 */
     private final Document document;
-    private boolean validation; // 是否启用验证
-    private EntityResolver entityResolver; // 实体解析器，加载DTD文件
+
+    /** 是否启用验证 */
+    private boolean validation;
+
+    /** 实体解析器，加载DTD文件 */
+    private EntityResolver entityResolver;
+
     private Properties variables;
+
     private XPath xpath;
 
     public XPathParser(String xml) {
-        commonConstructor(false, null, null);
-        this.document = createDocument(new InputSource(new StringReader(xml)));
+        this.commonConstructor(false, null, null);
+        this.document = this.createDocument(new InputSource(new StringReader(xml)));
     }
 
     public XPathParser(Reader reader) {
-        commonConstructor(false, null, null);
-        this.document = createDocument(new InputSource(reader));
+        this.commonConstructor(false, null, null);
+        this.document = this.createDocument(new InputSource(reader));
     }
 
     public XPathParser(InputStream inputStream) {
-        commonConstructor(false, null, null);
-        this.document = createDocument(new InputSource(inputStream));
+        this.commonConstructor(false, null, null);
+        this.document = this.createDocument(new InputSource(inputStream));
     }
 
     public XPathParser(Document document) {
-        commonConstructor(false, null, null);
+        this.commonConstructor(false, null, null);
         this.document = document;
     }
 
     public XPathParser(String xml, boolean validation) {
-        commonConstructor(validation, null, null);
-        this.document = createDocument(new InputSource(new StringReader(xml)));
+        this.commonConstructor(validation, null, null);
+        this.document = this.createDocument(new InputSource(new StringReader(xml)));
     }
 
     public XPathParser(Reader reader, boolean validation) {
-        commonConstructor(validation, null, null);
-        this.document = createDocument(new InputSource(reader));
+        this.commonConstructor(validation, null, null);
+        this.document = this.createDocument(new InputSource(reader));
     }
 
     public XPathParser(InputStream inputStream, boolean validation) {
-        commonConstructor(validation, null, null);
-        this.document = createDocument(new InputSource(inputStream));
+        this.commonConstructor(validation, null, null);
+        this.document = this.createDocument(new InputSource(inputStream));
     }
 
     public XPathParser(Document document, boolean validation) {
-        commonConstructor(validation, null, null);
+        this.commonConstructor(validation, null, null);
         this.document = document;
     }
 
     public XPathParser(String xml, boolean validation, Properties variables) {
-        commonConstructor(validation, variables, null);
-        this.document = createDocument(new InputSource(new StringReader(xml)));
+        this.commonConstructor(validation, variables, null);
+        this.document = this.createDocument(new InputSource(new StringReader(xml)));
     }
 
     public XPathParser(Reader reader, boolean validation, Properties variables) {
-        commonConstructor(validation, variables, null);
-        this.document = createDocument(new InputSource(reader));
+        this.commonConstructor(validation, variables, null);
+        this.document = this.createDocument(new InputSource(reader));
     }
 
     public XPathParser(InputStream inputStream, boolean validation, Properties variables) {
-        commonConstructor(validation, variables, null);
-        this.document = createDocument(new InputSource(inputStream));
+        this.commonConstructor(validation, variables, null);
+        this.document = this.createDocument(new InputSource(inputStream));
     }
 
     public XPathParser(Document document, boolean validation, Properties variables) {
-        commonConstructor(validation, variables, null);
+        this.commonConstructor(validation, variables, null);
         this.document = document;
     }
 
     public XPathParser(String xml, boolean validation, Properties variables, EntityResolver entityResolver) {
-        commonConstructor(validation, variables, entityResolver);
-        this.document = createDocument(new InputSource(new StringReader(xml)));
+        this.commonConstructor(validation, variables, entityResolver);
+        this.document = this.createDocument(new InputSource(new StringReader(xml)));
     }
 
     public XPathParser(Reader reader, boolean validation, Properties variables, EntityResolver entityResolver) {
-        commonConstructor(validation, variables, entityResolver);
-        this.document = createDocument(new InputSource(reader));
+        this.commonConstructor(validation, variables, entityResolver);
+        this.document = this.createDocument(new InputSource(reader));
     }
 
     public XPathParser(InputStream inputStream, boolean validation, Properties variables, EntityResolver entityResolver) {
-        commonConstructor(validation, variables, entityResolver);
-        this.document = createDocument(new InputSource(inputStream));
+        this.commonConstructor(validation, variables, entityResolver);
+        this.document = this.createDocument(new InputSource(inputStream));
     }
 
     public XPathParser(Document document, boolean validation, Properties variables, EntityResolver entityResolver) {
-        commonConstructor(validation, variables, entityResolver);
+        this.commonConstructor(validation, variables, entityResolver);
         this.document = document;
     }
 
@@ -228,7 +235,7 @@ public class XPathParser {
     }
 
     /**
-     * 基于输入流构造 Document 对象
+     * 基于输入流构造 {@link Document} 对象
      *
      * @param inputSource
      * @return

@@ -103,8 +103,16 @@ public class TypeAliasRegistry {
         registerAlias("ResultSet", ResultSet.class);
     }
 
+    /**
+     * 获取指定别名对应的类型
+     *
+     * throws class cast exception as well if types cannot be assigned
+     *
+     * @param string
+     * @param <T>
+     * @return
+     */
     @SuppressWarnings("unchecked")
-    // throws class cast exception as well if types cannot be assigned
     public <T> Class<T> resolveAlias(String string) {
         try {
             if (string == null) {
@@ -125,16 +133,16 @@ public class TypeAliasRegistry {
     }
 
     public void registerAliases(String packageName) {
-        registerAliases(packageName, Object.class);
+        this.registerAliases(packageName, Object.class);
     }
 
     public void registerAliases(String packageName, Class<?> superType) {
+        // 获取指定package下所有 superType 类型及其子类型
         ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<Class<?>>();
         resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
         Set<Class<? extends Class<?>>> typeSet = resolverUtil.getClasses();
+        // 遍历处理扫描到的类
         for (Class<?> type : typeSet) {
-            // Ignore inner classes and interfaces (including package-info.java)
-            // Skip also inner classes. See issue #6
             if (!type.isAnonymousClass() && !type.isInterface() && !type.isMemberClass()) {
                 // 不包含内部类、接口，以及抽象类
                 this.registerAlias(type);
@@ -151,24 +159,33 @@ public class TypeAliasRegistry {
         this.registerAlias(alias, type);
     }
 
-    public void registerAlias(String alias, Class<?> value) {
-        if (alias == null) {
-            throw new TypeException("The parameter alias cannot be null");
-        }
-        // issue #748
-        String key = alias.toLowerCase(Locale.ENGLISH);
-        if (TYPE_ALIASES.containsKey(key) && TYPE_ALIASES.get(key) != null && !TYPE_ALIASES.get(key).equals(value)) {
-            throw new TypeException("The alias '" + alias + "' is already mapped to the value '" + TYPE_ALIASES.get(key).getName() + "'.");
-        }
-        TYPE_ALIASES.put(key, value);
-    }
-
     public void registerAlias(String alias, String value) {
         try {
             this.registerAlias(alias, Resources.classForName(value));
         } catch (ClassNotFoundException e) {
             throw new TypeException("Error registering type alias " + alias + " for " + value + ". Cause: " + e, e);
         }
+    }
+
+    /**
+     * 注册别名与具体的类型
+     *
+     * @param alias
+     * @param value
+     */
+    public void registerAlias(String alias, Class<?> value) {
+        if (alias == null) {
+            // 别名不能为 null
+            throw new TypeException("The parameter alias cannot be null");
+        }
+        // 将别名转换成小写
+        String key = alias.toLowerCase(Locale.ENGLISH);
+        if (TYPE_ALIASES.containsKey(key) && TYPE_ALIASES.get(key) != null && !TYPE_ALIASES.get(key).equals(value)) {
+            // 防止重复注册
+            throw new TypeException("The alias '" + alias + "' is already mapped to the value '" + TYPE_ALIASES.get(key).getName() + "'.");
+        }
+        // 写入 Map 集合
+        TYPE_ALIASES.put(key, value);
     }
 
     /**

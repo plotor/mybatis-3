@@ -56,13 +56,13 @@ import javax.sql.DataSource;
  */
 public class XMLConfigBuilder extends BaseBuilder {
 
-    /** 标识配置文件是否已经解析过 */
+    /** 标识配置文件是否已经被解析过 */
     private boolean parsed;
 
-    /** 配置文件解析器 */
+    /** XML配置文件解析器 */
     private final XPathParser parser;
 
-    /** <environment/> 配置 */
+    /** 当前 <environment/> 设置 */
     private String environment;
 
     private final ReflectorFactory localReflectorFactory = new DefaultReflectorFactory();
@@ -88,28 +88,50 @@ public class XMLConfigBuilder extends BaseBuilder {
     }
 
     public XMLConfigBuilder(InputStream inputStream, String environment, Properties props) {
-        this(new XPathParser(inputStream, true, props, new XMLMapperEntityResolver()), environment, props);
+        this(   // 构造对应的 XPath 解析器
+                new XPathParser(inputStream, true, props, new XMLMapperEntityResolver()),
+                environment, props);
     }
 
+    /**
+     * 构造方法
+     *
+     * @param parser 配置文件解析器
+     * @param environment 当前使用的配置文件组ID
+     * @param props 参数指定的配置项
+     */
     private XMLConfigBuilder(XPathParser parser, String environment, Properties props) {
+        // 调用父类构造函数，并构造 Configuration 对象
         super(new Configuration());
         ErrorContext.instance().resource("SQL Mapper Configuration");
+        // 将参数指定的配置项记录到 Configuration.variables 属性中
         this.configuration.setVariables(props);
-        this.parsed = false;
+        this.parsed = false; // 标记配置文件是否已经被解析过
         this.environment = environment;
         this.parser = parser;
     }
 
+    /**
+     * 解析 mybatis-config.xml
+     *
+     * @return
+     */
     public Configuration parse() {
         if (parsed) {
+            // 配置文件已经被解析过
             throw new BuilderException("Each XMLConfigBuilder can only be used once.");
         }
         parsed = true;
-        // 配置文件以 <configuration /> 作为根结点
-        this.parseConfiguration(parser.evalNode("/configuration"));
+        // 解析 mybatis-config.xml 中的各项配置, 记录到 configuration 对象中
+        this.parseConfiguration(parser.evalNode("/configuration")); // <configuration /> 作为根结点
         return configuration;
     }
 
+    /**
+     * 依次解析各项配置
+     *
+     * @param root
+     */
     private void parseConfiguration(XNode root) {
         try {
             // 解析 <properties/>

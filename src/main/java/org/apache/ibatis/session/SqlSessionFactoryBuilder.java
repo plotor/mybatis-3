@@ -27,7 +27,7 @@ import java.io.Reader;
 import java.util.Properties;
 
 /**
- * Builds {@link SqlSession} instances.
+ * {@link SqlSessionFactory} 构造器
  *
  * @author Clinton Begin
  */
@@ -48,7 +48,7 @@ public class SqlSessionFactoryBuilder {
     public SqlSessionFactory build(Reader reader, String environment, Properties properties) {
         try {
             XMLConfigBuilder parser = new XMLConfigBuilder(reader, environment, properties);
-            return build(parser.parse());
+            return this.build(parser.parse());
         } catch (Exception e) {
             throw ExceptionFactory.wrapException("Error building SqlSession.", e);
         } finally {
@@ -75,7 +75,7 @@ public class SqlSessionFactoryBuilder {
 
     public SqlSessionFactory build(InputStream inputStream, String environment, Properties properties) {
         try {
-            // 读取并解析配置文件，构造 SqlSessionFactory 对象
+            // 解析配置文件封装成 Configuration 对象，并构造 SqlSessionFactory 对象返回
             XMLConfigBuilder parser = new XMLConfigBuilder(inputStream, environment, properties);
             return this.build(parser.parse());
         } catch (Exception e) {

@@ -45,11 +45,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class TypeHandlerRegistry {
 
-    private static final Map<JdbcType, TypeHandler<?>> NULL_TYPE_HANDLER_MAP = new HashMap<JdbcType, TypeHandler<?>>();
-
     /**
-     * {@link JdbcType} 与 {@link TypeHandler} 之间映射关系
-     * 用于从 {@link java.sql.ResultSet} 读取数据时，将 JDBC 类型转换对应的 JAVA 类型
+     * 记录 JDBC 类型与 {@link TypeHandler} 之间映射关系
+     * 用于从结果集读取数据时，将 JDBC 类型转换对应的 JAVA 类型
      */
     private final Map<JdbcType, TypeHandler<?>> JDBC_TYPE_HANDLER_MAP = new EnumMap<JdbcType, TypeHandler<?>>(JdbcType.class);
 
@@ -59,13 +57,15 @@ public final class TypeHandlerRegistry {
      */
     private final Map<Type, Map<JdbcType, TypeHandler<?>>> TYPE_HANDLER_MAP = new ConcurrentHashMap<Type, Map<JdbcType, TypeHandler<?>>>();
 
-    private final TypeHandler<Object> UNKNOWN_TYPE_HANDLER = new UnknownTypeHandler(this);
+    /** 空的 {@link TypeHandler} 集合 */
+    private static final Map<JdbcType, TypeHandler<?>> NULL_TYPE_HANDLER_MAP = new HashMap<JdbcType, TypeHandler<?>>();
 
-    /**
-     * 记录了全部 {@link TypeHandler} 类型及其对应的 {@link TypeHandler} 对象
-     */
+    /** 记录了全部类型及其对应的 {@link TypeHandler} 对象之间的映射关系 */
     private final Map<Class<?>, TypeHandler<?>> ALL_TYPE_HANDLERS_MAP = new HashMap<Class<?>, TypeHandler<?>>();
 
+    private final TypeHandler<Object> UNKNOWN_TYPE_HANDLER = new UnknownTypeHandler(this);
+
+    /** 默认枚举类型处理器 */
     private Class<? extends TypeHandler> defaultEnumTypeHandler = EnumTypeHandler.class;
 
     public TypeHandlerRegistry() {

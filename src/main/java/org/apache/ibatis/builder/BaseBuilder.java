@@ -30,17 +30,19 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
+ * 抽象构造器
+ *
  * @author Clinton Begin
  */
 public abstract class BaseBuilder {
 
-    /** 全局唯一的配置对象，几乎包含全部的配置信息 */
+    /** 全局唯一的配置对象(几乎包含全部的配置信息) */
     protected final Configuration configuration;
 
-    /** 记录定义的别名 */
+    /** 记录别名与类型的映射关系 */
     protected final TypeAliasRegistry typeAliasRegistry;
 
-    /** 记录类型处理器 */
+    /** 记录类型对应的类型处理器 */
     protected final TypeHandlerRegistry typeHandlerRegistry;
 
     public BaseBuilder(Configuration configuration) {
