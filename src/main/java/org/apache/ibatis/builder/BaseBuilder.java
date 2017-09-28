@@ -55,23 +55,57 @@ public abstract class BaseBuilder {
         return configuration;
     }
 
+    /**
+     * 编译正则表达式
+     *
+     * @param regex
+     * @param defaultValue
+     * @return
+     */
     protected Pattern parseExpression(String regex, String defaultValue) {
         return Pattern.compile(regex == null ? defaultValue : regex);
     }
 
+    /**
+     * 字符串类型转 Boolean
+     *
+     * @param value
+     * @param defaultValue
+     * @return
+     */
     protected Boolean booleanValueOf(String value, Boolean defaultValue) {
         return value == null ? defaultValue : Boolean.valueOf(value);
     }
 
+    /**
+     * 字符串类型转 Integer
+     *
+     * @param value
+     * @param defaultValue
+     * @return
+     */
     protected Integer integerValueOf(String value, Integer defaultValue) {
         return value == null ? defaultValue : Integer.valueOf(value);
     }
 
+    /**
+     * 字符串类型（以逗号分隔）转 Set 集合
+     *
+     * @param value
+     * @param defaultValue
+     * @return
+     */
     protected Set<String> stringSetValueOf(String value, String defaultValue) {
         value = (value == null ? defaultValue : value);
         return new HashSet<String>(Arrays.asList(value.split(",")));
     }
 
+    /**
+     * 获取别名对应的 {@link JdbcType}
+     *
+     * @param alias
+     * @return
+     */
     protected JdbcType resolveJdbcType(String alias) {
         if (alias == null) {
             return null;
@@ -83,6 +117,12 @@ public abstract class BaseBuilder {
         }
     }
 
+    /**
+     * 获取别名对应的 {@link ResultSetType}
+     *
+     * @param alias
+     * @return
+     */
     protected ResultSetType resolveResultSetType(String alias) {
         if (alias == null) {
             return null;
@@ -94,6 +134,12 @@ public abstract class BaseBuilder {
         }
     }
 
+    /**
+     * 获取别名对应的 {@link ParameterMode}
+     *
+     * @param alias
+     * @return
+     */
     protected ParameterMode resolveParameterMode(String alias) {
         if (alias == null) {
             return null;
@@ -105,18 +151,30 @@ public abstract class BaseBuilder {
         }
     }
 
+    /**
+     * 创建别名对应的类型的实例，基于 {@link TypeAliasRegistry}
+     *
+     * @param alias
+     * @return
+     */
     protected Object createInstance(String alias) {
-        Class<?> clazz = resolveClass(alias);
+        Class<?> clazz = this.resolveClass(alias);
         if (clazz == null) {
             return null;
         }
         try {
-            return resolveClass(alias).newInstance();
+            return this.resolveClass(alias).newInstance();
         } catch (Exception e) {
             throw new BuilderException("Error creating instance. Cause: " + e, e);
         }
     }
 
+    /**
+     * 获取别名对应类型，基于 {@link TypeAliasRegistry}
+     *
+     * @param alias
+     * @return
+     */
     protected Class<?> resolveClass(String alias) {
         if (alias == null) {
             return null;
@@ -128,27 +186,43 @@ public abstract class BaseBuilder {
         }
     }
 
+    /**
+     * 获取类型处理器别名对应的 {@link TypeHandler}
+     *
+     * @param javaType
+     * @param typeHandlerAlias
+     * @return
+     */
     protected TypeHandler<?> resolveTypeHandler(Class<?> javaType, String typeHandlerAlias) {
         if (typeHandlerAlias == null) {
             return null;
         }
-        Class<?> type = resolveClass(typeHandlerAlias);
+        // 获取别名对应的类型
+        Class<?> type = this.resolveClass(typeHandlerAlias);
         if (type != null && !TypeHandler.class.isAssignableFrom(type)) {
+            // 不是 TypeHandler 类型
             throw new BuilderException("Type " + type.getName() + " is not a valid TypeHandler because it does not implement TypeHandler interface");
         }
-        @SuppressWarnings("unchecked") // already verified it is a TypeHandler
-                Class<? extends TypeHandler<?>> typeHandlerType = (Class<? extends TypeHandler<?>>) type;
-        return resolveTypeHandler(javaType, typeHandlerType);
+        Class<? extends TypeHandler<?>> typeHandlerType = (Class<? extends TypeHandler<?>>) type;
+        // 获取对应的 TypeHandler
+        return this.resolveTypeHandler(javaType, typeHandlerType);
     }
 
+    /**
+     * 获取类型处理器对象
+     *
+     * @param javaType
+     * @param typeHandlerType
+     * @return
+     */
     protected TypeHandler<?> resolveTypeHandler(Class<?> javaType, Class<? extends TypeHandler<?>> typeHandlerType) {
         if (typeHandlerType == null) {
             return null;
         }
-        // javaType ignored for injected handlers see issue #746 for full detail
+        // 基于类型处理器 Class 获取对应的类型处理器对象
         TypeHandler<?> handler = typeHandlerRegistry.getMappingTypeHandler(typeHandlerType);
         if (handler == null) {
-            // not in registry, create a new one
+            // 没有注册，创建一个
             handler = typeHandlerRegistry.getInstance(javaType, typeHandlerType);
         }
         return handler;

@@ -32,9 +32,10 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface MappedJdbcTypes {
 
+    /** 当前类型处理器能够处理的 JDBC 类型列表 */
     JdbcType[] value();
 
-    /*是否包含 null 类型*/
+    /** 是否允许处理 null 值 */
     boolean includeNullJdbcType() default false;
 
 }

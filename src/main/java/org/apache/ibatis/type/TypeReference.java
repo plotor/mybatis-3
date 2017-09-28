@@ -31,7 +31,7 @@ public abstract class TypeReference<T> {
     private final Type rawType;
 
     protected TypeReference() {
-        rawType = this.getSuperclassTypeParameter(getClass());
+        rawType = this.getSuperclassTypeParameter(this.getClass());
     }
 
     Type getSuperclassTypeParameter(Class<?> clazz) {
@@ -39,9 +39,9 @@ public abstract class TypeReference<T> {
         if (genericSuperclass instanceof Class) {
             // try to climb up the hierarchy until meet something useful
             if (TypeReference.class != genericSuperclass) {
+                // 递归
                 return this.getSuperclassTypeParameter(clazz.getSuperclass());
             }
-
             throw new TypeException("'" + getClass() + "' extends TypeReference but misses the type parameter. "
                     + "Remove the extension or add a type parameter to it.");
         }

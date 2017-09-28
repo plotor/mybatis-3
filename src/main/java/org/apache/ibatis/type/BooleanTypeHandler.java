@@ -49,4 +49,9 @@ public class BooleanTypeHandler extends BaseTypeHandler<Boolean> {
             throws SQLException {
         return cs.getBoolean(columnIndex);
     }
+
+    public static void main(String[] args) {
+        BooleanTypeHandler typeHandler = new BooleanTypeHandler();
+        System.out.println(typeHandler.getRawType());
+    }
 }
