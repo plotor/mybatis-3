@@ -117,14 +117,14 @@ public class XMLConfigBuilder extends BaseBuilder {
      * @return
      */
     public Configuration parse() {
-        if (parsed) {
+        if (this.parsed) {
             // 配置文件已经被解析过
             throw new BuilderException("Each XMLConfigBuilder can only be used once.");
         }
-        parsed = true;
+        this.parsed = true;
         // 解析 mybatis-config.xml 中的各项配置, 记录到 configuration 对象中
         this.parseConfiguration(parser.evalNode("/configuration")); // <configuration /> 作为根结点
-        return configuration;
+        return this.configuration;
     }
 
     /**
@@ -134,31 +134,31 @@ public class XMLConfigBuilder extends BaseBuilder {
      */
     private void parseConfiguration(XNode root) {
         try {
-            // 解析 <properties/>
+            // 解析 <properties/> 配置
             this.propertiesElement(root.evalNode("properties"));
-            // 解析 <settings/>
+            // 解析 <settings/> 配置
             Properties settings = this.settingsAsProperties(root.evalNode("settings"));
-            // 设置 vfsImpl 字段
+            // 获取并设置 vfsImpl 属性
             this.loadCustomVfs(settings);
-            // 解析 <typeAliases />
+            // 解析 <typeAliases/> 配置
             this.typeAliasesElement(root.evalNode("typeAliases"));
-            // 解析 <plugins />
+            // 解析 <plugins/> 配置
             this.pluginElement(root.evalNode("plugins"));
-            // 解析 <objectFactory />
+            // 解析 <objectFactory/> 配置
             this.objectFactoryElement(root.evalNode("objectFactory"));
-            // 解析 <objectWrapperFactory />
+            // 解析 <objectWrapperFactory/> 配置
             this.objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
-            // 解析 <reflectorFactory />
+            // 解析 <reflectorFactory/> 配置
             this.reflectorFactoryElement(root.evalNode("reflectorFactory"));
             // 将 settings 设置到 configuration 中
             this.settingsElement(settings);
-            // 解析 <environments />
+            // 解析 <environments/> 配置
             this.environmentsElement(root.evalNode("environments"));
-            // 解析 <databaseIdProvider />
+            // 解析 <databaseIdProvider/> 配置
             this.databaseIdProviderElement(root.evalNode("databaseIdProvider"));
-            // 解析 <typeHandlers />
+            // 解析 <typeHandlers/> 配置
             this.typeHandlerElement(root.evalNode("typeHandlers"));
-            // 解析 <mappers />
+            // 解析 <mappers/> 配置
             this.mapperElement(root.evalNode("mappers"));
         } catch (Exception e) {
             throw new BuilderException("Error parsing SQL Mapper Configuration. Cause: " + e, e);
