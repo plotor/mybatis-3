@@ -196,8 +196,9 @@ public class XMLConfigBuilder extends BaseBuilder {
         }
         // 解析 <setting/> 封装成 Properties
         Properties props = context.getChildrenAsProperties();
-        // Check that all settings are known to the configuration class
+        // 构造 Configuration 对应的 MetaClass 对象
         MetaClass metaConfig = MetaClass.forClass(Configuration.class, localReflectorFactory);
+        // 遍历配置项，确保配置项是 MyBatis 可识别的
         for (Object key : props.keySet()) {
             if (!metaConfig.hasSetter(String.valueOf(key))) {
                 // 属性不存在 setter 方法
@@ -237,20 +238,21 @@ public class XMLConfigBuilder extends BaseBuilder {
             for (XNode child : parent.getChildren()) {
                 if ("package".equals(child.getName())) {
                     /*
-                     * 如果子节点是 <package name=""/>
-                     * 如果指定了一个包名，MyBatis 会在包名下面搜索需要的 Java Bean，并处理 @Alias 处理，
-                     * 在没有注解的情况下，会使用 Bean 的首字母小写的非限定类名来作为它的别名。
+                     * 子节点是 <package name=""/>
+                     * 如果指定了一个包名，MyBatis 会在包名下搜索需要的 Java Bean，并处理 @Alias 注解，
+                     * 在没有注解的情况下，会使用 Bean 的首字母小写的简单名称作为它的别名。
                      */
                     String typeAliasPackage = child.getStringAttribute("name");
                     configuration.getTypeAliasRegistry().registerAliases(typeAliasPackage);
                 } else {
-                    /*如果子节点是 <typeAlias alias="" type=""/>*/
-                    String alias = child.getStringAttribute("alias");
-                    String type = child.getStringAttribute("type");
+                    /* 如果子节点是 <typeAlias alias="" type=""/> */
+                    String alias = child.getStringAttribute("alias"); // 获取别名
+                    String type = child.getStringAttribute("type"); // 获取对应的类型限定名
                     try {
+                        // 获取类型对应的 Class 对象
                         Class<?> clazz = Resources.classForName(type);
                         if (alias == null) {
-                            // 先尝试获取 @Alias 注解，如果没有则使用类的 simple name
+                            // 先尝试获取 @Alias 注解，如果没有则使用类的简单名称
                             typeAliasRegistry.registerAlias(clazz);
                         } else {
                             // 使用配置指定的 alias 进行注册
@@ -329,7 +331,7 @@ public class XMLConfigBuilder extends BaseBuilder {
      */
     private void propertiesElement(XNode context) throws Exception {
         if (context != null) {
-            // 获取 <property/>
+            // 获取 <property/> 子标签
             Properties defaults = context.getChildrenAsProperties();
             // 支持通过 resource 或 url 字段指定外部配置文件
             String resource = context.getStringAttribute("resource");
@@ -339,8 +341,10 @@ public class XMLConfigBuilder extends BaseBuilder {
                 throw new BuilderException("The properties element cannot specify both a URL and a resource based property file reference.  Please specify one or the other.");
             }
             if (resource != null) {
+                // 从类路径加载配置文件
                 defaults.putAll(Resources.getResourceAsProperties(resource));
             } else if (url != null) {
+                // 从 url 指定位置加载配置文件
                 defaults.putAll(Resources.getUrlAsProperties(url));
             }
             // 合并已有配置
@@ -348,7 +352,9 @@ public class XMLConfigBuilder extends BaseBuilder {
             if (vars != null) {
                 defaults.putAll(vars);
             }
+            // 记录到 XPathParser.variables 中
             parser.setVariables(defaults);
+            // 记录到 Configuration.variables 中
             configuration.setVariables(defaults);
         }
     }
