@@ -406,21 +406,42 @@ public class XMLConfigBuilder extends BaseBuilder {
     /**
      * 解析 <environments /> 配置，标记多套配置环境（开发、测试、生产）
      *
+     * <environments default="development">
+     * <environment id="development">
+     * <transactionManager type="JDBC">
+     * <property name="..." value="..."/>
+     * </transactionManager>
+     * <dataSource type="POOLED">
+     * <property name="driver" value="${driver}"/>
+     * <property name="url" value="${url}"/>
+     * <property name="username" value="${username}"/>
+     * <property name="password" value="${password}"/>
+     * </dataSource>
+     * </environment>
+     * </environments>
+     *
      * @param context
      * @throws Exception
      */
     private void environmentsElement(XNode context) throws Exception {
         if (context != null) {
             if (environment == null) {
-                // 未使用 <environment/> 指定使用的具体环境，则使用 default
+                // 未使用指定 environment，获取 default 属性值
                 environment = context.getStringAttribute("default");
             }
+            // 遍历处理 <environment/> 子节点
             for (XNode child : context.getChildren()) {
+                // 获取 <environment/> 的 id 属性
                 String id = child.getStringAttribute("id");
+                // 处理指定的 <environment/> 节点
                 if (this.isSpecifiedEnvironment(id)) {
+                    // 处理 <transactionManager/> 子节点，返回构造的 TransactionFactory 对象
                     TransactionFactory txFactory = this.transactionManagerElement(child.evalNode("transactionManager"));
+                    // 处理 <dataSource/> 子节点，返回构造的 DataSourceFactory 对象
                     DataSourceFactory dsFactory = this.dataSourceElement(child.evalNode("dataSource"));
+                    // 从工厂中获取 DataSource 对象
                     DataSource dataSource = dsFactory.getDataSource();
+                    // 基于解析到的值构造 Environment 对象，并记录到 Configuration.environment 中
                     Environment.Builder environmentBuilder = new Environment.Builder(id)
                             .transactionFactory(txFactory)
                             .dataSource(dataSource);
@@ -450,33 +471,60 @@ public class XMLConfigBuilder extends BaseBuilder {
             if ("VENDOR".equals(type)) {
                 type = "DB_VENDOR"; // 保持兼容
             }
+            // 获取 <property/> 子节点配置
             Properties properties = context.getChildrenAsProperties();
+            // 构造 DatabaseIdProvider 对象
             databaseIdProvider = (DatabaseIdProvider) resolveClass(type).newInstance();
+            // 设置配置的属性
             databaseIdProvider.setProperties(properties);
         }
         Environment environment = configuration.getEnvironment();
         if (environment != null && databaseIdProvider != null) {
+            // 获取当前数据库环境对应的 databaseId，并记录到 Configuration.databaseId 中，已备后用
             String databaseId = databaseIdProvider.getDatabaseId(environment.getDataSource());
             configuration.setDatabaseId(databaseId);
         }
     }
 
+    /**
+     * 解析 <transactionManager/> 标签，构造对应的 {@link TransactionFactory} 对象
+     * 事务管理器类型：JDBC or MANAGED
+     *
+     * @param context
+     * @return
+     * @throws Exception
+     */
     private TransactionFactory transactionManagerElement(XNode context) throws Exception {
         if (context != null) {
+            // 获取事务管理器类型配置：JDBC or MANAGED
             String type = context.getStringAttribute("type");
+            // 获取 <property/> 子节点
             Properties props = context.getChildrenAsProperties();
+            // 构造对应的 TransactionFactory 对象
             TransactionFactory factory = (TransactionFactory) resolveClass(type).newInstance();
+            // 设置配置的属性值
             factory.setProperties(props);
             return factory;
         }
         throw new BuilderException("Environment declaration requires a TransactionFactory.");
     }
 
+    /**
+     * 处理 <dataSource/> 子节点，构造对应的 {@link DataSourceFactory} 对象
+     *
+     * @param context
+     * @return
+     * @throws Exception
+     */
     private DataSourceFactory dataSourceElement(XNode context) throws Exception {
         if (context != null) {
+            // 获取配置的数据源类型：UNPOOLED or POOLED or JNDI
             String type = context.getStringAttribute("type");
+            // 获取 <property/> 子节点
             Properties props = context.getChildrenAsProperties();
+            // 构造对应的 DataSourceFactory 对象
             DataSourceFactory factory = (DataSourceFactory) resolveClass(type).newInstance();
+            // 设置配置的属性值
             factory.setProperties(props);
             return factory;
         }

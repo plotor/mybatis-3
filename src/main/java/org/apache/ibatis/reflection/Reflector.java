@@ -78,14 +78,17 @@ public class Reflector {
         type = clazz;
         // 解析获取默认构造方法（无参构造方法）
         this.addDefaultConstructor(clazz);
-        // 解析获取所有的 getter 方法
+        // 解析获取所有的 getter 方法，并记录到 getMethods 与 getTypes 属性中
         this.addGetMethods(clazz);
-        // 解析获取所有的 setter 方法
+        // 解析获取所有的 setter 方法，并记录到 setMethods 与 setTypes 属性中
         this.addSetMethods(clazz);
-        // 解析获取所有没有 setter/getter 方法的字段
+        // 解析获取所有没有 setter/getter 方法的字段，并添加到相应的集合中
         this.addFields(clazz);
+        // 填充可读属性名称数组
         readablePropertyNames = getMethods.keySet().toArray(new String[getMethods.keySet().size()]);
+        // 填充可写属性名称数组
         writablePropertyNames = setMethods.keySet().toArray(new String[setMethods.keySet().size()]);
+        // 记录所有属性名称到 Map 集合中
         for (String propName : readablePropertyNames) {
             caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
         }
@@ -141,9 +144,15 @@ public class Reflector {
                 this.addMethodConflict(conflictingGetters, name, method);
             }
         }
+        // 解析属性对应的 getter 与属性类型，尝试解决存在多个 getter 版本的情况
         this.resolveGetterConflicts(conflictingGetters);
     }
 
+    /**
+     * 解析属性对应的 getter 与属性类型，尝试解决存在多个 getter 版本的情况
+     *
+     * @param conflictingGetters
+     */
     private void resolveGetterConflicts(Map<String, List<Method>> conflictingGetters) {
         // 遍历处理 conflictingGetters
         for (Entry<String, List<Method>> entry : conflictingGetters.entrySet()) {
@@ -180,31 +189,42 @@ public class Reflector {
                                     + ". This breaks the JavaBeans specification and can cause unpredictable results.");
                 }
             }
+            // 记录到相应 Map 集合
             this.addGetMethod(propName, winner);
         }
     }
 
+    /**
+     * 添加属性类型与相应 getter 到对应的集合中
+     *
+     * @param name
+     * @param method
+     */
     private void addGetMethod(String name, Method method) {
-        if (isValidPropertyName(name)) {
+        if (this.isValidPropertyName(name)) {
             getMethods.put(name, new MethodInvoker(method));
             Type returnType = TypeParameterResolver.resolveReturnType(method, type);
-            getTypes.put(name, typeToClass(returnType));
+            getTypes.put(name, this.typeToClass(returnType));
         }
     }
 
     private void addSetMethods(Class<?> cls) {
         Map<String, List<Method>> conflictingSetters = new HashMap<String, List<Method>>();
-        Method[] methods = getClassMethods(cls);
+        // 获取所有的方法
+        Method[] methods = this.getClassMethods(cls);
+        // 遍历处理获取到的方法集合
         for (Method method : methods) {
             String name = method.getName();
+            // 筛选 setter
             if (name.startsWith("set") && name.length() > 3) {
                 if (method.getParameterTypes().length == 1) {
+                    // 获取方法对应的属性名称
                     name = PropertyNamer.methodToProperty(name);
-                    addMethodConflict(conflictingSetters, name, method);
+                    this.addMethodConflict(conflictingSetters, name, method);
                 }
             }
         }
-        resolveSetterConflicts(conflictingSetters);
+        this.resolveSetterConflicts(conflictingSetters);
     }
 
     /**
@@ -325,7 +345,7 @@ public class Reflector {
             }
         }
         if (clazz.getSuperclass() != null) {
-            this.addFields(clazz.getSuperclass());
+            addFields(clazz.getSuperclass());
         }
     }
 
