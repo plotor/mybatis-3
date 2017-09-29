@@ -577,14 +577,16 @@ public class XMLConfigBuilder extends BaseBuilder {
             for (XNode child : parent.getChildren()) {
                 if ("package".equals(child.getName())) {
                     /*
-                     * 配置了 package 属性，从指定包下面去寻找
+                     * 配置了 package 属性，从指定包下面扫描注册
                      * <mappers>
                      *      <package name="org.mybatis.builder"/>
                      * </mappers>
                      */
                     String mapperPackage = child.getStringAttribute("name");
+                    // 调用 MapperRegistry 进行注册
                     configuration.addMappers(mapperPackage);
                 } else {
+                    // 处理 resource, url, class 配置的场景
                     String resource = child.getStringAttribute("resource");
                     String url = child.getStringAttribute("url");
                     String mapperClass = child.getStringAttribute("class");
@@ -598,8 +600,11 @@ public class XMLConfigBuilder extends BaseBuilder {
                          * </mappers>
                          */
                         ErrorContext.instance().resource(resource);
+                        // 从类路径获取文件输入流
                         InputStream inputStream = Resources.getResourceAsStream(resource);
+                        // 构建 XMLMapperBuilder 对象
                         XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
+                        // 执行映射文件解析
                         mapperParser.parse();
                     } else if (resource == null && url != null && mapperClass == null) {
                         /*
@@ -611,8 +616,11 @@ public class XMLConfigBuilder extends BaseBuilder {
                          * </mappers>
                          */
                         ErrorContext.instance().resource(url);
+                        // 基于 url 获取配置文件输入流
                         InputStream inputStream = Resources.getUrlAsStream(url);
+                        // 构建 XMLMapperBuilder 对象
                         XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url, configuration.getSqlFragments());
+                        // 执行映射文件解析
                         mapperParser.parse();
                     } else if (resource == null && url == null && mapperClass != null) {
                         /*
@@ -623,7 +631,9 @@ public class XMLConfigBuilder extends BaseBuilder {
                          *      <mapper class="org.mybatis.builder.PostMapper"/>
                          * </mappers>
                          */
+                        // 获取指定接口 Class 对象
                         Class<?> mapperInterface = Resources.classForName(mapperClass);
+                        // 调用 MapperRegistry 进行注册
                         configuration.addMapper(mapperInterface);
                     } else {
                         throw new BuilderException("A mapper element may only specify a url, resource or class, but not more than one.");

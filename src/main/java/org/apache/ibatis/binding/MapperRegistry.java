@@ -63,8 +63,10 @@ public class MapperRegistry {
     }
 
     public <T> void addMapper(Class<T> type) {
-        if (type.isInterface()) { // 仅处理接口
-            if (this.hasMapper(type)) { // 检测是否已经注册
+        // 仅处理接口
+        if (type.isInterface()) {
+            if (this.hasMapper(type)) {
+                // 对应 Mapper 已经注册
                 throw new BindingException("Type " + type + " is already known to the MapperRegistry.");
             }
             boolean loadCompleted = false; // 标记整个过程是否成功完成
@@ -97,11 +99,12 @@ public class MapperRegistry {
      * @since 3.2.2
      */
     public void addMappers(String packageName, Class<?> superType) {
+        // 获取指定 package 下指定类型的
         ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<Class<?>>();
         resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
         Set<Class<? extends Class<?>>> mapperSet = resolverUtil.getClasses();
         for (Class<?> mapperClass : mapperSet) {
-            addMapper(mapperClass);
+            this.addMapper(mapperClass);
         }
     }
 
@@ -109,7 +112,7 @@ public class MapperRegistry {
      * @since 3.2.2
      */
     public void addMappers(String packageName) {
-        addMappers(packageName, Object.class);
+        this.addMappers(packageName, Object.class);
     }
 
 }
