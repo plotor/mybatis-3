@@ -32,6 +32,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 /**
+ * {@link ObjectFactory} 的默认实现
  *
  * @author Clinton Begin
  */
@@ -47,7 +48,7 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
     @SuppressWarnings("unchecked")
     @Override
     public <T> T create(Class<T> type, List<Class<?>> constructorArgTypes, List<Object> constructorArgs) {
-        // 如果传入的是接口类型，则选择具体的实现类型
+        // 如果传入的是接口类型，则选择具体的实现类型以创建对象，毕竟接口类型不能被实例化
         Class<?> classToCreate = this.resolveInterface(type);
         // 基于入参选择合适的构造方法进行实例化
         return (T) instantiateClass(classToCreate, constructorArgTypes, constructorArgs);
@@ -70,7 +71,7 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
     <T> T instantiateClass(Class<T> type, List<Class<?>> constructorArgTypes, List<Object> constructorArgs) {
         try {
             Constructor<T> constructor;
-            // 如果没有传递构造参数类型或参数，则使用无参构造方法创建对象
+            // 如果没有传递构造参数或类型，则使用无参构造方法创建对象
             if (constructorArgTypes == null || constructorArgs == null) {
                 constructor = type.getDeclaredConstructor();
                 if (!constructor.isAccessible()) {
@@ -78,7 +79,7 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
                 }
                 return constructor.newInstance();
             }
-            // 使用对应的有参数构造方法创建对象
+            // 否则选择对应的有参数构造方法创建对象
             constructor = type.getDeclaredConstructor(constructorArgTypes.toArray(new Class[constructorArgTypes.size()]));
             if (!constructor.isAccessible()) {
                 constructor.setAccessible(true);

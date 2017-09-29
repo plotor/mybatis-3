@@ -294,10 +294,15 @@ public class XMLConfigBuilder extends BaseBuilder {
      */
     private void objectFactoryElement(XNode context) throws Exception {
         if (context != null) {
+            // 获取 type 属性配置，对应自定义对象工厂类
             String type = context.getStringAttribute("type");
+            // 获取 <property/> 子标签
             Properties properties = context.getChildrenAsProperties();
+            // 实例化自定义工厂
             ObjectFactory factory = (ObjectFactory) resolveClass(type).newInstance();
+            // 设置属性配置
             factory.setProperties(properties);
+            // 记录到 Configuration.objectFactory
             configuration.setObjectFactory(factory);
         }
     }

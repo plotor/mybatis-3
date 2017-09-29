@@ -125,7 +125,10 @@ public class Configuration {
 
     protected Properties variables = new Properties();
     protected ReflectorFactory reflectorFactory = new DefaultReflectorFactory();
+
+    /** 对象工厂 */
     protected ObjectFactory objectFactory = new DefaultObjectFactory();
+
     protected ObjectWrapperFactory objectWrapperFactory = new DefaultObjectWrapperFactory();
 
     protected boolean lazyLoadingEnabled = false;
