@@ -29,6 +29,8 @@ import java.lang.reflect.Modifier;
 import java.util.Map;
 
 /**
+ * Mapper动态代理类
+ *
  * @author Clinton Begin
  * @author Eduardo Macarron
  */

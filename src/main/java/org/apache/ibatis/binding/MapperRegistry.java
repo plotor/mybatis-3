@@ -101,6 +101,7 @@ public class MapperRegistry {
         ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<Class<?>>();
         resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
         Set<Class<? extends Class<?>>> mapperSet = resolverUtil.getClasses();
+        // 遍历注册扫描到的类型
         for (Class<?> mapperClass : mapperSet) {
             this.addMapper(mapperClass);
         }
