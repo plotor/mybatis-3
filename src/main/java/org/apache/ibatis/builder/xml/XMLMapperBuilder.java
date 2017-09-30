@@ -90,20 +90,27 @@ public class XMLMapperBuilder extends BaseBuilder {
         this.resource = resource;
     }
 
+    /**
+     * 映射文件解析入口
+     */
     public void parse() {
-        // 是否已经加载过该映射文件
-        if (!configuration.isResourceLoaded(resource)) { // 映射文件未加载过
-            // 解析 <mapper /> 下面的配置元素
+        // 1. 加载并解析映射文件
+        if (!configuration.isResourceLoaded(resource)) {
+            // 映射文件未加载过, 解析 <mapper/> 下面的配置项
             this.configurationElement(parser.evalNode("/mapper"));
+            // 记录到 Configuration.loadedResources 中，标记为已经加载过
             configuration.addLoadedResource(resource);
-            this.bindMapperForNamespace(); // 注册 Mapper 接口
+            // 注册 Mapper 接口（配置在 <mapper namespace=""/> 的 namespace 属性）
+            this.bindMapperForNamespace();
         }
 
-        // 处理 configurationElement() 中解析失败的 <resultMap/> 结点
+        // 2. 处理解析过程中失败的节点
+
+        // 处理解析失败的 <resultMap/> 节点
         this.parsePendingResultMaps();
-        // 处理 configurationElement() 中解析失败的 <cache-ref/> 结点
+        // 处理解析失败的 <cache-ref/> 节点
         this.parsePendingCacheRefs();
-        // 处理 configurationElement() 中解析失败的 SQL 语句结点
+        // 处理解析失败的 SQL 语句节点
         this.parsePendingStatements();
     }
 
@@ -118,7 +125,7 @@ public class XMLMapperBuilder extends BaseBuilder {
      */
     private void configurationElement(XNode context) {
         try {
-            // 获取 namespace，当前映射文件对应的 Mapper 类
+            // 获取 <mapper/> 节点的 namespace 属性，设置当前映射文件关联的 Mapper 类
             String namespace = context.getStringAttribute("namespace");
             if (namespace == null || namespace.equals("")) {
                 throw new BuilderException("Mapper's namespace cannot be empty");
@@ -211,13 +218,15 @@ public class XMLMapperBuilder extends BaseBuilder {
      */
     private void cacheRefElement(XNode context) {
         if (context != null) {
-            // <当前结点所在的 namespace, 引用 cache 所在的 namespace>
+            // 记录 (当前节点所在的 namespace, 引用缓存对象所在的 namespace) 到 Configuration.cacheRefMap 中
             configuration.addCacheRef(builderAssistant.getCurrentNamespace(), context.getStringAttribute("namespace"));
+            // 构造缓存引用解析器 CacheRefResolver 对象
             CacheRefResolver cacheRefResolver = new CacheRefResolver(builderAssistant, context.getStringAttribute("namespace"));
             try {
+                // 从记录缓存对象的 Configuration.caches 集合中获取引用的缓存对象
                 cacheRefResolver.resolveCacheRef();
             } catch (IncompleteElementException e) {
-                // 如果出现异常则添加到 org.apache.ibatis.session.Configuration.incompleteCacheRefs 中，后续再处理
+                // 如果解析出现异常则记录到 Configuration.incompleteCacheRefs 中，后续再处理
                 configuration.addIncompleteCacheRef(cacheRefResolver);
             }
         }
@@ -233,16 +242,16 @@ public class XMLMapperBuilder extends BaseBuilder {
     private void cacheElement(XNode context) throws Exception {
         if (context != null) {
             // 获取相应的是属性配置
-            String type = context.getStringAttribute("type", "PERPETUAL");
+            String type = context.getStringAttribute("type", "PERPETUAL"); // type，缓存类型
             Class<? extends Cache> typeClass = typeAliasRegistry.resolveAlias(type);
-            String eviction = context.getStringAttribute("eviction", "LRU");
+            String eviction = context.getStringAttribute("eviction", "LRU"); // eviction， 缓存策略
             Class<? extends Cache> evictionClass = typeAliasRegistry.resolveAlias(eviction);
-            Long flushInterval = context.getLongAttribute("flushInterval");
-            Integer size = context.getIntAttribute("size");
-            boolean readWrite = !context.getBooleanAttribute("readOnly", false);
-            boolean blocking = context.getBooleanAttribute("blocking", false);
+            Long flushInterval = context.getLongAttribute("flushInterval"); // flushInterval，刷新间隔
+            Integer size = context.getIntAttribute("size"); // size, 缓存大小
+            boolean readWrite = !context.getBooleanAttribute("readOnly", false); // readOnly，是否只读
+            boolean blocking = context.getBooleanAttribute("blocking", false); // blocking， 是否阻塞
             Properties props = context.getChildrenAsProperties();
-            // 创建二级缓存对象，并记录到 org.apache.ibatis.session.Configuration.caches 中
+            // 创建二级缓存对象，并记录到 Configuration.caches 中
             builderAssistant.useNewCache(typeClass, evictionClass, flushInterval, size, readWrite, blocking, props);
         }
     }
@@ -298,7 +307,7 @@ public class XMLMapperBuilder extends BaseBuilder {
     }
 
     /**
-     * 解析 <resultMap/> 结点
+     * 解析 <resultMap/> 节点
      *
      * @param resultMapNode
      * @return
@@ -361,7 +370,7 @@ public class XMLMapperBuilder extends BaseBuilder {
     }
 
     /**
-     * 解析 <constructor /> 结点
+     * 解析 <constructor /> 节点
      *
      * @param resultChild
      * @param resultType

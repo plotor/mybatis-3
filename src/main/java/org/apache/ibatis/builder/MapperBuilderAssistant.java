@@ -114,7 +114,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
         }
         try {
             unresolvedCacheRef = true;
-            // 从 org.apache.ibatis.session.Configuration.caches 中获取 namespace 对应的缓存对象
+            // 从 Configuration.caches 中获取 namespace 对应的缓存对象
             Cache cache = configuration.getCache(namespace);
             if (cache == null) {
                 throw new IncompleteElementException("No cache for namespace '" + namespace + "' could be found.");
@@ -139,13 +139,8 @@ public class MapperBuilderAssistant extends BaseBuilder {
      * @param props
      * @return
      */
-    public Cache useNewCache(Class<? extends Cache> typeClass,
-                             Class<? extends Cache> evictionClass,
-                             Long flushInterval,
-                             Integer size,
-                             boolean readWrite,
-                             boolean blocking,
-                             Properties props) {
+    public Cache useNewCache(Class<? extends Cache> typeClass, Class<? extends Cache> evictionClass,
+                             Long flushInterval, Integer size, boolean readWrite, boolean blocking, Properties props) {
         // 利用构造器 CacheBuilder 创建缓存对象
         Cache cache = new CacheBuilder(currentNamespace)
                 .implementation(valueOrDefault(typeClass, PerpetualCache.class))
@@ -157,7 +152,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
                 .properties(props)
                 .build();
 
-        // 记录缓存对象到 org.apache.ibatis.session.Configuration.caches 中
+        // 记录缓存对象到 Configuration.caches 中
         configuration.addCache(cache);
         currentCache = cache;
         return cache;

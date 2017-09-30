@@ -51,6 +51,7 @@ public class CacheKey implements Cloneable, Serializable {
 
     /**
      * 判断两个 key 是否相同的元素集合，包括：
+     *
      * 1. {@link org.apache.ibatis.mapping.MappedStatement} id
      * 2. 查询范围 {limit, offset}
      * 3. SQL 语句

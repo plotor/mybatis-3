@@ -114,7 +114,7 @@ public class CacheBuilder {
      * @return
      */
     public Cache build() {
-        // 如果没有指定则设置缓存默认实现
+        // 如果没有指定则设置缓存默认实现（以 PerpetualCache 作为默认实现，以 LruCache 作为默认装饰器）
         this.setDefaultImplementations();
         // 以反射的形式创建缓存对象
         Cache cache = this.newBaseCacheInstance(implementation, id);
@@ -122,12 +122,13 @@ public class CacheBuilder {
         this.setCacheProperties(cache);
         // issue #352, do not apply decorators to custom caches
         if (PerpetualCache.class.equals(cache.getClass())) {
-            // 如果缓存采用 PerpetualCache 实现
+            // 如果缓存采用 PerpetualCache 实现（对应自定义缓存实现），则遍历构造装饰器对象，并应用属性配置
             for (Class<? extends Cache> decorator : decorators) {
                 // 基于反射的方式装饰缓存对象
                 cache = this.newCacheDecoratorInstance(decorator, cache);
                 this.setCacheProperties(cache);
             }
+            // 注入标准装饰器
             cache = this.setStandardDecorators(cache);
         } else if (!LoggingCache.class.isAssignableFrom(cache.getClass())) {
             // 采用日志缓存装饰器对缓存对象进行装饰
@@ -201,26 +202,19 @@ public class CacheBuilder {
                     Class<?> type = metaCache.getSetterType(name);
                     if (String.class == type) {
                         metaCache.setValue(name, value);
-                    } else if (int.class == type
-                            || Integer.class == type) {
+                    } else if (int.class == type || Integer.class == type) {
                         metaCache.setValue(name, Integer.valueOf(value));
-                    } else if (long.class == type
-                            || Long.class == type) {
+                    } else if (long.class == type || Long.class == type) {
                         metaCache.setValue(name, Long.valueOf(value));
-                    } else if (short.class == type
-                            || Short.class == type) {
+                    } else if (short.class == type || Short.class == type) {
                         metaCache.setValue(name, Short.valueOf(value));
-                    } else if (byte.class == type
-                            || Byte.class == type) {
+                    } else if (byte.class == type || Byte.class == type) {
                         metaCache.setValue(name, Byte.valueOf(value));
-                    } else if (float.class == type
-                            || Float.class == type) {
+                    } else if (float.class == type || Float.class == type) {
                         metaCache.setValue(name, Float.valueOf(value));
-                    } else if (boolean.class == type
-                            || Boolean.class == type) {
+                    } else if (boolean.class == type || Boolean.class == type) {
                         metaCache.setValue(name, Boolean.valueOf(value));
-                    } else if (double.class == type
-                            || Double.class == type) {
+                    } else if (double.class == type || Double.class == type) {
                         metaCache.setValue(name, Double.valueOf(value));
                     } else {
                         throw new CacheException("Unsupported property type for cache: '" + name + "' of type " + type);
@@ -234,8 +228,7 @@ public class CacheBuilder {
             try {
                 ((InitializingObject) cache).initialize();
             } catch (Exception e) {
-                throw new CacheException("Failed cache initialization for '" +
-                        cache.getId() + "' on '" + cache.getClass().getName() + "'", e);
+                throw new CacheException("Failed cache initialization for '" + cache.getId() + "' on '" + cache.getClass().getName() + "'", e);
             }
         }
     }
@@ -248,6 +241,7 @@ public class CacheBuilder {
      * @return
      */
     private Cache newBaseCacheInstance(Class<? extends Cache> cacheClass, String id) {
+        // 获取参数为 String 的构造方法
         Constructor<? extends Cache> cacheConstructor = this.getBaseCacheConstructor(cacheClass);
         try {
             return cacheConstructor.newInstance(id);

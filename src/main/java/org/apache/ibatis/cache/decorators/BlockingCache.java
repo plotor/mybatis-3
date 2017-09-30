@@ -67,7 +67,7 @@ public class BlockingCache implements Cache {
         try {
             delegate.putObject(key, value);
         } finally {
-            releaseLock(key);
+            this.releaseLock(key);
         }
     }
 

@@ -49,7 +49,7 @@ public interface Cache {
     String getId();
 
     /**
-     * 添加数据到缓存
+     * 添加数据到缓存，一般来说 key 是 {@link CacheKey} 类型
      *
      * @param key Can be any object but usually it is a {@link CacheKey}
      * @param value The result of a select.
@@ -57,12 +57,15 @@ public interface Cache {
     void putObject(Object key, Object value);
 
     /**
+     * 从缓存中获取 key 对应的 value
+     *
      * @param key The key
      * @return The object stored in the cache.
      */
     Object getObject(Object key);
 
     /**
+     * 从缓存中移除指定对象
      * As of 3.3.0 this method is only called during a rollback
      * for any previous value that was missing in the cache.
      * This lets any blocking cache to release the lock that
@@ -78,12 +81,13 @@ public interface Cache {
     Object removeObject(Object key);
 
     /**
-     * Clears this cache instance
+     * 清空缓存
      */
     void clear();
 
     /**
-     * Optional. This method is not called by the core.
+     * 获取缓存对象的个数（不是缓存的容量）
+     * 该方法不会在 MyBatis 核心代码中被调用，可以是一个空实现
      *
      * @return The number of elements stored in the cache (not its capacity).
      */
@@ -91,8 +95,7 @@ public interface Cache {
 
     /**
      * 缓存读写锁
-     *
-     * Optional. As of 3.2.6 this method is no longer called by the core.
+     * 该方法不会在 MyBatis 核心代码中被调用，可以是一个空实现
      *
      * Any locking needed by the cache must be provided internally by the cache provider.
      *
