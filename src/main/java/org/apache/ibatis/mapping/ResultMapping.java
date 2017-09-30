@@ -27,16 +27,19 @@ import java.util.List;
 import java.util.Set;
 
 /**
+ * 封装一行 <result/> 配置
+ * <result property="" column="" javaType="" jdbcType="" typeHandler="" />
+ *
  * @author Clinton Begin
  */
 public class ResultMapping {
 
     private Configuration configuration;
 
-    /** 对应结点的 property 属性 */
+    /** 对应节点的 property 属性 */
     private String property;
 
-    /** 对应结点的 column 属，对应数据表列名（or 别名） */
+    /** 对应节点的 column 属，对应数据表列名（or 别名） */
     private String column;
 
     /** 对应 java 类型，类型全限定名（or 别名） */
@@ -48,29 +51,31 @@ public class ResultMapping {
     /** 类型处理器，会覆盖默认类型处理器 */
     private TypeHandler<?> typeHandler;
 
-    /** 对应结点的 resultMap 属性，以 id 的方式引某个定义的 <resultMap/> */
+    /** 对应节点的 resultMap 属性，以 id 的方式引某个定义的 <resultMap/> */
     private String nestedResultMapId;
 
-    /** 对应结点的 select 属性，以 id 的方式引用某个定义的 <select/> */
+    /** 对应节点的 select 属性，以 id 的方式引用某个定义的 <select/> */
     private String nestedQueryId;
 
-    /** 结点 notNullColumns 属性配置 */
+    /** 节点 notNullColumns 属性配置 */
     private Set<String> notNullColumns;
 
-    /** 结点 columnPrefix 属性配置 */
+    /** 节点 columnPrefix 属性配置 */
     private String columnPrefix;
 
+    /** 处理后的标志 */
     private List<ResultFlag> flags;
 
+    /** 对应节点 column 拆分后生成的结果 */
     private List<ResultMapping> composites;
 
-    /** 结点 resultSet 属性配置 */
+    /** 对应节点 resultSet 属性配置 */
     private String resultSet;
 
-    /** 结点 foreignColumn 属性配置 */
+    /** 对应节点 foreignColumn 属性配置 */
     private String foreignColumn;
 
-    /** 结点 fetchType 属性配置，是否延迟加载 */
+    /** 对应节点 fetchType 属性配置，是否延迟加载 */
     private boolean lazy;
 
     ResultMapping() {

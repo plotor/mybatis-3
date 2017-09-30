@@ -317,9 +317,24 @@ public class XMLMapperBuilder extends BaseBuilder {
         return this.resultMapElement(resultMapNode, Collections.<ResultMapping>emptyList());
     }
 
+    /**
+     * <resultMap id="BaseResultMap" type="org.zhenchao.mybatis.entity.User">
+     * <id column="id" jdbcType="BIGINT" property="id" />
+     * <result column="username" jdbcType="VARCHAR" property="username" />
+     * <result column="password" jdbcType="CHAR" property="password" />
+     * <result column="age" jdbcType="INTEGER" property="age" />
+     * <result column="phone" jdbcType="VARCHAR" property="phone" />
+     * <result column="email" jdbcType="VARCHAR" property="email" />
+     * </resultMap>
+     *
+     * @param resultMapNode
+     * @param additionalResultMappings
+     * @return
+     * @throws Exception
+     */
     private ResultMap resultMapElement(XNode resultMapNode, List<ResultMapping> additionalResultMappings) throws Exception {
         ErrorContext.instance().activity("processing " + resultMapNode.getValueBasedIdentifier());
-        // 获取 id 属性，如果没有指定则使用 org.apache.ibatis.parsing.XNode.getValueBasedIdentifier() 生成默认值
+        // 获取 id 属性（标识当前 <resultMap/>），如果没有指定则使用 XNode.getValueBasedIdentifier() 生成默认值
         String id = resultMapNode.getStringAttribute("id", resultMapNode.getValueBasedIdentifier());
 
         // 获取 type 属性
@@ -334,12 +349,12 @@ public class XMLMapperBuilder extends BaseBuilder {
         // 获取 autoMapping 属性，是否启动自动映射（自动查找与列名相同的属性名称，并执行注入）
         Boolean autoMapping = resultMapNode.getBooleanAttribute("autoMapping");
 
-        Class<?> typeClass = this.resolveClass(type); // 解析 type 类型
+        // 基于 TypeAliasRegistry 解析 type 属性对应的 Class 对象
+        Class<?> typeClass = this.resolveClass(type);
         Discriminator discriminator = null;
         List<ResultMapping> resultMappings = new ArrayList<ResultMapping>(); // 用于记录解析结果
         resultMappings.addAll(additionalResultMappings);
-        List<XNode> resultChildren = resultMapNode.getChildren();
-
+        List<XNode> resultChildren = resultMapNode.getChildren(); // 获取所有的子节点
         // 遍历处理子节点
         for (XNode resultChild : resultChildren) {
             if ("constructor".equals(resultChild.getName())) {
@@ -361,7 +376,7 @@ public class XMLMapperBuilder extends BaseBuilder {
         ResultMapResolver resultMapResolver =
                 new ResultMapResolver(builderAssistant, id, typeClass, extend, discriminator, resultMappings, autoMapping);
         try {
-            // 创建 ResultMap 对象
+            // 创建 ResultMap 对象，记录到 Configuration.resultMaps 中
             return resultMapResolver.resolve();
         } catch (IncompleteElementException e) {
             configuration.addIncompleteResultMap(resultMapResolver);

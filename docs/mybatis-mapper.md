@@ -223,6 +223,19 @@ private void cacheRefElement(XNode context) {
 
 #### 解析 <resultMap/> 配置
 
+<resultMap/> 标签用于建立结果集为 java bean 属性之间的映射关系，这是一个非常有用和高效的配置，如果是纯 JDBC 开发，甚至包括我司自研的 ORM 框架，在处理结果集与 java bean 之间的映射时，还需要手动硬编码注入，对于一张字段较多的表来说，简直写到手抽筋，而 <resultMap/> 配置配合 mybatis-generator 工具的逆向工程则可以解放我们的双手。下面是一个典型的配置，用于建立数据表 t\_user 与 User 实体之间的属性映射关系：
+
+```xml
+<resultMap id="BaseResultMap" type="org.zhenchao.mybatis.entity.User">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="username" jdbcType="VARCHAR" property="username" />
+    <result column="password" jdbcType="CHAR" property="password" />
+    <result column="age" jdbcType="INTEGER" property="age" />
+    <result column="phone" jdbcType="VARCHAR" property="phone" />
+    <result column="email" jdbcType="VARCHAR" property="email" />
+</resultMap>
+```
+
 #### 解析 <sql/> 配置
 
 #### 解析 <select/>, <insert/>, <update/>, <delete/> 配置
