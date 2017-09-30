@@ -58,7 +58,7 @@ public class MapperMethod {
     }
 
     /**
-     * 执行对应的 SQL
+     * 调用 {@link SqlSession} 相应的方法执行对应的 SQL 语句
      *
      * @param sqlSession
      * @param args
@@ -75,18 +75,22 @@ public class MapperMethod {
                 break;
             }
             case UPDATE: {
+                // 关联实参与方法参数列表
                 Object param = method.convertArgsToSqlCommandParam(args);
+                // 调用 SqlSession 的 update 方法执行更新操作，并对执行结果进行转换
                 result = this.rowCountResult(sqlSession.update(command.getName(), param));
                 break;
             }
             case DELETE: {
+                // 关联实参与方法参数列表
                 Object param = method.convertArgsToSqlCommandParam(args);
+                // 调用 SqlSession 的 delete 方法执行删除操作，并对执行结果进行转换
                 result = this.rowCountResult(sqlSession.delete(command.getName(), param));
                 break;
             }
             case SELECT:
                 if (method.returnsVoid() && method.hasResultHandler()) {
-                    // 返回值是 void，且结果集由 ResultHandler 处理
+                    // 返回值是 void，且指定 ResultHandler 处理结果集
                     this.executeWithResultHandler(sqlSession, args);
                     result = null;
                 } else if (method.returnsMany()) {
@@ -105,6 +109,7 @@ public class MapperMethod {
                 }
                 break;
             case FLUSH:
+                // 如果方法注解了@Flush，则执行 SqlSession.flushStatements()
                 result = sqlSession.flushStatements();
                 break;
             default:
@@ -117,6 +122,12 @@ public class MapperMethod {
         return result;
     }
 
+    /**
+     * 将入参rowCount转换对应的结果类型
+     *
+     * @param rowCount
+     * @return
+     */
     private Object rowCountResult(int rowCount) {
         final Object result;
         if (method.returnsVoid()) {
@@ -133,17 +144,26 @@ public class MapperMethod {
         return result;
     }
 
+    /**
+     * 执行查询操作，并使用指定的 {@link ResultHandler} 处理结果集
+     *
+     * @param sqlSession
+     * @param args
+     */
     private void executeWithResultHandler(SqlSession sqlSession, Object[] args) {
         // 获取 SQL 语句对应的 MappedStatement 对象
         MappedStatement ms = sqlSession.getConfiguration().getMappedStatement(command.getName());
-        // 当使用 ResultHandler 处理结果集时，必须指定 ResultMap 或 ResultType
+        // 当指定 ResultHandler 处理结果集时，必须指定 ResultMap 或 ResultType
         if (void.class.equals(ms.getResultMaps().get(0).getType())) {
             throw new BindingException("method " + command.getName()
                     + " needs either a @ResultMap annotation, a @ResultType annotation,"
                     + " or a resultType attribute in XML so a ResultHandler can be used as a parameter.");
         }
+        // 关联实参与方法参数列表
         Object param = method.convertArgsToSqlCommandParam(args);
-        if (method.hasRowBounds()) { // 存在 RowBounds 类型参数
+        // 调用 SqlSession 的 select 方法执行查询操作，并使用指定的 ResultHandler 处理结果集
+        if (method.hasRowBounds()) {
+            // 存在 RowBounds 类型参数
             RowBounds rowBounds = method.extractRowBounds(args);
             sqlSession.select(command.getName(), param, rowBounds, method.extractResultHandler(args));
         } else {
@@ -151,21 +171,30 @@ public class MapperMethod {
         }
     }
 
+    /**
+     * @param sqlSession
+     * @param args
+     * @param <E>
+     * @return
+     */
     private <E> Object executeForMany(SqlSession sqlSession, Object[] args) {
         List<E> result;
+        // 关联实参与方法参数列表
         Object param = method.convertArgsToSqlCommandParam(args);
+        // 调用 SqlSession 的 selectList 方法执行查询操作
         if (method.hasRowBounds()) {
+            // 处理 RowBounds
             RowBounds rowBounds = method.extractRowBounds(args);
             result = sqlSession.<E>selectList(command.getName(), param, rowBounds);
         } else {
             result = sqlSession.<E>selectList(command.getName(), param);
         }
-        // issue #510 Collections & arrays support
+        // 转换结果集为数组或Collection集合
         if (!method.getReturnType().isAssignableFrom(result.getClass())) {
             if (method.getReturnType().isArray()) {
-                return convertToArray(result);
+                return this.convertToArray(result);
             } else {
-                return convertToDeclaredCollection(sqlSession.getConfiguration(), result);
+                return this.convertToDeclaredCollection(sqlSession.getConfiguration(), result);
             }
         }
         return result;
