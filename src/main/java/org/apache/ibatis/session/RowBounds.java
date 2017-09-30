@@ -17,6 +17,8 @@
 package org.apache.ibatis.session;
 
 /**
+ * 对应查询的 LIMIT 语句
+ *
  * @author Clinton Begin
  */
 public class RowBounds {

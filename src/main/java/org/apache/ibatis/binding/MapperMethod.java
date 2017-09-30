@@ -38,16 +38,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * 封装Mapper接口中对应的方法及其对应的SQL语句
+ *
  * @author Clinton Begin
  * @author Eduardo Macarron
  * @author Lasse Voss
  */
 public class MapperMethod {
 
-    /** SQL语句及其类型 */
+    /** 方法关联的SQL语句名称与类型 */
     private final SqlCommand command;
 
-    /** Mapper 接口中对应的方法信息 */
+    /** 方法相关信息封装 */
     private final MethodSignature method;
 
     public MapperMethod(Class<?> mapperInterface, Method method, Configuration config) {
@@ -66,7 +68,7 @@ public class MapperMethod {
         Object result;
         switch (command.getType()) {
             case INSERT: {
-                // 关联实参与指定参数名称
+                // 关联实参与方法参数列表
                 Object param = method.convertArgsToSqlCommandParam(args);
                 // 调用 SqlSession 的 insert 方法执行插入操作，并对执行结果进行转换
                 result = this.rowCountResult(sqlSession.insert(command.getName(), param));
@@ -229,29 +231,32 @@ public class MapperMethod {
     }
 
     /**
-     * SQL语句及其类型
+     * 方法关联的SQL语句名称与类型
      */
     public static class SqlCommand {
 
-        /** SQL语句的名称（由 Mapper 接口名称与对应的方法名称组成） */
+        /** SQL语句的名称（接口名称.方法名） */
         private final String name;
 
         /** SQL类型 */
         private final SqlCommandType type;
 
         public SqlCommand(Configuration configuration, Class<?> mapperInterface, Method method) {
-            final String methodName = method.getName();
-            final Class<?> declaringClass = method.getDeclaringClass();
+            final String methodName = method.getName(); // 获取方法名称
+            final Class<?> declaringClass = method.getDeclaringClass(); // 获取方法隶属的Class
+            // 解析SQL语句名称对应的MappedStatement对象
             MappedStatement ms = this.resolveMappedStatement(mapperInterface, methodName, declaringClass, configuration);
             if (ms == null) {
+                // 没有找当前方法对应的MappedStatement（封装SQL语句相关信息）
                 if (method.getAnnotation(Flush.class) != null) {
+                    // 如果对应方法注解了@Fulsh，则进行标记
                     name = null;
                     type = SqlCommandType.FLUSH;
                 } else {
-                    throw new BindingException("Invalid bound statement (not found): "
-                            + mapperInterface.getName() + "." + methodName);
+                    throw new BindingException("Invalid bound statement (not found): " + mapperInterface.getName() + "." + methodName);
                 }
             } else {
+                // 当前方法存在对应的MappedStatement对象，初始化SqlCommand相关属性
                 name = ms.getId();
                 type = ms.getSqlCommandType();
                 if (type == SqlCommandType.UNKNOWN) {
@@ -269,7 +274,7 @@ public class MapperMethod {
         }
 
         /**
-         * @param mapperInterface Mapper接口
+         * @param mapperInterface Mapper接口Class对象
          * @param methodName 方法名称
          * @param declaringClass 方法隶属的类
          * @param configuration
@@ -277,16 +282,16 @@ public class MapperMethod {
          */
         private MappedStatement resolveMappedStatement(
                 Class<?> mapperInterface, String methodName, Class<?> declaringClass, Configuration configuration) {
-            // SQL语句名称 = 接口名称.方法名
-            String statementId = mapperInterface.getName() + "." + methodName;
+            String statementId = mapperInterface.getName() + "." + methodName; // 接口名称.方法名
             // 检测该SQL名称是否有对应的SQL语句
             if (configuration.hasStatement(statementId)) {
-                // 存在对应的SQL
+                // 存在对应的SQL，则获取封装SQL语句的MappedStatement对象并返回
                 return configuration.getMappedStatement(statementId);
             } else if (mapperInterface.equals(declaringClass)) {
+                // 已经达到方法隶属的最上层类，仍然没有获取到对应的对应的MappedStatement，查询失败
                 return null;
             }
-            // 向上递归查找
+            // 依照继承关系向上递归查找
             for (Class<?> superInterface : mapperInterface.getInterfaces()) {
                 if (declaringClass.isAssignableFrom(superInterface)) {
                     MappedStatement ms = this.resolveMappedStatement(superInterface, methodName, declaringClass, configuration);
@@ -300,11 +305,11 @@ public class MapperMethod {
     }
 
     /**
-     * Mapper 接口中的方法信息
+     * Mapper方法相关信息封装
      */
     public static class MethodSignature {
 
-        /** 标记返回值是否是 {@link java.util.Collections} 或数组类型 */
+        /** 标记返回值是否是 {@link java.util.Collection} 或数组类型 */
         private final boolean returnsMany;
 
         /** 标记返回值是否是 {@link Map} 类型 */
@@ -319,6 +324,7 @@ public class MapperMethod {
         /** 返回值类型 */
         private final Class<?> returnType;
 
+        /** 对于Map类型的返回值，用于标记key的别名 */
         private final String mapKey;
 
         /** 标记参数列表中 {@link ResultHandler} 的位置 */
@@ -327,6 +333,7 @@ public class MapperMethod {
         /** 标记参数列表中 {@link RowBounds} 的位置 */
         private final Integer rowBoundsIndex;
 
+        /** 参数名称解析器 */
         private final ParamNameResolver paramNameResolver;
 
         public MethodSignature(Configuration configuration, Class<?> mapperInterface, Method method) {
@@ -350,6 +357,7 @@ public class MapperMethod {
         }
 
         /**
+         * 将指定的参数转换成SQL语句对应的参数列表
          *
          * @param args
          * @return
@@ -398,6 +406,13 @@ public class MapperMethod {
             return returnsCursor;
         }
 
+        /**
+         * 查找指定类型参数在参数列表中的位置
+         *
+         * @param method
+         * @param paramType
+         * @return
+         */
         private Integer getUniqueParamIndex(Method method, Class<?> paramType) {
             Integer index = null;
             final Class<?>[] argTypes = method.getParameterTypes();
@@ -413,6 +428,12 @@ public class MapperMethod {
             return index;
         }
 
+        /**
+         * 获取 {@link MapKey} 注解值
+         *
+         * @param method
+         * @return
+         */
         private String getMapKey(Method method) {
             String mapKey = null;
             if (Map.class.isAssignableFrom(method.getReturnType())) {

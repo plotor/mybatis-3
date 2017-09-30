@@ -29,15 +29,18 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+/**
+ * 处理Mapper接口中方法的参数列表
+ */
 public class ParamNameResolver {
 
     private static final String GENERIC_NAME_PREFIX = "param";
 
     /**
      * 记录参数在参数列表中的索引和参数名称之间的对应关系
-     * 参数名称通过 {@link Param} 指定，如果没有指定则使用参数索引作为参数名称
+     * 参数名称通过 {@link Param} 注解指定，如果没有指定则使用参数索引作为参数名称
      * 需要注意的是，如果参数列表中包含 {@link RowBounds} 或 {@link ResultHandler} 类型的参数，
-     * 这两类参数不会记录到集合中，这个时候对于用索引表示的参数名称就会和索引不一致
+     * 这两类功能性参数不会记录到集合中，这个时候如果用索引表示参数名称，索引值key与对应的参数名称（实际索引）可能会不一致
      *
      * <p>
      * The key is the index and the value is the name of the parameter.<br />
@@ -53,44 +56,42 @@ public class ParamNameResolver {
      */
     private final SortedMap<Integer, String> names;
 
-    /** 记录对应方法的参数列表是否使用了 {@link Param} 注解 */
+    /** 标记对应方法的参数列表是否使用了 {@link Param} 注解 */
     private boolean hasParamAnnotation;
 
     public ParamNameResolver(Configuration config, Method method) {
         // 获取参数类型列表
         final Class<?>[] paramTypes = method.getParameterTypes();
-
         // 获取参数列表上的注解
         final Annotation[][] paramAnnotations = method.getParameterAnnotations();
 
         final SortedMap<Integer, String> map = new TreeMap<Integer, String>();
         int paramCount = paramAnnotations.length;
 
-        // 从 @Param 注解上获取参数名称
+        // 遍历处理方法所有的参数
         for (int paramIndex = 0; paramIndex < paramCount; paramIndex++) {
             if (isSpecialParameter(paramTypes[paramIndex])) {
-                // 跳过 {@link RowBounds} 或 {@link ResultHandler} 类型
+                // 跳过RowBounds和ResultHandler类型参数
                 continue;
             }
             String name = null;
+            // 查找当前参数是否有 @Param 注解
             for (Annotation annotation : paramAnnotations[paramIndex]) {
                 if (annotation instanceof Param) {
                     hasParamAnnotation = true;
+                    // 获取注解指定的参数名称
                     name = ((Param) annotation).value();
                     break;
                 }
             }
             // 没有 @Param 注解
             if (name == null) {
+                // 基于配置开关决定是否获取参数的真实名称
                 if (config.isUseActualParamName()) {
-                    // 获取参数的真实名称
                     name = this.getActualParamName(method, paramIndex);
                 }
-
                 // 使用索引名称作为参数名称
                 if (name == null) {
-                    // use the parameter index as the name ("0", "1", ...)
-                    // gcode issue #71
                     name = String.valueOf(map.size());
                 }
             }
@@ -124,19 +125,23 @@ public class ParamNameResolver {
     }
 
     /**
-     * Returns parameter names referenced by SQL providers.
+     * 获取参数名称列表
      */
     public String[] getNames() {
         return names.values().toArray(new String[0]);
     }
 
     /**
-     * 关联传入的实参与对应参数名称
+     * 关联传入的实参与形参之间的映射关系，记录到Object对象中返回
+     *
      * <p>
      * A single non-special parameter is returned without a name.<br />
      * Multiple parameters are named using the naming rule.<br />
      * In addition to the default names, this method also adds the generic names (param1, param2, ...).
      * </p>
+     *
+     * @param args 实参列表
+     * @return
      */
     public Object getNamedParams(Object[] args) {
         final int paramCount = names.size(); // names 记录参数在参数列表中的索引和参数名称之间的对应关系
@@ -150,12 +155,13 @@ public class ParamNameResolver {
             // 有 @Param 注解，或存在多个参数
             final Map<String, Object> param = new ParamMap<Object>();
             int i = 0;
+            // 遍历处理参数列表中的非功能性参数
             for (Map.Entry<Integer, String> entry : names.entrySet()) {
-                // <参数名称，参数值>
+                // 记录参数名称与参数值之间的映射关系
                 param.put(entry.getValue(), args[entry.getKey()]);
-                // add generic param names (param1, param2, ...)
+                // 构造一般参数名称，即(param1, param2, ...)形式参数
                 final String genericParamName = GENERIC_NAME_PREFIX + String.valueOf(i + 1);
-                // ensure not to overwrite parameter named with @Param
+                // 以“param+索引”的形式再记录一次，如果@Param指定的参数名称就是这种形式则不覆盖
                 if (!names.containsValue(genericParamName)) {
                     param.put(genericParamName, args[entry.getKey()]);
                 }

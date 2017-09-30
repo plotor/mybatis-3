@@ -38,8 +38,10 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
 
     private final SqlSession sqlSession;
 
+    /** Mapper接口对应的Class对象 */
     private final Class<T> mapperInterface;
 
+    /** 缓存Mapper接口中的方法与方法对应的MapperMethod对象 */
     private final Map<Method, MapperMethod> methodCache;
 
     public MapperProxy(SqlSession sqlSession, Class<T> mapperInterface, Map<Method, MapperMethod> methodCache) {
@@ -48,8 +50,18 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
         this.methodCache = methodCache;
     }
 
+    /**
+     * 执行对应的Mapper接口中对应的方法
+     *
+     * @param proxy
+     * @param method
+     * @param args
+     * @return
+     * @throws Throwable
+     */
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        // 1. 反射调用Mapper接口中对应的方法
         try {
             if (Object.class.equals(method.getDeclaringClass())) {
                 // 如果是一个普通类，直接 invoke
@@ -61,8 +73,9 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
         } catch (Throwable t) {
             throw ExceptionUtil.unwrapThrowable(t);
         }
+
+        // 2. 获取方法关联的MapperMethod对象，并执行对应的SQL语句
         final MapperMethod mapperMethod = this.cachedMapperMethod(method);
-        // 执行 SQL 语句
         return mapperMethod.execute(sqlSession, args);
     }
 

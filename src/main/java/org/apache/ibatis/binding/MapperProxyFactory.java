@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MapperProxyFactory<T> {
 
-    /** 待动态代理的 Mapper */
+    /** 代理Mapper接口的Class对象*/
     private final Class<T> mapperInterface;
 
     private final Map<Method, MapperMethod> methodCache = new ConcurrentHashMap<Method, MapperMethod>();
@@ -47,13 +47,13 @@ public class MapperProxyFactory<T> {
 
     @SuppressWarnings("unchecked")
     protected T newInstance(MapperProxy<T> mapperProxy) {
-        // 创建 mapperInterface 接口对应的动态代理
+        // 创建Mapper接口对应的动态代理对象（基于原生JDK）
         return (T) Proxy.newProxyInstance(mapperInterface.getClassLoader(), new Class[] {mapperInterface}, mapperProxy);
     }
 
     public T newInstance(SqlSession sqlSession) {
         final MapperProxy<T> mapperProxy = new MapperProxy<T>(sqlSession, mapperInterface, methodCache);
-        return newInstance(mapperProxy);
+        return this.newInstance(mapperProxy);
     }
 
 }

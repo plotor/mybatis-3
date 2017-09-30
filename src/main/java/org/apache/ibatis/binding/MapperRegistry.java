@@ -34,10 +34,10 @@ import java.util.Set;
  */
 public class MapperRegistry {
 
-    /** 全局唯一配置对象，包含所有的配置信息 */
+    /** 全局唯一配置对象 */
     private final Configuration config;
 
-    /** 记录 {@link org.apache.ibatis.annotations.Mapper} 与 {@link MapperProxyFactory} 之间的对应关系 */
+    /** 记录Mapper接口（Class对象）与 {@link MapperProxyFactory} 之间的映射关系 */
     private final Map<Class<?>, MapperProxyFactory<?>> knownMappers = new HashMap<Class<?>, MapperProxyFactory<?>>();
 
     public MapperRegistry(Configuration config) {
@@ -46,12 +46,13 @@ public class MapperRegistry {
 
     @SuppressWarnings("unchecked")
     public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
+        // 从Map集合中获取指定Mapper接口Class对象对应的MapperProxyFactory
         final MapperProxyFactory<T> mapperProxyFactory = (MapperProxyFactory<T>) knownMappers.get(type);
         if (mapperProxyFactory == null) {
             throw new BindingException("Type " + type + " is not known to the MapperRegistry.");
         }
         try {
-            // 创建当前 Mapper 对应的动态代理
+            // 创建当前Mapper接口对应的动态代理对象
             return mapperProxyFactory.newInstance(sqlSession);
         } catch (Exception e) {
             throw new BindingException("Error getting mapper instance. Cause: " + e, e);
@@ -66,18 +67,15 @@ public class MapperRegistry {
         // 仅处理接口
         if (type.isInterface()) {
             if (this.hasMapper(type)) {
-                // 对应 Mapper 已经注册
+                // 对应 Mapper 接口已经注册
                 throw new BindingException("Type " + type + " is already known to the MapperRegistry.");
             }
             boolean loadCompleted = false; // 标记整个过程是否成功完成
             try {
-                // 注册到 knownMappers 中
+                // 注册Mapper接口CLass对象及其对应的MapperProxyFactory对象
                 knownMappers.put(type, new MapperProxyFactory<T>(type));
-                // It's important that the type is added before the parser is run
-                // otherwise the binding may automatically be attempted by the
-                // mapper parser. If the type is already known, it won't try.
                 MapperAnnotationBuilder parser = new MapperAnnotationBuilder(config, type);
-                // 解析 Mapper 接口中的注解信息
+                // 解析Mapper接口中的注解SQL配置
                 parser.parse();
                 loadCompleted = true;
             } finally {
