@@ -29,7 +29,9 @@ import java.util.regex.Pattern;
  * @author Clinton Begin
  */
 public class TextSqlNode implements SqlNode {
+
     private final String text;
+
     private final Pattern injectionFilter;
 
     public TextSqlNode(String text) {

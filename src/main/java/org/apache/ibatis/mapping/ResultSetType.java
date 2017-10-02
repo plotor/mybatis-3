@@ -20,6 +20,7 @@ import java.sql.ResultSet;
 
 /**
  * 结果集类型
+ * FORWARD_ONLY，SCROLL_SENSITIVE 或 SCROLL_INSENSITIVE 中的一个，默认值为 unset （依赖驱动）
  *
  * @author Clinton Begin
  */

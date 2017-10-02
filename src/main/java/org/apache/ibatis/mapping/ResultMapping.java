@@ -171,8 +171,8 @@ public class ResultMapping {
             // lock down collections
             resultMapping.flags = Collections.unmodifiableList(resultMapping.flags);
             resultMapping.composites = Collections.unmodifiableList(resultMapping.composites);
-            resolveTypeHandler();
-            validate();
+            this.resolveTypeHandler();
+            this.validate();
             return resultMapping;
         }
 
@@ -216,7 +216,7 @@ public class ResultMapping {
             resultMapping.column = column;
             return this;
         }
-    }
+    } //~ end of builder
 
     public String getProperty() {
         return property;

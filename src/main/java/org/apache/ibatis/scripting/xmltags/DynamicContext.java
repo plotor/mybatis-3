@@ -43,7 +43,7 @@ public class DynamicContext {
     /** 参数上下文 */
     private final ContextMap bindings;
 
-    /** 记录SQL解析结果 */
+    /** 记录SQL解析得到的语句片段 */
     private final StringBuilder sqlBuilder = new StringBuilder();
 
     private int uniqueNumber = 0;
@@ -114,7 +114,7 @@ public class DynamicContext {
 
             return null;
         }
-    }
+    } // end of ContextMap
 
     static class ContextAccessor implements PropertyAccessor {
 
@@ -152,5 +152,5 @@ public class DynamicContext {
         public String getSourceSetter(OgnlContext arg0, Object arg1, Object arg2) {
             return null;
         }
-    }
+    } // end of ContextAccessor
 }

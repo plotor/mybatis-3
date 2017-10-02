@@ -17,6 +17,8 @@
 package org.apache.ibatis.scripting.xmltags;
 
 /**
+ * 表示 SQL 语句中定义的动态 SQL 节点、文本节点等
+ *
  * @author Clinton Begin
  */
 public interface SqlNode {

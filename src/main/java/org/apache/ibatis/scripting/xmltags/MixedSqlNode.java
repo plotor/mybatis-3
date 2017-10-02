@@ -22,6 +22,8 @@ import java.util.List;
  * @author Clinton Begin
  */
 public class MixedSqlNode implements SqlNode {
+
+    /** 记录子节点对应的 {@link SqlNode} 对象集合 */
     private final List<SqlNode> contents;
 
     public MixedSqlNode(List<SqlNode> contents) {

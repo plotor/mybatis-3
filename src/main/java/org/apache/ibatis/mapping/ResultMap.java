@@ -234,7 +234,7 @@ public class ResultMap {
                 return paramNames;
             }
         }
-    }
+    } //~ end of builder
 
     public String getId() {
         return id;

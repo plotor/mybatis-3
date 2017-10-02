@@ -190,13 +190,8 @@ public class MapperBuilderAssistant extends BaseBuilder {
     }
 
     public ResultMap addResultMap(
-            String id,
-            Class<?> type,
-            String extend,
-            Discriminator discriminator,
-            List<ResultMapping> resultMappings,
-            Boolean autoMapping) {
-        // namespace.id
+            String id, Class<?> type, String extend, Discriminator discriminator, List<ResultMapping> resultMappings, Boolean autoMapping) {
+        // 格式化 id 值，形式：namespace.id
         id = this.applyCurrentNamespace(id, false);
         extend = this.applyCurrentNamespace(extend, true);
 
@@ -206,21 +201,24 @@ public class MapperBuilderAssistant extends BaseBuilder {
                 // 需要被继承的 ResultMap 对象不存在
                 throw new IncompleteElementException("Could not find a parent resultmap with id '" + extend + "'");
             }
+
             // 获取需要被继承的 ResultMap 对象
             ResultMap resultMap = configuration.getResultMap(extend);
             // 获取父 ResultMap 对象中包含的 ResultMapping 对象集合
             List<ResultMapping> extendedResultMappings = new ArrayList<ResultMapping>(resultMap.getResultMappings());
             // 删除需要覆盖的 ResultMapping 对象
             extendedResultMappings.removeAll(resultMappings);
-            // 如果当前 <resultMap/> 中定义了 <constructor/> 结点，则无需父 ResultMap 中记录的相应 <constructor/>，删除
+
             boolean declaresConstructor = false;
             for (ResultMapping resultMapping : resultMappings) {
+                // 查找当前 <resultMap/> 标签中是否定义了 <constructor/> 子节点
                 if (resultMapping.getFlags().contains(ResultFlag.CONSTRUCTOR)) {
                     declaresConstructor = true;
                     break;
                 }
             }
             if (declaresConstructor) {
+                // 当前 <resultMap/> 中定义了 <constructor/> 子节点，则无需父 ResultMap 中记录的相应 <constructor/>，遍历删除
                 Iterator<ResultMapping> extendedResultMappingsIter = extendedResultMappings.iterator();
                 while (extendedResultMappingsIter.hasNext()) {
                     if (extendedResultMappingsIter.next().getFlags().contains(ResultFlag.CONSTRUCTOR)) {
@@ -228,10 +226,12 @@ public class MapperBuilderAssistant extends BaseBuilder {
                     }
                 }
             }
+
             // 添加需要继承的 ResultMapping 对象集合
             resultMappings.addAll(extendedResultMappings);
         }
-        // 创建 ResultMap 对象，并记录到 org.apache.ibatis.session.Configuration.resultMaps 中
+
+        // 创建 ResultMap 对象，并记录到 Configuration.resultMaps 中
         ResultMap resultMap = new ResultMap.Builder(
                 configuration, id, type, resultMappings, autoMapping).discriminator(discriminator).build();
         configuration.addResultMap(resultMap);
@@ -263,7 +263,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
         Map<String, String> namespaceDiscriminatorMap = new HashMap<String, String>();
         for (Map.Entry<String, String> e : discriminatorMap.entrySet()) {
             String resultMap = e.getValue();
-            resultMap = applyCurrentNamespace(resultMap, true);
+            resultMap = this.applyCurrentNamespace(resultMap, true);
             namespaceDiscriminatorMap.put(e.getKey(), resultMap);
         }
         return new Discriminator.Builder(configuration, resultMapping, namespaceDiscriminatorMap).build();
@@ -401,24 +401,12 @@ public class MapperBuilderAssistant extends BaseBuilder {
      * @return
      */
     public ResultMapping buildResultMapping(
-            Class<?> resultType,
-            String property,
-            String column,
-            Class<?> javaType,
-            JdbcType jdbcType,
-            String nestedSelect,
-            String nestedResultMap,
-            String notNullColumn,
-            String columnPrefix,
-            Class<? extends TypeHandler<?>> typeHandler,
-            List<ResultFlag> flags,
-            String resultSet,
-            String foreignColumn,
-            boolean lazy) {
+            Class<?> resultType, String property, String column, Class<?> javaType, JdbcType jdbcType, String nestedSelect, String nestedResultMap,
+            String notNullColumn, String columnPrefix, Class<? extends TypeHandler<?>> typeHandler, List<ResultFlag> flags, String resultSet, String foreignColumn, boolean lazy) {
 
-        // 解析 <resultMap/> 指定的 name 或 property 属性
+        // 解析 <resultType/> 指定的 property 属性类型
         Class<?> javaTypeClass = this.resolveResultJavaType(resultType, property, javaType);
-        // 解析获取对应得出 TypeHandler
+        // 基于 TypeAliasRegistry 解析获取对应的 TypeHandler
         TypeHandler<?> typeHandlerInstance = this.resolveTypeHandler(javaTypeClass, typeHandler);
         // 解析获取 column 属性
         List<ResultMapping> composites = this.parseCompositeColumnName(column);
@@ -426,12 +414,12 @@ public class MapperBuilderAssistant extends BaseBuilder {
         return new ResultMapping.Builder(configuration, property, column, javaTypeClass)
                 .jdbcType(jdbcType)
                 .nestedQueryId(applyCurrentNamespace(nestedSelect, true))
-                .nestedResultMapId(applyCurrentNamespace(nestedResultMap, true))
+                .nestedResultMapId(this.applyCurrentNamespace(nestedResultMap, true))
                 .resultSet(resultSet)
                 .typeHandler(typeHandlerInstance)
                 .flags(flags == null ? new ArrayList<ResultFlag>() : flags)
                 .composites(composites)
-                .notNullColumns(parseMultipleColumnNames(notNullColumn))
+                .notNullColumns(this.parseMultipleColumnNames(notNullColumn))
                 .columnPrefix(columnPrefix)
                 .foreignColumn(foreignColumn)
                 .lazy(lazy)

@@ -30,30 +30,57 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 表示配置文件中定义的 SQL 节点
+ * 表示映射文件中定义的 SQL 语句节点
  *
  * @author Clinton Begin
  */
 public final class MappedStatement {
 
-    /** 节点中的 id 属性（包括命名空间前缀） */
+    /** 节点中的 id 属性（包含命名空间前缀） */
     private String resource;
 
     private Configuration configuration;
 
+    /** 命名空间中唯一的标识符，可以被用来引用这条语句 */
     private String id;
+
+    /** 尝试影响驱动程序每次批量返回的结果行数和这个设置值相等，默认值为 unset（依赖驱动） */
     private Integer fetchSize;
+
+    /** 驱动程序等待数据库返回请求结果的秒数，默认值为 unset（依赖驱动） */
     private Integer timeout;
+
+    /** 具体使用的 Statement 类型 */
     private StatementType statementType;
+
+    /** 结果集类型，FORWARD_ONLY，SCROLL_SENSITIVE 或 SCROLL_INSENSITIVE 中的一个，默认值为 unset （依赖驱动） */
     private ResultSetType resultSetType;
+
+    /** 对应的 SQL 语句 */
     private SqlSource sqlSource;
+
     private Cache cache;
+
     private ParameterMap parameterMap;
+
     private List<ResultMap> resultMaps;
+
     private boolean flushCacheRequired;
+
+    /** 将其设置为 true，将会导致本条语句的结果被二级缓存，默认值：对 select 元素为 true */
     private boolean useCache;
+
+    /**
+     * 这个设置仅针对嵌套结果 select 语句适用：
+     * 如果为 true，就是假设包含了嵌套结果集或是分组了，这样的话当返回一个主结果行的时候，就不会发生有对前面结果集的引用的情况。
+     * 这就使得在获取嵌套的结果集的时候不至于导致内存不够用。
+     * 默认值：false。
+     */
     private boolean resultOrdered;
+
+    /** SQL语句类型 */
     private SqlCommandType sqlCommandType;
+
     private KeyGenerator keyGenerator;
     private String[] keyProperties;
     private String[] keyColumns;

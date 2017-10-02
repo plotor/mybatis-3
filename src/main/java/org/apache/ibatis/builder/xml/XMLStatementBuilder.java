@@ -64,33 +64,31 @@ public class XMLStatementBuilder extends BaseBuilder {
         String id = context.getStringAttribute("id");
         String databaseId = context.getStringAttribute("databaseId");
 
-        // 判断是否继续解析
+        // 判断当前SQL是否适配当前数据库，对于不适配的SQL直接忽略
         if (!this.databaseIdMatchesCurrent(id, databaseId, this.requiredDatabaseId)) {
             return;
         }
 
         // 获取属性配置
-        Integer fetchSize = context.getIntAttribute("fetchSize");
-        Integer timeout = context.getIntAttribute("timeout");
-        String parameterMap = context.getStringAttribute("parameterMap");
-        String parameterType = context.getStringAttribute("parameterType");
-        Class<?> parameterTypeClass = resolveClass(parameterType);
-        String resultMap = context.getStringAttribute("resultMap");
-        String resultType = context.getStringAttribute("resultType");
+        Integer fetchSize = context.getIntAttribute("fetchSize"); // 设置批量返回的结果行数，默认值为 unset（依赖驱动）
+        Integer timeout = context.getIntAttribute("timeout"); // 数据库执行超时时间，默认值为 unset（依赖驱动）
+        String parameterMap = context.getStringAttribute("parameterMap"); // parameterMap 参数已经废弃
+        String parameterType = context.getStringAttribute("parameterType"); // 传入参数类型的完全限定名或别名
+        Class<?> parameterTypeClass = this.resolveClass(parameterType);
+        String resultMap = context.getStringAttribute("resultMap"); // 引用的 <resultMap/> 的标签ID
+        String resultType = context.getStringAttribute("resultType"); // 期望返回类型完全限定名或别名。注意如果是集合情形，那应该是集合可以包含的类型，而不能是集合本身
         String lang = context.getStringAttribute("lang");
         LanguageDriver langDriver = this.getLanguageDriver(lang);
-
         Class<?> resultTypeClass = this.resolveClass(resultType);
-        String resultSetType = context.getStringAttribute("resultSetType");
-        StatementType statementType = StatementType.valueOf(context.getStringAttribute("statementType", StatementType.PREPARED.toString()));
+        String resultSetType = context.getStringAttribute("resultSetType"); // FORWARD_ONLY，SCROLL_SENSITIVE 或 SCROLL_INSENSITIVE 中的一个，默认值为 unset （依赖驱动）
+        StatementType statementType = StatementType.valueOf(context.getStringAttribute("statementType", StatementType.PREPARED.toString())); // 具体的 Statement 类型，参考 StatementType
         ResultSetType resultSetTypeEnum = this.resolveResultSetType(resultSetType);
-
         String nodeName = context.getNode().getNodeName();
         SqlCommandType sqlCommandType = SqlCommandType.valueOf(nodeName.toUpperCase(Locale.ENGLISH));
-        boolean isSelect = sqlCommandType == SqlCommandType.SELECT;
-        boolean flushCache = context.getBooleanAttribute("flushCache", !isSelect);
-        boolean useCache = context.getBooleanAttribute("useCache", isSelect);
-        boolean resultOrdered = context.getBooleanAttribute("resultOrdered", false);
+        boolean isSelect = sqlCommandType == SqlCommandType.SELECT; // 是否是 SELECT 语句
+        boolean flushCache = context.getBooleanAttribute("flushCache", !isSelect); // 任何时候只要语句被调用，都会导致本地缓存和二级缓存被清空，默认为 false
+        boolean useCache = context.getBooleanAttribute("useCache", isSelect); // 设置本条语句的结果被二级缓存，默认值：对 select 元素为 true
+        boolean resultOrdered = context.getBooleanAttribute("resultOrdered", false); // 仅针对嵌套结果 select 语句适用
 
         // 解析 <include /> 节点
         XMLIncludeTransformer includeParser = new XMLIncludeTransformer(configuration, builderAssistant);
@@ -102,9 +100,9 @@ public class XMLStatementBuilder extends BaseBuilder {
         // 解析 SQL (pre: <selectKey> and <include> were parsed and removed)
         SqlSource sqlSource = langDriver.createSqlSource(configuration, context, parameterTypeClass);
         // 获取 resultSets、keyProperty，以及 keyColumn
-        String resultSets = context.getStringAttribute("resultSets");
-        String keyProperty = context.getStringAttribute("keyProperty");
-        String keyColumn = context.getStringAttribute("keyColumn");
+        String resultSets = context.getStringAttribute("resultSets"); // 仅对多结果集适用，将列出语句执行后返回的结果集并给每个结果集一个名称，名称是逗号分隔的。
+        String keyProperty = context.getStringAttribute("keyProperty"); // （仅对 insert 和 update 有用）唯一标记一个属性，通过 getGeneratedKeys 的返回值或者通过 insert 语句的 selectKey 子元素设置它的键值
+        String keyColumn = context.getStringAttribute("keyColumn"); // （仅对 insert 和 update 有用）通过生成的键值设置表中的列名，这个设置仅在某些数据库（像 PostgreSQL）是必须的，当主键列不是表中的第一列的时候需要设置
 
         // 获取 <selectKey/> 对应的 SelectKeyGenerator
         KeyGenerator keyGenerator;
@@ -114,12 +112,12 @@ public class XMLStatementBuilder extends BaseBuilder {
         if (configuration.hasKeyGenerator(keyStatementId)) {
             keyGenerator = configuration.getKeyGenerator(keyStatementId);
         } else {
-            keyGenerator = context.getBooleanAttribute("useGeneratedKeys",
+            keyGenerator = context.getBooleanAttribute("useGeneratedKeys", // （仅对 insert 和 update 有用）这会使用 JDBC 的 getGeneratedKeys 方法来取出由数据库内部生成的主键
                     configuration.isUseGeneratedKeys() && SqlCommandType.INSERT.equals(sqlCommandType))
                     ? Jdbc3KeyGenerator.INSTANCE : NoKeyGenerator.INSTANCE;
         }
 
-        // 创建 MappedStatement 对象，并添加到 org.apache.ibatis.session.Configuration.mappedStatements 中
+        // 创建 MappedStatement 对象，并添加到 Configuration.mappedStatements 中
         builderAssistant.addMappedStatement(id, sqlSource, statementType, sqlCommandType,
                 fetchSize, timeout, parameterMap, parameterTypeClass, resultMap, resultTypeClass,
                 resultSetTypeEnum, flushCache, useCache, resultOrdered,

@@ -160,11 +160,15 @@ public class Configuration {
     protected final Set<String> loadedResources = new HashSet<String>();
     protected final Map<String, XNode> sqlFragments = new StrictMap<XNode>("XML fragments parsed from previous mappers");
 
+    /** 记录解析出现异常的 <select/>、<insert/>、<update/>、<delete/>*/
     protected final Collection<XMLStatementBuilder> incompleteStatements = new LinkedList<XMLStatementBuilder>();
 
-    /** 记录当前解析出现异常的 {@link CacheRefResolver} */
+    /** 记录解析出现异常的 <cache-ref/>*/
     protected final Collection<CacheRefResolver> incompleteCacheRefs = new LinkedList<CacheRefResolver>();
+
+    /** 记录解析出现异常的 <resultMap/>*/
     protected final Collection<ResultMapResolver> incompleteResultMaps = new LinkedList<ResultMapResolver>();
+
     protected final Collection<MethodResolver> incompleteMethods = new LinkedList<MethodResolver>();
 
     /**
