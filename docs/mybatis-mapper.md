@@ -1178,4 +1178,118 @@ public void applyAll() {
 
 applyPrefix 和 applySuffix 方法的实现思路相同，这里以 applyPrefix 方法为例，该方法会遍历指定的前缀并判断当前 SQL 片段是否以包含的前缀开头，是的话则会删除该前缀，如果指定了 prefix 属性则会在 SQL 语句片段前面追加对应的前缀值。WhereSqlNode 和 SetSqlNode 均由 TrimSqlNode 派生而来，实现比较简单，不再多做撰述。
 
-最后再来看一下 ForEachSqlNode 类，该类对应 <foreach/> 节点，前面我们曾列举了相关的 ForEachHandler 类实现，ForEachSqlNode 应该算是几个 SqlNode 实现类中最复杂的一个
+最后再来看一下 ForEachSqlNode 类，该类对应 <foreach/> 节点，前面我们曾列举了相关的 ForEachHandler 类实现，ForEachSqlNode 类是所有 SqlNode 实现类中最复杂的一个，其主要的属性定义如下（建议参考官方文档进行理解）：
+
+```java
+/** 标识符 */
+public static final String ITEM_PREFIX = "__frch_";
+/** 用于判断循环的终止条件 */
+private final ExpressionEvaluator evaluator;
+/** 迭代的集合表达式 */
+private final String collectionExpression;
+/** 记录子节点 */
+private final SqlNode contents;
+/** open 标识 */
+private final String open;
+/** close 标识 */
+private final String close;
+/** 循环过程中，各项之间的分隔符 */
+private final String separator;
+/** index 是迭代的次数，item 是当前迭代的元素 */
+private final String item;
+private final String index;
+```
+
+ForEachSqlNode 中定义了两个内部类：FilteredDynamicContext 和 PrefixedContext。FilteredDynamicContext 由 DynamicContext 派生而来，其中稍复杂的实现是 appendSql 方法：
+
+```java
+public void appendSql(String sql) {
+    GenericTokenParser parser = new GenericTokenParser("#{", "}", new TokenHandler() {
+        @Override
+        public String handleToken(String content) {
+            // 替换 item，为 __frch_item_index
+            String newContent = content.replaceFirst("^\\s*" + item + "(?![^.,:\\s])", itemizeItem(item, index));
+            if (itemIndex != null && newContent.equals(content)) {
+                // 替换 itemIndex 为 __frch_itemIndex_index
+                newContent = content.replaceFirst("^\\s*" + itemIndex + "(?![^.,:\\s])", itemizeItem(itemIndex, index));
+            }
+            // 追加 #{}
+            return new StringBuilder("#{").append(newContent).append("}").toString();
+        }
+    });
+
+    delegate.appendSql(parser.parse(sql));
+}
+```
+
+实际上这里还是之前多次碰到的 GenericTokenParser 解析占位符的套路（这里的占位符是指 “#{}”），只不过这里的 TokenHandler 由匿名内部类实现，它的 handleToken 方法会将对应的 item 替换成 `__frch_item_index` 的形式，拼接的过程由 itemizeItem 方法实现:
+
+```java
+private static String itemizeItem(String item, int i) {
+    // 返回 __frch_item_i 的形式
+    return new StringBuilder(ITEM_PREFIX).append(item).append("_").append(i).toString();
+}
+```
+
+PrefixedContext 也派生自 DynamicContext 类，在遍历集合拼接时主要用来封装一个由指定前缀和集合元素组成的基本元祖，具体实现比较简单。回到 ForEachSqlNode 类本身，我们继续来看 apply 方法实现：
+
+```java
+public boolean apply(DynamicContext context) {
+    Map<String, Object> bindings = context.getBindings();
+    // 解析集合 OGNL 表达式对应的值，返回值对应的迭代器
+    final Iterable<?> iterable = evaluator.evaluateIterable(collectionExpression, bindings);
+    if (!iterable.iterator().hasNext()) {
+        return true;
+    }
+    boolean first = true;
+    // 添加 open 前缀标识
+    this.applyOpen(context);
+    int i = 0;
+    // 迭代处理集合
+    for (Object o : iterable) {
+        DynamicContext oldContext = context;  // 备份一下上下文对象
+        if (first || separator == null) {
+            // 第一次遍历，或未指定分隔符
+            context = new PrefixedContext(context, "");
+        } else {
+            // 其它情况
+            context = new PrefixedContext(context, separator);
+        }
+        int uniqueNumber = context.getUniqueNumber();
+        if (o instanceof Map.Entry) {
+            // 如果是 Map 类型，将 key 和 value 记录到 DynamicContext.bindings 中
+            @SuppressWarnings("unchecked")
+            Map.Entry<Object, Object> mapEntry = (Map.Entry<Object, Object>) o;
+            this.applyIndex(context, mapEntry.getKey(), uniqueNumber);
+            this.applyItem(context, mapEntry.getValue(), uniqueNumber);
+        } else {
+            // 将当前索引值和元素记录到 DynamicContext.bindings 中
+            this.applyIndex(context, i, uniqueNumber);
+            this.applyItem(context, o, uniqueNumber);
+        }
+        // 应用子节点的 apply 方法
+        contents.apply(new FilteredDynamicContext(configuration, context, index, item, uniqueNumber));
+        if (first) {
+            first = !((PrefixedContext) context).isPrefixApplied();
+        }
+        context = oldContext; // 恢复上下文对象
+        i++;
+    }
+    // 添加 close 后缀标识
+    this.applyClose(context);
+    context.getBindings().remove(item);
+    context.getBindings().remove(index);
+    return true;
+}
+```
+
+整个过程阅读起来没什么压力，但就是不知道具体在做什么事情，这里我们以官方示例来走一遍上述方法的执行过程，对应的官方示例如下（为了排版美观和便于陈述，稍微做了一些修改）：
+
+```xml
+<select id="selectPostIn" resultType="domain.blog.Post">
+  SELECT * FROM post WHERE id IN
+  <foreach item="itm" index="idx" collection="list" open="(" separator="," close=")">
+        #{item}
+  </foreach>
+</select>
+```

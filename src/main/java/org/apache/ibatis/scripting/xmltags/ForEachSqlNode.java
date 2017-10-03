@@ -91,28 +91,32 @@ public class ForEachSqlNode implements SqlNode {
         int i = 0;
         // 迭代处理集合
         for (Object o : iterable) {
-            DynamicContext oldContext = context;
+            DynamicContext oldContext = context;  // 备份一下上下文对象
             if (first || separator == null) {
+                // 第一次遍历，或未指定分隔符
                 context = new PrefixedContext(context, "");
             } else {
+                // 其它情况
                 context = new PrefixedContext(context, separator);
             }
             int uniqueNumber = context.getUniqueNumber();
             if (o instanceof Map.Entry) {
-                // 如果是 Map 类型
+                // 如果是 Map 类型，将 key 和 value 记录到 DynamicContext.bindings 中
                 @SuppressWarnings("unchecked")
                 Map.Entry<Object, Object> mapEntry = (Map.Entry<Object, Object>) o;
                 this.applyIndex(context, mapEntry.getKey(), uniqueNumber);
                 this.applyItem(context, mapEntry.getValue(), uniqueNumber);
             } else {
+                // 将当前索引值和元素记录到 DynamicContext.bindings 中
                 this.applyIndex(context, i, uniqueNumber);
                 this.applyItem(context, o, uniqueNumber);
             }
+            // 应用子节点的 apply 方法
             contents.apply(new FilteredDynamicContext(configuration, context, index, item, uniqueNumber));
             if (first) {
                 first = !((PrefixedContext) context).isPrefixApplied();
             }
-            context = oldContext;
+            context = oldContext; // 恢复上下文对象
             i++;
         }
         // 添加 close 后缀标识
@@ -125,14 +129,14 @@ public class ForEachSqlNode implements SqlNode {
     private void applyIndex(DynamicContext context, Object o, int i) {
         if (index != null) {
             context.bind(index, o);
-            context.bind(itemizeItem(index, i), o);
+            context.bind(itemizeItem(index, i), o); // __frch_index_i
         }
     }
 
     private void applyItem(DynamicContext context, Object o, int i) {
         if (item != null) {
             context.bind(item, o);
-            context.bind(itemizeItem(item, i), o);
+            context.bind(itemizeItem(item, i), o); // __frch_item_i
         }
     }
 
