@@ -316,7 +316,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
                 .useCache(valueOrDefault(useCache, isSelect))
                 .cache(currentCache);
 
-        ParameterMap statementParameterMap = getStatementParameterMap(parameterMap, parameterType, id);
+        ParameterMap statementParameterMap = this.getStatementParameterMap(parameterMap, parameterType, id);
         if (statementParameterMap != null) {
             statementBuilder.parameterMap(statementParameterMap);
         }

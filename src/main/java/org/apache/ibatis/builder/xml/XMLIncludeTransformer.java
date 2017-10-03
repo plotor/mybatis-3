@@ -70,7 +70,7 @@ public class XMLIncludeTransformer {
             Node toInclude = this.findSqlFragment(this.getStringAttribute(source, "refid"), variablesContext);
             // 获取 <include/> 下的 <property/> 属性，与 variablesContext 合并返回新的 Properties 对象
             Properties toIncludeContext = this.getVariablesContext(source, variablesContext);
-            // 递归处理
+            // 递归处理，这里的 included 参数为 true
             this.applyIncludes(toInclude, toIncludeContext, true);
             if (toInclude.getOwnerDocument() != source.getOwnerDocument()) {
                 toInclude = source.getOwnerDocument().importNode(toInclude, true);

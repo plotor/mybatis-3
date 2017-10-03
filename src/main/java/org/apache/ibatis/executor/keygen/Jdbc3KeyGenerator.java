@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * 用于获取数据库生成的自增ID
+ *
  * @author Clinton Begin
  * @author Kazuki Shimizu
  */
@@ -56,16 +58,20 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
 
     @Override
     public void processAfter(Executor executor, MappedStatement ms, Statement stmt, Object parameter) {
-        processBatch(ms, stmt, getParameters(parameter));
+        // 将 Object 类型参数转换成相应的集合类型
+        this.processBatch(ms, stmt, this.getParameters(parameter));
     }
 
     public void processBatch(MappedStatement ms, Statement stmt, Collection<Object> parameters) {
         ResultSet rs = null;
         try {
+            // 获取数据库自动生成的主键
             rs = stmt.getGeneratedKeys();
             final Configuration configuration = ms.getConfiguration();
             final TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
+            // 获取 keyProperties 属性配置，用于指定主键，可能存在多个
             final String[] keyProperties = ms.getKeyProperties();
+            // 获取 ResultSet 元数据信息
             final ResultSetMetaData rsmd = rs.getMetaData();
             TypeHandler<?>[] typeHandlers = null;
             if (keyProperties != null && rsmd.getColumnCount() >= keyProperties.length) {
@@ -74,11 +80,14 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
                     if (!rs.next()) {
                         break;
                     }
+                    // 创建实参对应的 MetaObject 对象
                     final MetaObject metaParam = configuration.newMetaObject(parameter);
                     if (typeHandlers == null) {
-                        typeHandlers = getTypeHandlers(typeHandlerRegistry, metaParam, keyProperties, rsmd);
+                        // 获取每个 keyProperty 对应的类型处理器
+                        typeHandlers = this.getTypeHandlers(typeHandlerRegistry, metaParam, keyProperties, rsmd);
                     }
-                    populateKeys(rs, metaParam, keyProperties, typeHandlers);
+                    // 将生成的主键值与用户传入的参数相映射
+                    this.populateKeys(rs, metaParam, keyProperties, typeHandlers);
                 }
             }
         } catch (Exception e) {
@@ -94,6 +103,12 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
         }
     }
 
+    /**
+     * 细化 Object 类型参数 parameter
+     *
+     * @param parameter
+     * @return
+     */
     private Collection<Object> getParameters(Object parameter) {
         Collection<Object> parameters = null;
         if (parameter instanceof Collection) {
@@ -115,7 +130,8 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
         return parameters;
     }
 
-    private TypeHandler<?>[] getTypeHandlers(TypeHandlerRegistry typeHandlerRegistry, MetaObject metaParam, String[] keyProperties, ResultSetMetaData rsmd) throws SQLException {
+    private TypeHandler<?>[] getTypeHandlers(
+            TypeHandlerRegistry typeHandlerRegistry, MetaObject metaParam, String[] keyProperties, ResultSetMetaData rsmd) throws SQLException {
         TypeHandler<?>[] typeHandlers = new TypeHandler<?>[keyProperties.length];
         for (int i = 0; i < keyProperties.length; i++) {
             if (metaParam.hasSetter(keyProperties[i])) {

@@ -105,13 +105,15 @@ public class XMLStatementBuilder extends BaseBuilder {
         String keyProperty = context.getStringAttribute("keyProperty"); // （仅对 insert 和 update 有用）唯一标记一个属性，通过 getGeneratedKeys 的返回值或者通过 insert 语句的 selectKey 子元素设置它的键值
         String keyColumn = context.getStringAttribute("keyColumn"); // （仅对 insert 和 update 有用）通过生成的键值设置表中的列名，这个设置仅在某些数据库（像 PostgreSQL）是必须的，当主键列不是表中的第一列的时候需要设置
 
-        // 获取 <selectKey/> 对应的 SelectKeyGenerator
+        // 解析对应的 KeyGenerator
         KeyGenerator keyGenerator;
         String keyStatementId = id + SelectKeyGenerator.SELECT_KEY_SUFFIX;
         keyStatementId = builderAssistant.applyCurrentNamespace(keyStatementId, true);
         if (configuration.hasKeyGenerator(keyStatementId)) {
+            // 当前 SQL 语句标签下存在 <selectKey/> 配置
             keyGenerator = configuration.getKeyGenerator(keyStatementId);
         } else {
+            // 依据当前节点的 useGeneratedKeys 配置，或全局的 useGeneratedKeys 配置以及是否是 insert 方法来决定具体的 keyGenerator 实现
             keyGenerator = context.getBooleanAttribute("useGeneratedKeys", // （仅对 insert 和 update 有用）这会使用 JDBC 的 getGeneratedKeys 方法来取出由数据库内部生成的主键
                     configuration.isUseGeneratedKeys() && SqlCommandType.INSERT.equals(sqlCommandType))
                     ? Jdbc3KeyGenerator.INSTANCE : NoKeyGenerator.INSTANCE;

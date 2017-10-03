@@ -635,13 +635,15 @@ public void parseStatementNode() {
     String keyProperty = context.getStringAttribute("keyProperty"); // （仅对 insert 和 update 有用）唯一标记一个属性，通过 getGeneratedKeys 的返回值或者通过 insert 语句的 selectKey 子元素设置它的键值
     String keyColumn = context.getStringAttribute("keyColumn"); // （仅对 insert 和 update 有用）通过生成的键值设置表中的列名，这个设置仅在某些数据库（像 PostgreSQL）是必须的，当主键列不是表中的第一列的时候需要设置
 
-    // 获取 <selectKey/> 对应的 SelectKeyGenerator
+    // 解析对应的 KeyGenerator
     KeyGenerator keyGenerator;
     String keyStatementId = id + SelectKeyGenerator.SELECT_KEY_SUFFIX;
     keyStatementId = builderAssistant.applyCurrentNamespace(keyStatementId, true);
     if (configuration.hasKeyGenerator(keyStatementId)) {
+        // 当前 SQL 语句标签下存在 <selectKey/> 配置
         keyGenerator = configuration.getKeyGenerator(keyStatementId);
     } else {
+        // 依据当前节点的 useGeneratedKeys 配置，或全局的 useGeneratedKeys 配置以及是否是 insert 方法来决定具体的 keyGenerator 实现
         keyGenerator = context.getBooleanAttribute("useGeneratedKeys", // （仅对 insert 和 update 有用）这会使用 JDBC 的 getGeneratedKeys 方法来取出由数据库内部生成的主键
                 configuration.isUseGeneratedKeys() && SqlCommandType.INSERT.equals(sqlCommandType))
                 ? Jdbc3KeyGenerator.INSTANCE : NoKeyGenerator.INSTANCE;
@@ -717,7 +719,7 @@ List<SqlNode> parseDynamicTags(XNode node) {
 }
 ```
 
-整个过程主要是遍历当前 SQL 语句标签的所有子节点，并依据当前子节点的类型分而治之，可以对照官方文档的动态 SQL 配置示例进行理解。如果当前子节点是一个具体的字符串或 CDATA 表达式（即 SQL 语句片段），则会获取字面值并依据是否包含未解析的 “${}” 占位符判断是否是动态 SQL，并封装成对应的 SqlNode 对象，SqlNode 是一个接口，用于封装定义的动态 SQL 节点和文本节点，包含多种实现类，该接口及其具体实现类留到后面针对性讲解。如果当前子节点是一个具体的 XML 标签，则必定是一个动态 SQL 配置，这个时候会获取具体的节点名称，并调用 nodeHandlers 方法构造对应的 NodeHandler 对象：
+整个过程主要是遍历当前 SQL 语句标签的所有子节点，并依据当前子节点的类型分而治之，可以对照官方文档的动态 SQL 配置示例进行理解。如果当前子节点是一个具体的字符串或 CDATA 表达式（即 SQL 语句片段），则会获取字面值并依据是否包含未解析的 “${}” 占位符判断是否是动态 SQL，并封装成对应的 SqlNode 对象，SqlNode 是一个接口，用于封装定义的动态 SQL 节点和文本节点，包含多种实现类，该接口及其具体实现类留到后面针对性讲解。如果当前子节点是一个具体的 XML 标签，则必定是一个动态 SQL 配置，这个时候会获取具体的节点名称，并调用 nodeHandlers 方法构造对应的 NodeHandler 对象进行处理：
 
 ```java
 NodeHandler nodeHandlers(String nodeName) {
@@ -735,6 +737,281 @@ NodeHandler nodeHandlers(String nodeName) {
 }
 ```
 
+NodeHandler 采用内部接口的形式实现，其实现类也都是内部类，并且实现逻辑都比较简单，这里我们以 ForEachHandler 为例进行说明，其余类的实现与之类似。ForEachHandler 类对应动态 SQL 中的 <foreach/> 标签，这是一个我十分喜欢的标签，可以很方便的动态构造较长的条件语句。NodeHandler 中仅声明了 handleNode 这一个方法，ForEachHandler 针对该方法的实现如下：
+
+```java
+public void handleNode(XNode nodeToHandle, List<SqlNode> targetContents) {
+    // 解析 <foreach/> 的子节点
+    List<SqlNode> contents = parseDynamicTags(nodeToHandle);
+    MixedSqlNode mixedSqlNode = new MixedSqlNode(contents);
+    // 获取相关属性配置
+    String collection = nodeToHandle.getStringAttribute("collection"); // 迭代的集合表达式
+    String item = nodeToHandle.getStringAttribute("item"); // 当前迭代的元素
+    String index = nodeToHandle.getStringAttribute("index"); // 当前迭代的次数
+    String open = nodeToHandle.getStringAttribute("open");
+    String close = nodeToHandle.getStringAttribute("close");
+    String separator = nodeToHandle.getStringAttribute("separator");
+    // 封装成对应的 ForEachSqlNode 对象
+    ForEachSqlNode forEachSqlNode = new ForEachSqlNode(configuration, mixedSqlNode, collection, index, item, open, close, separator);
+    targetContents.add(forEachSqlNode);
+}
+```
+
+在方法中首先会调用这里介绍的 parseDynamicTags 方法对占位符进行解析，然后获取标签相关属性配置，并构造 ForEachSqlNode 对象，ForEachSqlNode 类在后面介绍 SqlNode 类时会进行介绍，这里也就不展开。
+
+介绍完了 parseDynamicTags 方法，我们继续回到该方法调用的地方，即 `XMLScriptBuilder#parseScriptNode`，方法接下来会依据 parseDynamicTags 方法的解析和判定结果分别创建对应的 SqlSource 对象，如果是动态 SQL，则采用 DynamicSqlSource 进行封装，否则采用 RawSqlSource 进行封装，到这里我们在配置文件或注解中定义的 SQL 语句就被解析封装成了对应的 SqlSource 对象驻于内存之中。接下来方法会依据配置创建对应的 KeyGenerator 对象，这个留到后面解析 <selectKey/> 子标签时再进行说明，最后会将当前 SQL 语句标签封装成 MappedStatement 对象，记录到 Configuration 的属性 mappedStatements 中。
+
 ##### 解析 <include/> 节点配置
 
+解析 SQL 语句标签的过程包含对 <include/> 标签的配置，前面我们曾介绍过 <sql/> 标签，该标签用于配置可复用的 SQL 语句片段，而 <include/> 标签则是用来引用这些可以 <sql/> 节点，具体使用方式可以参考官方文档。对于该标签的解析位于 XMLIncludeTransformer 类的 applyIncludes 方法中，该方法首先会尝试获取记录在 Configuration 对象中的 <properties/> 等属性变量，然后调用 `XMLIncludeTransformer#applyIncludes` 方法进行解析：
+
+```java
+private void applyIncludes(Node source, final Properties variablesContext, boolean included) {
+    /*注意：最开始进入本方法时，source 变量对应的节点并不是 <include/> 节点，而是 <select/> 这类节点*/
+    if (source.getNodeName().equals("include")) { // 处理 <include/> 节点
+        // 获取 refid 指向的 <sql/> 节点对象的深拷贝
+        Node toInclude = this.findSqlFragment(this.getStringAttribute(source, "refid"), variablesContext);
+        // 获取 <include/> 下的 <property/> 属性，与 variablesContext 合并返回新的 Properties 对象
+        Properties toIncludeContext = this.getVariablesContext(source, variablesContext);
+        // 递归处理，这里的 included 参数为 true
+        this.applyIncludes(toInclude, toIncludeContext, true);
+        if (toInclude.getOwnerDocument() != source.getOwnerDocument()) {
+            toInclude = source.getOwnerDocument().importNode(toInclude, true);
+        }
+        // 替换 <include/> 节点为 <sql/> 节点
+        source.getParentNode().replaceChild(toInclude, source);
+        while (toInclude.hasChildNodes()) {
+            // 将 <sql/> 的子节点添加到 <sql/> 节点的前面
+            toInclude.getParentNode().insertBefore(toInclude.getFirstChild(), toInclude);
+        }
+        // 删除 <sql/> 节点
+        toInclude.getParentNode().removeChild(toInclude);
+    } else if (source.getNodeType() == Node.ELEMENT_NODE) {
+        // 遍历处理当前 SQL 语句节点的子节点
+        NodeList children = source.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            // 递归调用
+            this.applyIncludes(children.item(i), variablesContext, included);
+        }
+    } else if (included && source.getNodeType() == Node.TEXT_NODE && !variablesContext.isEmpty()) {
+        // 替换占位符为 variablesContext 中对应的配置值，这里替换的是引用 <sql/> 节点中定义的语句片段中对应的占位符
+        source.setNodeValue(PropertyParser.parse(source.getNodeValue(), variablesContext));
+    }
+}
+```
+
+该方法在第一次进入时 source 对应的并不是一个 <include/> 标签，由参数可以推导出它是一个具体的 SQL 语句标签（它是一个 `Node.ELEMENT_NODE`），所以方法一开始会进入中间的 `else if` 代码块，在这里会获取 SQL 语句标签的所有子节点，并递归调用 applyIncludes 方法进行处理，只有当存在 <include/> 节点时才会继续下面的逻辑（注意，最开始调用这里的 applyIncludes 方法时传递的 included 参数为 false，所以对于 SQL 语句标签下面的`Node.TEXT_NODE` 类型字面值是不会进入最后一个 `else if` 代码块的）。如果当前是 <include/> 标签，则会尝试获取 refid 属性，并对属性值中的占位符进行解析替换，然后从 Configuration 对象的 sqlFragments 属性中获取 id 对应的 <sql/> 节点，返回节点的深拷贝对象，相关实现如下：
+
+```java
+private Node findSqlFragment(String refid, Properties variables) {
+    // 解析带有 ‘${}’ 占位符的字符串，将其中的占位符变量替换成 variables 中对应的属性值
+    refid = PropertyParser.parse(refid, variables); // 注意：这里替换并不是 <sql/> 语句片段中的占位符
+    refid = builderAssistant.applyCurrentNamespace(refid, true);
+    try {
+        // 从 Configuration.sqlFragments 中获取 id 对应的 <sql/> 节点
+        XNode nodeToInclude = configuration.getSqlFragments().get(refid);
+        return nodeToInclude.getNode().cloneNode(true); // 深拷贝
+    } catch (IllegalArgumentException e) {
+        throw new IncompleteElementException("Could not find SQL statement to include with refid '" + refid + "'", e);
+    }
+}
+```
+
+接下来会尝试获取 <include/> 标签下的 <property/> 配置，并与入参的 variablesContext 合并成为新的 Properties 对象，然后会递归调用 applyIncludes 方法，此时第三个参数 included 为 true，暗示会进入最后一个 `else if` 代码块，这个过程中会依据之前解析得到的属性值替换引入的 SQL 语句片段中的占位符，最终将对应的 <include/> 节点替换成对应解析后的 <sql/> 节点，记录到当前隶属的 SQL 语句标签节点中。
+
 ##### 解析 <selectKey/> 节点配置
+
+下面来继续探究 <selectKey/> 标签的解析，该标签用于为不支持自动生成自增主键的数据库或驱动生成主键，以及获取插入操作返回的主键值，该标签的解析位于 processSelectKeyNodes 方法中：
+
+```java
+private void processSelectKeyNodes(String id, Class<?> parameterTypeClass, LanguageDriver langDriver) {
+    // 获取所有的 <selectKey/> 节点
+    List<XNode> selectKeyNodes = context.evalNodes("selectKey");
+    // 解析 <selectKey/> 节点
+    if (configuration.getDatabaseId() != null) {
+        this.parseSelectKeyNodes(id, selectKeyNodes, parameterTypeClass, langDriver, configuration.getDatabaseId());
+    }
+    this.parseSelectKeyNodes(id, selectKeyNodes, parameterTypeClass, langDriver, null);
+    // 移除 <selectKey/> 节点
+    this.removeSelectKeyNodes(selectKeyNodes);
+}
+
+private void parseSelectKeyNodes(
+        String parentId, List<XNode> list, Class<?> parameterTypeClass, LanguageDriver langDriver, String skRequiredDatabaseId) {
+    // 遍历处理所有的 <selectKey/>
+    for (XNode nodeToHandle : list) {
+        String id = parentId + SelectKeyGenerator.SELECT_KEY_SUFFIX;
+        String databaseId = nodeToHandle.getStringAttribute("databaseId");
+        if (this.databaseIdMatchesCurrent(id, databaseId, skRequiredDatabaseId)) {
+            // 验证数据库环境是否匹配，忽略不匹配的 <selectKey/> 配置
+            this.parseSelectKeyNode(id, nodeToHandle, parameterTypeClass, langDriver, databaseId);
+        }
+    }
+}
+```
+
+上述方法过程执行过程如代码注释，这里解析的核心步骤位于 parseSelectKeyNode 方法中，该方法首先会获取 <selectKey> 相应的属性配置，然后封装定义的 SQL 语句为 SqlSource 对象，最后将整个 <selectKey/> 配置封装成为 MappedStatement 对象记录到 Configuration 对象的 mappedStatements 属性中，并创建对应的 KeyGenerator 对象，记录到 Configuration 对象的 keyGenerators 属性中（这里采用的是         configuration.addKeyGenerator(id, new SelectKeyGenerator(keyStatement, executeBefore));
+ 实现类）：
+
+```java
+private void parseSelectKeyNode(String id, XNode nodeToHandle, Class<?> parameterTypeClass, LanguageDriver langDriver, String databaseId) {
+    // 获取相应属性配置
+    String resultType = nodeToHandle.getStringAttribute("resultType"); // 结果集类型
+    Class<?> resultTypeClass = this.resolveClass(resultType);
+    StatementType statementType = StatementType.valueOf(nodeToHandle.getStringAttribute("statementType", StatementType.PREPARED.toString()));
+    String keyProperty = nodeToHandle.getStringAttribute("keyProperty"); // selectKey 生成结果应用的目标属性，多个用逗号分隔个
+    String keyColumn = nodeToHandle.getStringAttribute("keyColumn"); // 匹配属性的返回结果集中的列名称，多个以逗号分隔
+    boolean executeBefore = "BEFORE".equals(nodeToHandle.getStringAttribute("order", "AFTER")); // 在操作语句前还是后执行
+
+    // 设置默认值
+    boolean useCache = false;
+    boolean resultOrdered = false;
+    KeyGenerator keyGenerator = NoKeyGenerator.INSTANCE;
+    Integer fetchSize = null;
+    Integer timeout = null;
+    boolean flushCache = false;
+    String parameterMap = null;
+    String resultMap = null;
+    ResultSetType resultSetTypeEnum = null;
+
+    // 创建对应的 SqlSource（用于封装配置的SQL语句，不可执行），默认使用的是 XMLLanguageDriver
+    SqlSource sqlSource = langDriver.createSqlSource(configuration, nodeToHandle, parameterTypeClass);
+    SqlCommandType sqlCommandType = SqlCommandType.SELECT;
+
+    // 创建 SQL 对应的 MappedStatement 对象，并添加到 Configuration.mappedStatements 属性中
+    builderAssistant.addMappedStatement(id, sqlSource, statementType, sqlCommandType,
+            fetchSize, timeout, parameterMap, parameterTypeClass, resultMap, resultTypeClass,
+            resultSetTypeEnum, flushCache, useCache, resultOrdered,
+            keyGenerator, keyProperty, keyColumn, databaseId, langDriver, null);
+    id = builderAssistant.applyCurrentNamespace(id, false);
+    MappedStatement keyStatement = configuration.getMappedStatement(id, false);
+
+    // 创建对应的 KeyGenerator，并添加到 Configuration.keyGenerators 属性中
+    configuration.addKeyGenerator(id, new SelectKeyGenerator(keyStatement, executeBefore));
+}
+```
+
+在前面解析 SQL 语句标签时包含如下代码段，用于决策当前的 KeyGenerator 实现，如果当前标签配置了 <selectKey/> 则会优先从 Configuration 对象的 keyGenerators 属性中获取，也就是上面过程记录到该属性中的具体实现，对于没有配置 <selectKey/> 节点的标签来说，则会判断当前标签是否有设置 useGeneratedKeys 属性，或者判断当前是否有设置全局的 useGeneratedKeys 属性，以及当前是否是 INSERT 数据库操作类型来判断具体的 KeyGenerator 实现：
+
+```java
+// 解析对应的 KeyGenerator
+KeyGenerator keyGenerator;
+String keyStatementId = id + SelectKeyGenerator.SELECT_KEY_SUFFIX;
+keyStatementId = builderAssistant.applyCurrentNamespace(keyStatementId, true);
+if (configuration.hasKeyGenerator(keyStatementId)) {
+    // 当前 SQL 语句标签下存在 <selectKey/> 配置
+    keyGenerator = configuration.getKeyGenerator(keyStatementId);
+} else {
+    // 依据当前节点的 useGeneratedKeys 配置，或全局的 useGeneratedKeys 配置以及是否是 insert 方法来决定具体的 keyGenerator 实现
+    keyGenerator = context.getBooleanAttribute("useGeneratedKeys", // （仅对 insert 和 update 有用）这会使用 JDBC 的 getGeneratedKeys 方法来取出由数据库内部生成的主键
+            configuration.isUseGeneratedKeys() && SqlCommandType.INSERT.equals(sqlCommandType))
+            ? Jdbc3KeyGenerator.INSTANCE : NoKeyGenerator.INSTANCE;
+}
+```
+
+对于 KeyGenerator 来说，上面我们看到了三种实现类：Jdbc3KeyGenerator、NoKeyGenerator，以及 SelectKeyGenerator。这也是目前 KeyGenerator 接口仅有的三种实现，该接口的定义如下：
+
+```java
+public interface KeyGenerator {
+
+    /** 前置操作， order=BEFORE */
+    void processBefore(Executor executor, MappedStatement ms, Statement stmt, Object parameter);
+
+    /** 后置操作， order=AFTER */
+    void processAfter(Executor executor, MappedStatement ms, Statement stmt, Object parameter);
+}
+```
+
+对于三种实现来说，其中 NoKeyGenerator 虽然实现了该接口，但是对应方法体全部都是空实现，所以没什么可以分析的，我们接下来分别探究一下 Jdbc3KeyGenerator 和 SelectKeyGenerator 的实现。首先来看 Jdbc3KeyGenerator，这是一个用于获取数据库自增主键值的实现版本，Jdbc3KeyGenerator 的 processBefore 方法是一个空实现，主要实现逻辑位于 processAfter 方法中：
+
+```java
+public void processAfter(Executor executor, MappedStatement ms, Statement stmt, Object parameter) {
+    // 将 Object 类型参数转换成相应的集合类型
+    this.processBatch(ms, stmt, this.getParameters(parameter));
+}
+
+public void processBatch(MappedStatement ms, Statement stmt, Collection<Object> parameters) {
+    ResultSet rs = null;
+    try {
+        // 获取数据库自动生成的主键
+        rs = stmt.getGeneratedKeys();
+        final Configuration configuration = ms.getConfiguration();
+        final TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
+        // 获取 keyProperties 属性配置，用于指定主键，可能存在多个
+        final String[] keyProperties = ms.getKeyProperties();
+        // 获取 ResultSet 元数据信息
+        final ResultSetMetaData rsmd = rs.getMetaData();
+        TypeHandler<?>[] typeHandlers = null;
+        if (keyProperties != null && rsmd.getColumnCount() >= keyProperties.length) {
+            for (Object parameter : parameters) {
+                // there should be one row for each statement (also one for each parameter)
+                if (!rs.next()) {
+                    break;
+                }
+                // 创建实参对应的 MetaObject 对象
+                final MetaObject metaParam = configuration.newMetaObject(parameter);
+                if (typeHandlers == null) {
+                    // 获取每个 keyProperty 对应的类型处理器
+                    typeHandlers = this.getTypeHandlers(typeHandlerRegistry, metaParam, keyProperties, rsmd);
+                }
+                // 将生成的主键值与用户传入的参数相映射
+                this.populateKeys(rs, metaParam, keyProperties, typeHandlers);
+            }
+        }
+    } catch (Exception e) {
+        throw new ExecutorException("Error getting generated key or setting result to parameter object. Cause: " + e, e);
+    } finally {
+        // 省略 ResultSet 的 close 实现
+    }
+}
+```
+
+processAfter 的主要逻辑就是获取数据库自增的主键值，并设置到用户传递的实参中，用户指定的实参可以是一个具体的 java bean，Map 对象，以及对应的集合类型，以处理批量插入的情况，所以方法首先会调用 getParameters 方法将传递的 Object 类型参数转换成对应的 Collection 类型，这个过程比较简单，这里就不再贴出源码，接下来看一下 processBatch 的具体细节。方法中首先会调用 `java.sql.Statement#getGeneratedKeys` 方法获取获取相应的结果集，然后基于 <selectKey/> 的 keyProperty 配置确定对象注入的属性，并将获取到的主键值映射到相应属性上。
+
+SelectKeyGenerator 主要应用用于那些不支持自动生成自增主键的数据库，可以为这些数据库生成主键值，同时包含 Jdbc3KeyGenerator 返回具体主键值的功能。SelectKeyGenerator 实现了接口中定义的全部方法，但是这些方法本质上都是调用了 processGeneratedKeys 方法：
+
+```java
+private void processGeneratedKeys(Executor executor, MappedStatement ms, Object parameter) {
+    try {
+        if (parameter != null && keyStatement != null && keyStatement.getKeyProperties() != null) {
+            // 获取 <selectKey/> 中配置的 keyProperty 属性
+            String[] keyProperties = keyStatement.getKeyProperties();
+            final Configuration configuration = ms.getConfiguration();
+            // 创建入参 parameter 对应的 MetaObject 对象
+            final MetaObject metaParam = configuration.newMetaObject(parameter);
+            if (keyProperties != null) {
+                // 创建 SQL 执行器，并执行 <selectKey/> 中定义的 SQL 语句
+                Executor keyExecutor = configuration.newExecutor(executor.getTransaction(), ExecutorType.SIMPLE);
+                List<Object> values = keyExecutor.query(keyStatement, parameter, RowBounds.DEFAULT, Executor.NO_RESULT_HANDLER);
+                // 处理返回的主键对象
+                if (values.size() == 0) {
+                    throw new ExecutorException("SelectKey returned no data.");
+                } else if (values.size() > 1) {
+                    throw new ExecutorException("SelectKey returned more than one value.");
+                } else {
+                    // 创建主键值对应的 MetaObject 对象
+                    MetaObject metaResult = configuration.newMetaObject(values.get(0));
+                    if (keyProperties.length == 1) {
+                        // 单列主键的情况
+                        if (metaResult.hasGetter(keyProperties[0])) {
+                            this.setValue(metaParam, keyProperties[0], metaResult.getValue(keyProperties[0]));
+                        } else {
+                            // 每个 getter，尝试直接获取属性值
+                            this.setValue(metaParam, keyProperties[0], values.get(0));
+                        }
+                    } else {
+                        // 多列主键的情况，依次从主键对象中获取对应的属性记录到用户参数对象中
+                        this.handleMultipleProperties(keyProperties, metaParam, metaResult);
+                    }
+                }
+            }
+        }
+    } catch (ExecutorException e) {
+        throw e;
+    } catch (Exception e) {
+        throw new ExecutorException("Error selecting key or setting result to parameter object. Cause: " + e, e);
+    }
+}
+```
+
+方法会执行 <selectKey/> 中定义的 SQL 语句，拿到具体的返回值作为主键对象，并依据配置的 keyProperty 属性，将相应的主键值映射到用户指定的参数对象中。
