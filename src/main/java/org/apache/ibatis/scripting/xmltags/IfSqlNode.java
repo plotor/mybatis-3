@@ -17,6 +17,14 @@
 package org.apache.ibatis.scripting.xmltags;
 
 /**
+ * <select id="findActiveBlogWithTitleLike" resultType="Blog">
+ * SELECT * FROM BLOG
+ * WHERE state = ‘ACTIVE’
+ * <if test="title != null">
+ * AND title like #{title}
+ * </if>
+ * </select>
+ *
  * @author Clinton Begin
  */
 public class IfSqlNode implements SqlNode {

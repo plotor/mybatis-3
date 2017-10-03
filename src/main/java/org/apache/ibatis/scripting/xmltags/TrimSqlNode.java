@@ -33,10 +33,10 @@ public class TrimSqlNode implements SqlNode {
     /** 记录 <trim/> 节点的子节点 */
     private final SqlNode contents;
 
-    /** 前缀字符串 */
+    /** 期望追加的前缀字符串 */
     private final String prefix;
 
-    /** 后缀字符串 */
+    /** 期望追加的后缀字符串 */
     private final String suffix;
 
     /** 如果 <trim/> 包裹的 SQL 语句为空，则删除指定前缀 */
@@ -47,11 +47,15 @@ public class TrimSqlNode implements SqlNode {
 
     private final Configuration configuration;
 
-    public TrimSqlNode(Configuration configuration, SqlNode contents, String prefix, String prefixesToOverride, String suffix, String suffixesToOverride) {
+    public TrimSqlNode(
+            Configuration configuration, SqlNode contents, String prefix,
+            String prefixesToOverride, String suffix, String suffixesToOverride) {
         this(configuration, contents, prefix, parseOverrides(prefixesToOverride), suffix, parseOverrides(suffixesToOverride));
     }
 
-    protected TrimSqlNode(Configuration configuration, SqlNode contents, String prefix, List<String> prefixesToOverride, String suffix, List<String> suffixesToOverride) {
+    protected TrimSqlNode(
+            Configuration configuration, SqlNode contents, String prefix,
+            List<String> prefixesToOverride, String suffix, List<String> suffixesToOverride) {
         this.contents = contents;
         this.prefix = prefix;
         this.prefixesToOverride = prefixesToOverride;
@@ -62,8 +66,11 @@ public class TrimSqlNode implements SqlNode {
 
     @Override
     public boolean apply(DynamicContext context) {
+        // 创建 FilteredDynamicContext 对象，封装上下文
         FilteredDynamicContext filteredDynamicContext = new FilteredDynamicContext(context);
+        // 应用子节点的 apply 方法
         boolean result = contents.apply(filteredDynamicContext);
+        // 处理前缀和后缀
         filteredDynamicContext.applyAll();
         return result;
     }
@@ -101,6 +108,7 @@ public class TrimSqlNode implements SqlNode {
 
         public void applyAll() {
             sqlBuffer = new StringBuilder(sqlBuffer.toString().trim());
+            // 全部转换成大写
             String trimmedUppercaseSql = sqlBuffer.toString().toUpperCase(Locale.ENGLISH);
             if (trimmedUppercaseSql.length() > 0) {
                 // 处理前缀
@@ -138,16 +146,18 @@ public class TrimSqlNode implements SqlNode {
         }
 
         private void applyPrefix(StringBuilder sql, String trimmedUppercaseSql) {
-            if (!prefixApplied) {
+            if (!prefixApplied) { // 如果前缀没有被处理过
                 prefixApplied = true;
                 if (prefixesToOverride != null) {
                     for (String toRemove : prefixesToOverride) {
+                        // 移除包含的前缀
                         if (trimmedUppercaseSql.startsWith(toRemove)) {
                             sql.delete(0, toRemove.trim().length());
                             break;
                         }
                     }
                 }
+                // 插入指定前缀
                 if (prefix != null) {
                     sql.insert(0, " ");
                     sql.insert(0, prefix);
@@ -156,11 +166,12 @@ public class TrimSqlNode implements SqlNode {
         }
 
         private void applySuffix(StringBuilder sql, String trimmedUppercaseSql) {
-            if (!suffixApplied) {
+            if (!suffixApplied) { // 如果后缀没有被处理过
                 suffixApplied = true;
                 if (suffixesToOverride != null) {
                     for (String toRemove : suffixesToOverride) {
                         if (trimmedUppercaseSql.endsWith(toRemove) || trimmedUppercaseSql.endsWith(toRemove.trim())) {
+                            // 移除包含的后缀
                             int start = sql.length() - toRemove.trim().length();
                             int end = sql.length();
                             sql.delete(start, end);
@@ -168,6 +179,7 @@ public class TrimSqlNode implements SqlNode {
                         }
                     }
                 }
+                // 追加指定后缀
                 if (suffix != null) {
                     sql.append(" ");
                     sql.append(suffix);

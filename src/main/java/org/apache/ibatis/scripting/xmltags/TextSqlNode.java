@@ -52,6 +52,7 @@ public class TextSqlNode implements SqlNode {
 
     @Override
     public boolean apply(DynamicContext context) {
+        // BindingTokenParser 是内部类，基于 DynamicContext 对象的 bindings 中的属性解析 SQL 语句中的占位符
         GenericTokenParser parser = this.createParser(new BindingTokenParser(context, injectionFilter));
         // 解析并添加 SQL 片段到 DynamicContext 中
         context.appendSql(parser.parse(text));
@@ -63,7 +64,7 @@ public class TextSqlNode implements SqlNode {
     }
 
     /**
-     * 基于 {@link DynamicContext#bindings} 中的参数解析SQL语句中的占位符
+     * 基于 {@link DynamicContext#bindings} 中的属性解析 SQL 语句中的占位符
      */
     private static class BindingTokenParser implements TokenHandler {
 
@@ -82,11 +83,12 @@ public class TextSqlNode implements SqlNode {
             if (parameter == null) {
                 context.getBindings().put("value", null);
             } else if (SimpleTypeRegistry.isSimpleType(parameter.getClass())) {
+                // 如果是基本类型
                 context.getBindings().put("value", parameter);
             }
             // 基于 OGNL 解析 content 的值
             Object value = OgnlCache.getValue(content, context.getBindings());
-            String srtValue = (value == null ? "" : String.valueOf(value)); // issue #274 return "" instead of "null"
+            String srtValue = (value == null ? "" : String.valueOf(value));
             this.checkInjection(srtValue);
             return srtValue;
         }

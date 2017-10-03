@@ -30,7 +30,9 @@ import java.util.Map;
 public class ExpressionEvaluator {
 
     public boolean evaluateBoolean(String expression, Object parameterObject) {
+        // 获取 OGNL 表达式对应的值
         Object value = OgnlCache.getValue(expression, parameterObject);
+        // 转换为 boolean 类型返回
         if (value instanceof Boolean) {
             return (Boolean) value;
         }

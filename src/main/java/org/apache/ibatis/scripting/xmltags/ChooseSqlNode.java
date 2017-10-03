@@ -22,7 +22,11 @@ import java.util.List;
  * @author Clinton Begin
  */
 public class ChooseSqlNode implements SqlNode {
+
+    /** 对应 <otherwise/> 节点，采用 {@link MixedSqlNode} 表示 */
     private final SqlNode defaultSqlNode;
+
+    /** 对应 <when/> 节点，采用 {@link IfSqlNode} 表示 */
     private final List<SqlNode> ifSqlNodes;
 
     public ChooseSqlNode(List<SqlNode> ifSqlNodes, SqlNode defaultSqlNode) {
@@ -32,11 +36,13 @@ public class ChooseSqlNode implements SqlNode {
 
     @Override
     public boolean apply(DynamicContext context) {
+        // 遍历应用 <when/> 节点，一旦成功一个就返回
         for (SqlNode sqlNode : ifSqlNodes) {
             if (sqlNode.apply(context)) {
                 return true;
             }
         }
+        // 所有的 <when/> 都不满足，执行 <otherwise/> 节点
         if (defaultSqlNode != null) {
             defaultSqlNode.apply(context);
             return true;

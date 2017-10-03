@@ -26,6 +26,7 @@ import java.util.Map;
  * @author Clinton Begin
  */
 public class ForEachSqlNode implements SqlNode {
+
     public static final String ITEM_PREFIX = "__frch_";
 
     /** 用于判断循环的终止条件 */

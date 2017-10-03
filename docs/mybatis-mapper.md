@@ -1015,3 +1015,167 @@ private void processGeneratedKeys(Executor executor, MappedStatement ms, Object 
 ```
 
 方法会执行 <selectKey/> 中定义的 SQL 语句，拿到具体的返回值作为主键对象，并依据配置的 keyProperty 属性，将相应的主键值映射到用户指定的参数对象中。
+
+### SqlNode 和 SqlSource
+
+上面分析的过程中，我们曾遇到 SqlNode 和 SqlSource 这两个接口，这一小节我们对这两个接口的及其具体实现类做一个分析，在这之前我们需要简单了解一下这两个类各自的作用，由前面的分析我们应该知道对于一个 SQL 语句标签最后会被封装成为一个 MappedStatement 对象，而标签中定义的 SQL 语句则有 SqlSource 进行表示，SqlNode 则用来定义动态 SQL 节点和文本节点等。
+
+由点及面，我们先来看一下 SqlNode 的相关实现，SqlNode 是一个接口，其中仅包含了一个 apply 方法，接口定义如下：
+
+```java
+public interface SqlNode {
+
+    /** 基于传递的实参，解析动态 SQL 节点 */
+    boolean apply(DynamicContext context);
+}
+```
+
+// TODO 这里添加一张 SqlNode 的 UML 图
+
+上图为 SqlNode 的继承关系图，下面我们逐个来分析其实现，首先来看一下前面多次遇到的 MixedSqlNode，该类型通过一个 List<SqlNode> 集合记录包含的 SqlNode，其 apply 方法会遍历该集合并应用记录的各个 SqlNode 的 apply 方法，实现比较简单。与 MixedSqlNode 实现类似的还包括 StaticTextSqlNode 类，该类采用一个 String 类型的常量记录非动态的 SQL 节点，其 apply 方法则直接调用 DynamicContext 对象的 appendSql 方法将记录的 SQL 节点添加到一个 StringBuilder 类型属性中（该属性用于记录 SQL 语句片段，当我们最后调用 DynamicContext 对象的 getSql 方法时会调用该属性的 toString 方法拼接记录的 SQL 片段，返回最终完整的 SQL 语句）。
+
+TextSqlNode 用于封装包含占位符 “${}” 的动态 SQL 节点，前面在分析 SQL 语句标签时也曾遇到，该类的 apply 方法实现如下：
+
+```java
+public boolean apply(DynamicContext context) {
+    // BindingTokenParser 是内部类，基于 DynamicContext 对象的 bindings 中的属性解析 SQL 语句中的占位符
+    GenericTokenParser parser = this.createParser(new BindingTokenParser(context, injectionFilter));
+    // 解析并添加 SQL 片段到 DynamicContext 中
+    context.appendSql(parser.parse(text));
+    return true;
+}
+```
+
+GenericTokenParser 的执行逻辑我们之前遇到过多次，应该比较清楚了，它主要用来查找指定标识的占位符（这里是 “${}”），并基于指定的 TokenHandler 对解析到的占位符变量进行处理。TextSqlNode 实现了内部的 TokenHandler，即 BindingTokenParser，该解析器会基于参数对象 DynamicContext 的属性 bindings 中记录的参数值解析 SQL 语句中的占位符，并将解析结果记录到 DynamicContext 对象中。
+
+VarDeclSqlNode 对应动态 SQL 中的 <bind/> 节点，该节点可以从 OGNL 表达式中创建一个变量并将其绑定到上下文中，官方文档中关于该节点的使用示例如下：
+
+```xml
+<select id="selectBlogsLike" resultType="Blog">
+    <bind name="pattern" value="'%' + _parameter.getTitle() + '%'" />
+    SELECT * FROM BLOG
+    WHERE title LIKE #{pattern}
+</select>
+```
+
+而 VarDeclSqlNode 同样定义了 name 和 expression 两个属性，分别与 <bind/> 标签的属性对应，该实现类的 apply 方法完成了对 OGNL 表达式的解析，并将解析得到的真实值记录到上下文 bindings 属性中：
+
+```java
+public boolean apply(DynamicContext context) {
+    // 解析 OGNL 表达式对应的值
+    final Object value = OgnlCache.getValue(expression, context.getBindings());
+    // 绑定到上下文中，name 对应属性 <bind/> 标签的 name 属性配置
+    context.bind(name, value);
+    return true;
+}
+```
+
+IfSqlNode 对应动态 SQL 的 <if/> 节点，这也是我们频繁使用的条件节点，IfSqlNode 的属性定义如下：
+
+```java
+/** 用于解析 <if/> 节点的 test 表达式 */
+private final ExpressionEvaluator evaluator;
+/** 记录 <if/> 节点中的 test 表达式 */
+private final String test;
+/** 记录 <if/> 节点的子节点 */
+private final SqlNode contents;
+```
+
+相应的 apply 实现会首先调用 `ExpressionEvaluator#evaluateBoolean` 方法判定 test 表达式是否为 true，如果为 true 则应用记录的子节点的 apply 方法：
+
+```java
+public boolean apply(DynamicContext context) {
+    // 检测 test 表达式是否为 true
+    if (evaluator.evaluateBoolean(test, context.getBindings())) {
+        // 执行子节点的 apply 方法
+        contents.apply(context);
+        return true;
+    }
+    return false;
+}
+
+// org.apache.ibatis.scripting.xmltags.ExpressionEvaluator#evaluateBoolean
+public boolean evaluateBoolean(String expression, Object parameterObject) {
+    // 获取 OGNL 表达式对应的值
+    Object value = OgnlCache.getValue(expression, parameterObject);
+    // 转换为 boolean 类型返回
+    if (value instanceof Boolean) {
+        return (Boolean) value;
+    }
+    if (value instanceof Number) {
+        return !new BigDecimal(String.valueOf(value)).equals(BigDecimal.ZERO);
+    }
+    return value != null;
+}
+```
+
+ChooseSqlNode 对应动态 SQL 中的 <choose/> 节点，我们通常利用此节点配合 <when/> 和 <otherwise/> 节点来实现 switch 功能，具体使用方式可以参考官方示例，在代码层面，并没有 WhenSqlNode 和 OtherwiseSqlNode 与另外两个标签相对应，MyBatis 采用 IfSqlNode 表示 <when/> 节点，采用 MixedSqlNode 表示 <otherwise/> 节点，ChooseSqlNode 类的属性和 apply 方法定义如下：
+
+```java
+/** 对应 <otherwise/> 节点，采用 {@link MixedSqlNode} 表示 */
+private final SqlNode defaultSqlNode;
+/** 对应 <when/> 节点，采用 {@link IfSqlNode} 表示 */
+private final List<SqlNode> ifSqlNodes;
+
+public boolean apply(DynamicContext context) {
+    // 遍历应用 <when/> 节点，一旦成功一个就返回
+    for (SqlNode sqlNode : ifSqlNodes) {
+        if (sqlNode.apply(context)) {
+            return true;
+        }
+    }
+    // 所有的 <when/> 都不满足，执行 <otherwise/> 节点
+    if (defaultSqlNode != null) {
+        defaultSqlNode.apply(context);
+        return true;
+    }
+    return false;
+}
+```
+
+TrimSqlNode 对应 <trim/> 节点，用于处理动态 SQL 拼接在一些条件下出现不完整 SQL 的情况，具体使用可以参考官方示例，该实现类的属性和 applay 方法定义如下：
+
+```java
+/** 记录 <trim/> 节点的子节点 */
+private final SqlNode contents;
+/** 期望追加的前缀字符串 */
+private final String prefix;
+/** 期望追加的后缀字符串 */
+private final String suffix;
+/** 如果 <trim/> 包裹的 SQL 语句为空，则删除指定前缀 */
+private final List<String> prefixesToOverride;
+/** 如果 <trim/> 包裹的 SQL 语句为空，则删除指定后缀 */
+private final List<String> suffixesToOverride;
+
+public boolean apply(DynamicContext context) {
+    // 创建 FilteredDynamicContext 对象，封装上下文
+    FilteredDynamicContext filteredDynamicContext = new FilteredDynamicContext(context);
+    // 应用子节点的 apply 方法
+    boolean result = contents.apply(filteredDynamicContext);
+    // 处理前缀和后缀
+    filteredDynamicContext.applyAll();
+    return result;
+}
+```
+
+TrimSqlNode 中定义了内部类 FilteredDynamicContext，它是对上下文对象 DynamicContext 的封装，其 applyAll 方法实现了对不完整 SQL 的处理，该方法调用 applyPrefix 和 applySuffix 方法分别处理 SQL 的前缀和后缀，并将处理完后的 SQL 片段记录到上下文对象中：
+
+```java
+public void applyAll() {
+    sqlBuffer = new StringBuilder(sqlBuffer.toString().trim());
+    // 全部转换成大写
+    String trimmedUppercaseSql = sqlBuffer.toString().toUpperCase(Locale.ENGLISH);
+    if (trimmedUppercaseSql.length() > 0) {
+        // 处理前缀
+        this.applyPrefix(sqlBuffer, trimmedUppercaseSql);
+        // 处理后缀
+        this.applySuffix(sqlBuffer, trimmedUppercaseSql);
+    }
+    // 添加解析后的结果到 delegate 中
+    delegate.appendSql(sqlBuffer.toString());
+}
+```
+
+applyPrefix 和 applySuffix 方法的实现思路相同，这里以 applyPrefix 方法为例，该方法会遍历指定的前缀并判断当前 SQL 片段是否以包含的前缀开头，是的话则会删除该前缀，如果指定了 prefix 属性则会在 SQL 语句片段前面追加对应的前缀值。WhereSqlNode 和 SetSqlNode 均由 TrimSqlNode 派生而来，实现比较简单，不再多做撰述。
+
+最后再来看一下 ForEachSqlNode 类，该类对应 <foreach/> 节点，前面我们曾列举了相关的 ForEachHandler 类实现，ForEachSqlNode 应该算是几个 SqlNode 实现类中最复杂的一个

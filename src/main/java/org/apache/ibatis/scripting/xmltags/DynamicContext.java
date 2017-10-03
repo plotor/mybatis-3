@@ -34,6 +34,7 @@ import java.util.Map;
 public class DynamicContext {
 
     public static final String PARAMETER_OBJECT_KEY = "_parameter";
+
     public static final String DATABASE_ID_KEY = "_databaseId";
 
     static {
@@ -50,11 +51,13 @@ public class DynamicContext {
 
     public DynamicContext(Configuration configuration, Object parameterObject) {
         if (parameterObject != null && !(parameterObject instanceof Map)) {
+            // 如果入参不是 Map 类型，则会创建对应的 MetaObject 对象，并封装成 ContextMap 对象
             MetaObject metaObject = configuration.newMetaObject(parameterObject);
             bindings = new ContextMap(metaObject);
         } else {
             bindings = new ContextMap(null);
         }
+        // (_parameter, parameterObject)
         bindings.put(PARAMETER_OBJECT_KEY, parameterObject);
         bindings.put(DATABASE_ID_KEY, configuration.getDatabaseId());
     }
