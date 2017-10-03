@@ -29,6 +29,13 @@ import java.util.Map;
  */
 public class ExpressionEvaluator {
 
+    /**
+     * 解析 OGNL 表达式对应的值，并转换成对应的 boolean 值
+     *
+     * @param expression
+     * @param parameterObject
+     * @return
+     */
     public boolean evaluateBoolean(String expression, Object parameterObject) {
         // 获取 OGNL 表达式对应的值
         Object value = OgnlCache.getValue(expression, parameterObject);
@@ -42,18 +49,25 @@ public class ExpressionEvaluator {
         return value != null;
     }
 
+    /**
+     * 解析 OGNL 表达式对应的值，返回值对应的迭代器
+     *
+     * @param expression
+     * @param parameterObject
+     * @return
+     */
     public Iterable<?> evaluateIterable(String expression, Object parameterObject) {
+        // 获取 OGNL 表达式对应的值
         Object value = OgnlCache.getValue(expression, parameterObject);
         if (value == null) {
             throw new BuilderException("The expression '" + expression + "' evaluated to a null value.");
         }
+        // 如果是迭代器类型
         if (value instanceof Iterable) {
             return (Iterable<?>) value;
         }
+        // 如果是数组类型
         if (value.getClass().isArray()) {
-            // the array may be primitive, so Arrays.asList() may throw
-            // a ClassCastException (issue 209).  Do the work manually
-            // Curse primitives! :) (JGB)
             int size = Array.getLength(value);
             List<Object> answer = new ArrayList<Object>();
             for (int i = 0; i < size; i++) {
@@ -62,6 +76,7 @@ public class ExpressionEvaluator {
             }
             return answer;
         }
+        // 如果是 Map 类型
         if (value instanceof Map) {
             return ((Map) value).entrySet();
         }

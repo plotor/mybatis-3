@@ -23,6 +23,16 @@ import org.apache.ibatis.session.Configuration;
 import java.util.Map;
 
 /**
+ * <select id="selectPostIn" resultType="domain.blog.Post">
+ * SELECT *
+ * FROM POST P
+ * WHERE ID in
+ * <foreach item="item" index="index" collection="list"
+ * open="(" separator="," close=")">
+ * #{item}
+ * </foreach>
+ * </select>
+ *
  * @author Clinton Begin
  */
 public class ForEachSqlNode implements SqlNode {
@@ -53,7 +63,9 @@ public class ForEachSqlNode implements SqlNode {
 
     private final Configuration configuration;
 
-    public ForEachSqlNode(Configuration configuration, SqlNode contents, String collectionExpression, String index, String item, String open, String close, String separator) {
+    public ForEachSqlNode(
+            Configuration configuration, SqlNode contents, String collectionExpression,
+            String index, String item, String open, String close, String separator) {
         this.evaluator = new ExpressionEvaluator();
         this.collectionExpression = collectionExpression;
         this.contents = contents;
@@ -67,8 +79,8 @@ public class ForEachSqlNode implements SqlNode {
 
     @Override
     public boolean apply(DynamicContext context) {
-        // 解析集合表达式，获取对应的实参
         Map<String, Object> bindings = context.getBindings();
+        // 解析集合 OGNL 表达式对应的值，返回值对应的迭代器
         final Iterable<?> iterable = evaluator.evaluateIterable(collectionExpression, bindings);
         if (!iterable.iterator().hasNext()) {
             return true;
@@ -77,6 +89,7 @@ public class ForEachSqlNode implements SqlNode {
         // 添加 open 前缀标识
         this.applyOpen(context);
         int i = 0;
+        // 迭代处理集合
         for (Object o : iterable) {
             DynamicContext oldContext = context;
             if (first || separator == null) {
@@ -85,15 +98,15 @@ public class ForEachSqlNode implements SqlNode {
                 context = new PrefixedContext(context, separator);
             }
             int uniqueNumber = context.getUniqueNumber();
-            // Issue #709
             if (o instanceof Map.Entry) {
+                // 如果是 Map 类型
                 @SuppressWarnings("unchecked")
                 Map.Entry<Object, Object> mapEntry = (Map.Entry<Object, Object>) o;
-                applyIndex(context, mapEntry.getKey(), uniqueNumber);
-                applyItem(context, mapEntry.getValue(), uniqueNumber);
+                this.applyIndex(context, mapEntry.getKey(), uniqueNumber);
+                this.applyItem(context, mapEntry.getValue(), uniqueNumber);
             } else {
-                applyIndex(context, i, uniqueNumber);
-                applyItem(context, o, uniqueNumber);
+                this.applyIndex(context, i, uniqueNumber);
+                this.applyItem(context, o, uniqueNumber);
             }
             contents.apply(new FilteredDynamicContext(configuration, context, index, item, uniqueNumber));
             if (first) {
@@ -136,11 +149,14 @@ public class ForEachSqlNode implements SqlNode {
     }
 
     private static String itemizeItem(String item, int i) {
+        // 返回 __frch_item_i 的形式
         return new StringBuilder(ITEM_PREFIX).append(item).append("_").append(i).toString();
     }
 
     /**
-     * 处理占位符，在占位符前面追加 ‘_frch_’ 固定前缀
+     * 处理占位符“#{}”，在占位符前面追加 ‘_frch_’ 固定前缀
+     * #{item} -> #{__frch_item_1}
+     * #{itemIndex} -> #{__frch_itemIndex_1}
      */
     private static class FilteredDynamicContext extends DynamicContext {
 
@@ -177,10 +193,13 @@ public class ForEachSqlNode implements SqlNode {
             GenericTokenParser parser = new GenericTokenParser("#{", "}", new TokenHandler() {
                 @Override
                 public String handleToken(String content) {
+                    // 替换 item，为 __frch_item_index
                     String newContent = content.replaceFirst("^\\s*" + item + "(?![^.,:\\s])", itemizeItem(item, index));
                     if (itemIndex != null && newContent.equals(content)) {
+                        // 替换 itemIndex 为 __frch_itemIndex_index
                         newContent = content.replaceFirst("^\\s*" + itemIndex + "(?![^.,:\\s])", itemizeItem(itemIndex, index));
                     }
+                    // 追加 #{}
                     return new StringBuilder("#{").append(newContent).append("}").toString();
                 }
             });
@@ -196,6 +215,7 @@ public class ForEachSqlNode implements SqlNode {
     }
 
     private class PrefixedContext extends DynamicContext {
+
         private final DynamicContext delegate;
 
         /** 指定的前缀 */
