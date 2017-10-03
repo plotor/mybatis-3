@@ -98,6 +98,9 @@ public class TextSqlNode implements SqlNode {
         }
     }
 
+    /**
+     * 判断是否是动态 SQL
+     */
     private static class DynamicCheckerTokenParser implements TokenHandler {
 
         private boolean isDynamic;

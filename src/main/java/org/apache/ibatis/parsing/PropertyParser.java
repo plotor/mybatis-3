@@ -28,9 +28,10 @@ public class PropertyParser {
     /**
      * The special property key that indicate whether enable a default value on placeholder.
      * <p>
-     *   The default value is {@code false} (indicate disable a default value on placeholder)
-     *   If you specify the {@code true}, you can specify key and default value on placeholder (e.g. {@code ${db.username:postgres}}).
+     * The default value is {@code false} (indicate disable a default value on placeholder)
+     * If you specify the {@code true}, you can specify key and default value on placeholder (e.g. {@code ${db.username:postgres}}).
      * </p>
+     *
      * @since 3.4.2
      */
     public static final String KEY_ENABLE_DEFAULT_VALUE = KEY_PREFIX + "enable-default-value";
@@ -38,8 +39,9 @@ public class PropertyParser {
     /**
      * The special property key that specify a separator for key and default value on placeholder.
      * <p>
-     *   The default separator is {@code ":"}.
+     * The default separator is {@code ":"}.
      * </p>
+     *
      * @since 3.4.2
      */
     public static final String KEY_DEFAULT_VALUE_SEPARATOR = KEY_PREFIX + "default-value-separator";
@@ -51,9 +53,17 @@ public class PropertyParser {
         // Prevent Instantiation
     }
 
+    /**
+     * 解析输入的字符串，将其中的 ‘${}’ 占位符解析成为 variables 中对应的属性值
+     *
+     * @param string
+     * @param variables
+     * @return
+     */
     public static String parse(String string, Properties variables) {
+        // 创建 VariableTokenHandler 对象，用于填充 “${}” 占位符对应的值
         VariableTokenHandler handler = new VariableTokenHandler(variables);
-        // 创建 GenericTokenParser 对象，处理占位符 “${}”
+        // 创建 GenericTokenParser 对象，用于获取 “${}” 占位符中的变量
         GenericTokenParser parser = new GenericTokenParser("${", "}", handler);
         return parser.parse(string);
     }
@@ -68,8 +78,10 @@ public class PropertyParser {
 
         private VariableTokenHandler(Properties variables) {
             this.variables = variables;
-            this.enableDefaultValue = Boolean.parseBoolean(getPropertyValue(KEY_ENABLE_DEFAULT_VALUE, ENABLE_DEFAULT_VALUE));
-            this.defaultValueSeparator = getPropertyValue(KEY_DEFAULT_VALUE_SEPARATOR, DEFAULT_VALUE_SEPARATOR);
+            // 是否启用默认值配置
+            this.enableDefaultValue = Boolean.parseBoolean(this.getPropertyValue(KEY_ENABLE_DEFAULT_VALUE, ENABLE_DEFAULT_VALUE));
+            // 获取默认值配置分隔符
+            this.defaultValueSeparator = this.getPropertyValue(KEY_DEFAULT_VALUE_SEPARATOR, DEFAULT_VALUE_SEPARATOR);
         }
 
         private String getPropertyValue(String key, String defaultValue) {
@@ -81,20 +93,26 @@ public class PropertyParser {
             if (variables != null) {
                 String key = content;
                 if (enableDefaultValue) {
-                    final int separatorIndex = content.indexOf(defaultValueSeparator);
+                    // 启用默认值
+                    final int separatorIndex = content.indexOf(defaultValueSeparator); // 寻找分隔符起始位置
                     String defaultValue = null;
                     if (separatorIndex >= 0) {
+                        // 获取目标变量，分隔符前面是目标变量
                         key = content.substring(0, separatorIndex);
+                        // 获取默认值
                         defaultValue = content.substring(separatorIndex + defaultValueSeparator.length());
                     }
                     if (defaultValue != null) {
+                        // 获取 key 对应的值，没有的话就是用默认值代替
                         return variables.getProperty(key, defaultValue);
                     }
                 }
                 if (variables.containsKey(key)) {
+                    // 获取 key 对应的值
                     return variables.getProperty(key);
                 }
             }
+            // 没有获取到 key 对应的值
             return "${" + content + "}";
         }
     }

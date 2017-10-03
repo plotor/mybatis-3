@@ -52,7 +52,7 @@ public class GenericTokenParser {
         // 寻找起始占位符
         int start = text.indexOf(openToken, 0);
         if (start == -1) {
-            return text;
+            return text; // 不存在占位符，直接返回
         }
         char[] src = text.toCharArray();
         int offset = 0;
@@ -105,7 +105,12 @@ public class GenericTokenParser {
     }
 
     public static void main(String[] args) {
-        GenericTokenParser parser = new GenericTokenParser("${", "}", null);
-        parser.parse("Hello, this is ${username}, and my age is ${age}");
+        GenericTokenParser parser = new GenericTokenParser("${", "}", new TokenHandler() {
+            @Override
+            public String handleToken(String content) {
+                return "zhenchao";
+            }
+        });
+        System.out.println(parser.parse("Hello, this is ${username}, and my age is ${age}"));
     }
 }

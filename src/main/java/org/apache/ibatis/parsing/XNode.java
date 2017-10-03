@@ -46,8 +46,8 @@ public class XNode {
         this.node = node;
         this.name = node.getNodeName();
         this.variables = variables;
-        this.attributes = parseAttributes(node);
-        this.body = parseBody(node);
+        this.attributes = this.parseAttributes(node);
+        this.body = this.parseBody(node);
     }
 
     public XNode newXNode(Node node) {
@@ -364,12 +364,12 @@ public class XNode {
     }
 
     private String parseBody(Node node) {
-        String data = getBodyData(node);
+        String data = this.getBodyData(node);
         if (data == null) {
             NodeList children = node.getChildNodes();
             for (int i = 0; i < children.getLength(); i++) {
                 Node child = children.item(i);
-                data = getBodyData(child);
+                data = this.getBodyData(child);
                 if (data != null) {
                     break;
                 }
@@ -379,9 +379,9 @@ public class XNode {
     }
 
     private String getBodyData(Node child) {
-        if (child.getNodeType() == Node.CDATA_SECTION_NODE
-                || child.getNodeType() == Node.TEXT_NODE) {
+        if (child.getNodeType() == Node.CDATA_SECTION_NODE || child.getNodeType() == Node.TEXT_NODE) {
             String data = ((CharacterData) child).getData();
+            // 将 data 中的占位符替换成 variables 中对应的属性值
             data = PropertyParser.parse(data, variables);
             return data;
         }

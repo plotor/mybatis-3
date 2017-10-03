@@ -43,12 +43,13 @@ public class XMLIncludeTransformer {
     }
 
     /**
-     * 将 <include/> 节点替换成 <sql/> 节点中定义的 SQL，同时解析 ‘${xxx}’ 占位符
+     * 将 <include/> 节点替换成 <sql/> 节点中定义的 SQL 语句片段，同时解析 ‘${xxx}’ 占位符
      *
      * @param source
      */
     public void applyIncludes(Node source) {
         Properties variablesContext = new Properties();
+        // 获取配置文件中 <properties/> 节点配置的变量
         Properties configurationVariables = configuration.getVariables();
         if (configurationVariables != null) {
             variablesContext.putAll(configurationVariables);
@@ -63,10 +64,11 @@ public class XMLIncludeTransformer {
      * @param variablesContext Current context for static variables with values
      */
     private void applyIncludes(Node source, final Properties variablesContext, boolean included) {
-        if (source.getNodeName().equals("include")) { // 如果是 <include /> 子节点
-            // 查找 refid 属性指向的 <sql/> 节点， 返回节点的 Node 对象（深拷贝）
+        /*注意：最开始进入本方法时，source 变量对应的节点并不是 <include/> 节点，而是 <select/> 这类节点*/
+        if (source.getNodeName().equals("include")) { // 处理 <include/> 节点
+            // 获取 refid 指向的 <sql/> 节点对象的深拷贝
             Node toInclude = this.findSqlFragment(this.getStringAttribute(source, "refid"), variablesContext);
-            // 获取 <include/> 下的 <property/> 属性，封装进 variablesContext 返回
+            // 获取 <include/> 下的 <property/> 属性，与 variablesContext 合并返回新的 Properties 对象
             Properties toIncludeContext = this.getVariablesContext(source, variablesContext);
             // 递归处理
             this.applyIncludes(toInclude, toIncludeContext, true);
@@ -82,29 +84,33 @@ public class XMLIncludeTransformer {
             // 删除 <sql/> 节点
             toInclude.getParentNode().removeChild(toInclude);
         } else if (source.getNodeType() == Node.ELEMENT_NODE) {
-            // 遍历处理当前 SQL 语句的子节点
+            // 遍历处理当前 SQL 语句节点的子节点
             NodeList children = source.getChildNodes();
             for (int i = 0; i < children.getLength(); i++) {
+                // 递归调用
                 this.applyIncludes(children.item(i), variablesContext, included);
             }
         } else if (included && source.getNodeType() == Node.TEXT_NODE && !variablesContext.isEmpty()) {
-            // 替换占位符为对应的变量
+            // 替换占位符为 variablesContext 中对应的配置值，这里替换的是引用 <sql/> 节点中定义的语句片段中对应的占位符
             source.setNodeValue(PropertyParser.parse(source.getNodeValue(), variablesContext));
         }
     }
 
     /**
+     * 获取指定 id 对应的 <sql/> 节点的深拷贝
      *
      * @param refid
      * @param variables
      * @return
      */
     private Node findSqlFragment(String refid, Properties variables) {
-        refid = PropertyParser.parse(refid, variables);
+        // 解析带有 ‘${}’ 占位符的字符串，将其中的占位符变量替换成 variables 中对应的属性值
+        refid = PropertyParser.parse(refid, variables); // 注意：这里替换并不是 <sql/> 语句片段中的占位符
         refid = builderAssistant.applyCurrentNamespace(refid, true);
         try {
+            // 从 Configuration.sqlFragments 中获取 id 对应的 <sql/> 节点
             XNode nodeToInclude = configuration.getSqlFragments().get(refid);
-            return nodeToInclude.getNode().cloneNode(true);
+            return nodeToInclude.getNode().cloneNode(true); // 深拷贝
         } catch (IllegalArgumentException e) {
             throw new IncompleteElementException("Could not find SQL statement to include with refid '" + refid + "'", e);
         }
@@ -123,13 +129,13 @@ public class XMLIncludeTransformer {
      */
     private Properties getVariablesContext(Node node, Properties inheritedVariablesContext) {
         Map<String, String> declaredProperties = null;
-        NodeList children = node.getChildNodes();
+        NodeList children = node.getChildNodes(); // 获取 <include/> 下所有的子节点
         for (int i = 0; i < children.getLength(); i++) {
             Node n = children.item(i);
             if (n.getNodeType() == Node.ELEMENT_NODE) {
-                String name = getStringAttribute(n, "name");
-                // Replace variables inside
-                String value = PropertyParser.parse(getStringAttribute(n, "value"), inheritedVariablesContext);
+                String name = this.getStringAttribute(n, "name"); // 获取 name
+                // 获取 value，并将其中的 ‘${}’ 占位符采用 inheritedVariablesContext 中的配置项进行替换
+                String value = PropertyParser.parse(this.getStringAttribute(n, "value"), inheritedVariablesContext);
                 if (declaredProperties == null) {
                     declaredProperties = new HashMap<String, String>();
                 }
@@ -141,6 +147,7 @@ public class XMLIncludeTransformer {
         if (declaredProperties == null) {
             return inheritedVariablesContext;
         } else {
+            // 将获取到的配置项与已有的配置项全部记录到新的 Properties 对象中返回
             Properties newProperties = new Properties();
             newProperties.putAll(inheritedVariablesContext);
             newProperties.putAll(declaredProperties);

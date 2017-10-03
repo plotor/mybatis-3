@@ -123,7 +123,9 @@ public class Configuration {
     protected AutoMappingBehavior autoMappingBehavior = AutoMappingBehavior.PARTIAL;
     protected AutoMappingUnknownColumnBehavior autoMappingUnknownColumnBehavior = AutoMappingUnknownColumnBehavior.NONE;
 
+    /** 记录配置文件中配置的 properties 配置项 */
     protected Properties variables = new Properties();
+
     protected ReflectorFactory reflectorFactory = new DefaultReflectorFactory();
 
     /** 对象工厂 */
@@ -158,15 +160,17 @@ public class Configuration {
     protected final Map<String, KeyGenerator> keyGenerators = new StrictMap<KeyGenerator>("Key Generators collection");
 
     protected final Set<String> loadedResources = new HashSet<String>();
+
+    /** 记录 <sql/> 节点对应的 SQL 片段 */
     protected final Map<String, XNode> sqlFragments = new StrictMap<XNode>("XML fragments parsed from previous mappers");
 
-    /** 记录解析出现异常的 <select/>、<insert/>、<update/>、<delete/>*/
+    /** 记录解析出现异常的 <select/>、<insert/>、<update/>、<delete/> */
     protected final Collection<XMLStatementBuilder> incompleteStatements = new LinkedList<XMLStatementBuilder>();
 
-    /** 记录解析出现异常的 <cache-ref/>*/
+    /** 记录解析出现异常的 <cache-ref/> */
     protected final Collection<CacheRefResolver> incompleteCacheRefs = new LinkedList<CacheRefResolver>();
 
-    /** 记录解析出现异常的 <resultMap/>*/
+    /** 记录解析出现异常的 <resultMap/> */
     protected final Collection<ResultMapResolver> incompleteResultMaps = new LinkedList<ResultMapResolver>();
 
     protected final Collection<MethodResolver> incompleteMethods = new LinkedList<MethodResolver>();
