@@ -86,6 +86,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     private final ReflectorFactory reflectorFactory;
 
     // nested resultmaps
+    // 记录处理嵌套映射过程中生成的所有结果对象
     private final Map<CacheKey, Object> nestedResultObjects = new HashMap<CacheKey, Object>();
     private final Map<String, Object> ancestorObjects = new HashMap<String, Object>();
     private Object previousRowValue;
@@ -295,6 +296,11 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         return null;
     }
 
+    /**
+     * 关闭结果集
+     *
+     * @param rs
+     */
     private void closeResultSet(ResultSet rs) {
         try {
             if (rs != null) {
@@ -384,6 +390,9 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         }
     }
 
+    /**
+     * 检测是否允许在嵌套的情况下使用 RowBounds
+     */
     private void ensureNoRowBounds() {
         if (configuration.isSafeRowBoundsEnabled() && rowBounds != null
                 && (rowBounds.getLimit() < RowBounds.NO_ROW_LIMIT || rowBounds.getOffset() > RowBounds.NO_ROW_OFFSET)) {
@@ -392,6 +401,9 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         }
     }
 
+    /**
+     * 检测使用允许在嵌套的情况下使用 ResultHandler
+     */
     protected void checkResultHandler() {
         if (resultHandler != null && configuration.isSafeResultHandlerEnabled() && !mappedStatement.isResultOrdered()) {
             throw new ExecutorException("Mapped Statements with nested result mappings cannot be safely used with a custom ResultHandler. "
@@ -669,7 +681,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     }
 
     /**
-     * 自动映射未在 <resultMap/> 中指明的列
+     * 自动映射未在 <resultMap/> 标签中指明的列
      *
      * @param rsw
      * @param resultMap
@@ -703,7 +715,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     // MULTIPLE RESULT SETS
 
     private void linkToParents(ResultSet rs, ResultMapping parentMapping, Object rowValue) throws SQLException {
-        CacheKey parentKey = createKeyForMultipleResults(rs, parentMapping, parentMapping.getColumn(), parentMapping.getForeignColumn());
+        CacheKey parentKey = this.createKeyForMultipleResults(rs, parentMapping, parentMapping.getColumn(), parentMapping.getForeignColumn());
         List<PendingRelation> parents = pendingRelations.get(parentKey);
         if (parents != null) {
             for (PendingRelation parent : parents) {
@@ -1062,69 +1074,100 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         return prefix + columnName;
     }
 
-    //
-    // HANDLE NESTED RESULT MAPS
-    //
-
-    private void handleRowValuesForNestedResultMap(ResultSetWrapper rsw, ResultMap resultMap, ResultHandler<?> resultHandler, RowBounds rowBounds, ResultMapping parentMapping) throws SQLException {
+    /**
+     * 处理嵌套映射
+     *
+     * @param rsw
+     * @param resultMap
+     * @param resultHandler
+     * @param rowBounds
+     * @param parentMapping
+     * @throws SQLException
+     */
+    private void handleRowValuesForNestedResultMap(
+            ResultSetWrapper rsw, ResultMap resultMap, ResultHandler<?> resultHandler, RowBounds rowBounds, ResultMapping parentMapping)
+            throws SQLException {
         final DefaultResultContext<Object> resultContext = new DefaultResultContext<Object>();
-        skipRows(rsw.getResultSet(), rowBounds);
+        // 定位到指定记录行
+        this.skipRows(rsw.getResultSet(), rowBounds);
         Object rowValue = previousRowValue;
-        while (shouldProcessMoreRows(resultContext, rowBounds) && rsw.getResultSet().next()) {
-            final ResultMap discriminatedResultMap = resolveDiscriminatedResultMap(rsw.getResultSet(), resultMap, null);
-            final CacheKey rowKey = createRowKey(discriminatedResultMap, rsw, null);
+        // 检查是否可以继续处理后续的行，如果可以则一直循环
+        while (this.shouldProcessMoreRows(resultContext, rowBounds) && rsw.getResultSet().next()) {
+            // 解析 <discriminator/> 引用链以确定具体使用的 ResultMap
+            final ResultMap discriminatedResultMap = this.resolveDiscriminatedResultMap(rsw.getResultSet(), resultMap, null);
+            final CacheKey rowKey = this.createRowKey(discriminatedResultMap, rsw, null);
             Object partialObject = nestedResultObjects.get(rowKey);
-            // issue #577 && #542
+            // 检测是否配置 resultOrdered=true
             if (mappedStatement.isResultOrdered()) {
                 if (partialObject == null && rowValue != null) {
                     nestedResultObjects.clear();
-                    storeObject(resultHandler, resultContext, rowValue, parentMapping, rsw.getResultSet());
+                    this.storeObject(resultHandler, resultContext, rowValue, parentMapping, rsw.getResultSet());
                 }
-                rowValue = getRowValue(rsw, discriminatedResultMap, rowKey, null, partialObject);
+                rowValue = this.getRowValue(rsw, discriminatedResultMap, rowKey, null, partialObject);
             } else {
-                rowValue = getRowValue(rsw, discriminatedResultMap, rowKey, null, partialObject);
+                rowValue = this.getRowValue(rsw, discriminatedResultMap, rowKey, null, partialObject);
                 if (partialObject == null) {
-                    storeObject(resultHandler, resultContext, rowValue, parentMapping, rsw.getResultSet());
+                    this.storeObject(resultHandler, resultContext, rowValue, parentMapping, rsw.getResultSet());
                 }
             }
         }
-        if (rowValue != null && mappedStatement.isResultOrdered() && shouldProcessMoreRows(resultContext, rowBounds)) {
-            storeObject(resultHandler, resultContext, rowValue, parentMapping, rsw.getResultSet());
+        if (rowValue != null && mappedStatement.isResultOrdered() && this.shouldProcessMoreRows(resultContext, rowBounds)) {
+            this.storeObject(resultHandler, resultContext, rowValue, parentMapping, rsw.getResultSet());
             previousRowValue = null;
         } else if (rowValue != null) {
             previousRowValue = rowValue;
         }
     }
 
-    //
-    // GET VALUE FROM ROW FOR NESTED RESULT MAP
-    //
-
-    private Object getRowValue(ResultSetWrapper rsw, ResultMap resultMap, CacheKey combinedKey, String columnPrefix, Object partialObject) throws SQLException {
+    /**
+     * 映射记录行
+     *
+     * @param rsw
+     * @param resultMap
+     * @param combinedKey
+     * @param columnPrefix
+     * @param partialObject
+     * @return
+     * @throws SQLException
+     */
+    private Object getRowValue(
+            ResultSetWrapper rsw, ResultMap resultMap, CacheKey combinedKey, String columnPrefix, Object partialObject)
+            throws SQLException {
         final String resultMapId = resultMap.getId();
         Object rowValue = partialObject;
+        // 判断外层结果对象是否存在
         if (rowValue != null) {
+            // 创建 rowValue 的 MetaObject 对象
             final MetaObject metaObject = configuration.newMetaObject(rowValue);
-            putAncestor(rowValue, resultMapId, columnPrefix);
+            this.putAncestor(rowValue, resultMapId, columnPrefix);
             applyNestedResultMappings(rsw, resultMap, metaObject, columnPrefix, combinedKey, false);
             ancestorObjects.remove(resultMapId);
         } else {
             final ResultLoaderMap lazyLoader = new ResultLoaderMap();
-            rowValue = createResultObject(rsw, resultMap, lazyLoader, columnPrefix);
-            if (rowValue != null && !hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
+            // 创建外层结果对象
+            rowValue = this.createResultObject(rsw, resultMap, lazyLoader, columnPrefix);
+            // 如果外层结果对象存在，且不存在对应的类型处理器
+            if (rowValue != null && !this.hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
+                // 创建 rowValue 的 MetaObject 对象
                 final MetaObject metaObject = configuration.newMetaObject(rowValue);
-                boolean foundValues = this.useConstructorMappings;
-                if (shouldApplyAutomaticMappings(resultMap, true)) {
-                    foundValues = applyAutomaticMappings(rsw, resultMap, metaObject, columnPrefix) || foundValues;
+                boolean foundValues = this.useConstructorMappings; // 标记是否成功映射任何一个属性
+                // 如果需要应用自动映射
+                if (this.shouldApplyAutomaticMappings(resultMap, true)) {
+                    // 自动映射未在 <resultMap/> 标签中指明的列
+                    foundValues = this.applyAutomaticMappings(rsw, resultMap, metaObject, columnPrefix) || foundValues;
                 }
-                foundValues = applyPropertyMappings(rsw, resultMap, metaObject, lazyLoader, columnPrefix) || foundValues;
-                putAncestor(rowValue, resultMapId, columnPrefix);
-                foundValues = applyNestedResultMappings(rsw, resultMap, metaObject, columnPrefix, combinedKey, true) || foundValues;
+                // 映射在 <resultMap/> 标签中明确指明的列
+                foundValues = this.applyPropertyMappings(rsw, resultMap, metaObject, lazyLoader, columnPrefix) || foundValues;
+                // 记录外层结果对象到 ancestorObjects 属性中
+                this.putAncestor(rowValue, resultMapId, columnPrefix);
+                // 处理嵌套映射
+                foundValues = this.applyNestedResultMappings(rsw, resultMap, metaObject, columnPrefix, combinedKey, true) || foundValues;
                 ancestorObjects.remove(resultMapId);
                 foundValues = lazyLoader.size() > 0 || foundValues;
                 rowValue = (foundValues || configuration.isReturnInstanceForEmptyRow()) ? rowValue : null;
             }
             if (combinedKey != CacheKey.NULL_CACHE_KEY) {
+                // 记录外层结果对象到 nestedResultObjects 中，以备后用
                 nestedResultObjects.put(combinedKey, rowValue);
             }
         }
@@ -1135,12 +1178,20 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         ancestorObjects.put(resultMapId, resultObject);
     }
 
-    //
-    // NESTED RESULT MAP (JOIN MAPPING)
-    //
-
+    /**
+     * 处理嵌套映射
+     *
+     * @param rsw
+     * @param resultMap
+     * @param metaObject
+     * @param parentPrefix
+     * @param parentRowKey
+     * @param newObject
+     * @return
+     */
     private boolean applyNestedResultMappings(ResultSetWrapper rsw, ResultMap resultMap, MetaObject metaObject, String parentPrefix, CacheKey parentRowKey, boolean newObject) {
         boolean foundValues = false;
+        // 遍历处理带有 property 属性的映射关系
         for (ResultMapping resultMapping : resultMap.getPropertyResultMappings()) {
             final String nestedResultMapId = resultMapping.getNestedResultMapId();
             if (nestedResultMapId != null && resultMapping.getResultSet() == null) {
