@@ -30,7 +30,7 @@ import java.util.HashMap;
  * Static SqlSource. It is faster than {@link DynamicSqlSource} because mappings are
  * calculated during startup.
  *
- * 处理静态SQL
+ * 处理静态 SQL 定义
  *
  * @author Eduardo Macarron
  * @since 3.2.0

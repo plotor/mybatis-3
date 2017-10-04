@@ -1283,13 +1283,114 @@ public boolean apply(DynamicContext context) {
 }
 ```
 
-整个过程阅读起来没什么压力，但就是不知道具体在做什么事情，这里我们以官方示例来走一遍上述方法的执行过程，对应的官方示例如下（为了排版美观和便于陈述，稍微做了一些修改）：
+整个过程阅读起来没什么压力，但就是不知道具体在做什么事情，这里我们以批量查询用户表 t\_user 中多个用户为例来走一遍上述方法的执行过程，对应的动态查询语句定义如下：
 
 ```xml
-<select id="selectPostIn" resultType="domain.blog.Post">
-  SELECT * FROM post WHERE id IN
-  <foreach item="itm" index="idx" collection="list" open="(" separator="," close=")">
-        #{item}
-  </foreach>
+<select id="selectByIds" parameterType="java.util.List" resultMap="BaseResultMap">
+    SELECT * FROM t_user WHERE id IN
+    <foreach collection="ids" index="idx" item="itm" open="(" close=")" separator=",">
+        #{itm}
+    </foreach>
 </select>
 ```
+
+假设我们现在希望查询 id 为 1 和 2 的两个用户，执行流程可以表述如下：
+
+> 1. 解析获取到集合表达式对应的集合迭代器对象，这里对应的是一个 List 类型集合的迭代器，其中包含了 1 和 2 两个元素
+> 2. 调用 applyOpen 方法添加 OPEN 标识符，这里即 “(”
+> 3. 进入 for 循环，因为是第一次遍历，所以会创建 prefix 参数为空字符串的 PrefixedContext 对象
+> 4. 这里集合类型中封装的是 Long 类型（不是 Map 类型），
+>> - 调用 applyIndex 方法，记录键值对 (idx, 0) 和 (\_\_frch\_idx\_0, 0) 到 DynamicContext#bindings 中
+>> - 调用 applyItem 方法，记录键值对 (itm, 1) 和 (\_\_frch\_itm\_0, 1) 到 DynamicContext#bindings 中
+> 5. 应用子节点的 apply 方法，这里会触发 FilteredDynamicContext#appendSql 方法解析占位符 ‘#{itm}’ 为 ‘#{\_\_frch\_itm\_0}’，此时生成的 SQL 语句片段已然成为 `SELECT * FROM t_user WHERE id IN ( #{__frch_itm_0}`
+> 6. 进入 for 循环的第二次遍历，此时 first 变量已经置为 false，且这里设置了分隔符，所以执行 `new PrefixedContext(context, separator)` 来创建上下文对象
+> 7. 这里集合类型同样是 Long 类型（不是 Map 类型），
+>> - 调用 applyIndex 方法，记录键值对 (idx, 1) 和 (\_\_frch\_idx\_1, 1) 到 DynamicContext#bindings 中
+>> - 调用 applyItem 方法，记录键值对 (itm, 2) 和 (\_\_frch\_itm\_1, 2) 到 DynamicContext#bindings 中
+> 8. 应用子节点的 apply 方法，这里会触发 FilteredDynamicContext#appendSql 方法解析占位符 ‘#{itm}’ 为 ‘#{\_\_frch\_itm\_1}’，此时生成的 SQL 语句片段已然成为 `SELECT * FROM t_user WHERE id IN ( #{__frch_itm_0}, #{__frch_itm_1}`
+> 9. for 循环结束，调用 applyClose 追加 CLOSE 标识符，这里即 “)”
+
+最后解析得到的 SQL 为 `SELECT * FROM t_user WHERE id IN ( #{__frch_itm_0} , #{__frch_itm_1} )`，希望通过这样一个过程来辅助您的理解，如果还是云里雾里，可以 debug 一下整个过程。
+
+到这里我们就对 SqlNode 接口及其实现类做了一个完整的介绍，下面来看一下 SqlSource 的实现，前面介绍了 SqlSource 用于表示映射文件或注解定义的 SQL 语句标签中的 SQL 语句，但是这里的 SQL 语句并不是可执行的，其中可能包含一些动态占位符，SqlSource 接口的定义如下：
+
+```java
+public interface SqlSource {
+
+    /**
+     * 基于传入的参数返回可执行的 SQL
+     *
+     * @param parameterObject 用户传递的实参
+     * @return
+     */
+    BoundSql getBoundSql(Object parameterObject);
+
+}
+```
+
+// TODO 这里添加一张 SqlSource 的 UML 图
+
+上述类继承关系图描述了 SqlSource 及其实现类，其中 RawSqlSource 用于封装静态定义的 SQL 语句，DynamicSqlSource 用于封装动态定义的 SQL 语句，ProviderSqlSource 则用于封装注解形式定义的 SQL 语句，不管是动态还是静态的 SQL 语句，经过处理之后都会封装成为 StaticSqlSource 对象，其中包含的 SQL 语句是可以直接执行的。考虑到 MyBatis 目前的使用方式还是配置优先，所以不打算对 ProviderSqlSource 进行展开说明，在开始探究剩余 3 个实现类之前，需要先对这几个类共享的一个核心组件 SqlSourceBuilder 进行分析，SqlSourceBuilder 继承自 BaseBuilder，主要用于解析前面经过 SqlNode 的 apply 方法处理的 SQL 语句中的占位符属性，同时将占位符替换成 “？” 字符串。
+
+SqlSourceBuilder 中仅定义了一个 parse 方法，实现了对占位符 “#{}” 中属性的解析，并将占位符替换成 “？”，最终将解析得到的 SQL 语句和相关参数封装成 StaticSqlSource 对象返回，该方法的实现如下：
+
+```java
+/**
+ * @param originalSql 经过 SqlNode#apply(DynamicContext) 方法处理之后的 SQL 语句
+ * @param parameterType 用户传递的实参类型
+ * @param additionalParameters 记录形参与实参之间的对应关系，即 SqlNode#apply(DynamicContext) 方法处理之后记录在 DynamicContext#bindings 中的键值对
+ */
+public SqlSource parse(String originalSql, Class<?> parameterType, Map<String, Object> additionalParameters) {
+    // 创建 ParameterMappingTokenHandler 对象，用于解析 ‘#{}’ 占位符
+    ParameterMappingTokenHandler handler = new ParameterMappingTokenHandler(configuration, parameterType, additionalParameters);
+    GenericTokenParser parser = new GenericTokenParser("#{", "}", handler);
+    String sql = parser.parse(originalSql); // SELECT * FROM t_user WHERE id IN ( ? , ? )
+    // 构造 StaticSqlSource 对象，其中封装了被替换成 ‘？’ 的 SQL 语句以及参数对应的 ParameterMapping 集合
+    return new StaticSqlSource(configuration, sql, handler.getParameterMappings());
+}
+```
+
+该方法的实现还是我们熟悉的套路，获取指定占位符中的属性，然后交由对应的 TokenHandler 进行处理，SqlSourceBuilder 定义了内部类 ParameterMappingTokenHandler，该内部类是一个具体的 TokenHandler 实现，同时还继承了 BaseBuilder 抽象类，该实现类的 handleToken 方法定义如下;
+
+```java
+public String handleToken(String content) { // content 为占位符中定义的属性，例如 __frch_itm_0
+    // 调用 buildParameterMapping 方法构造当前 content 对应的 ParameterMapping 对象，并记录到 parameterMappings 集合中
+    // ParameterMapping{property='__frch_itm_0', mode=IN, javaType=class java.lang.Long, jdbcType=null, numericScale=null, resultMapId='null', jdbcTypeName='null', expression='null'}
+    parameterMappings.add(this.buildParameterMapping(content));
+    return "?"; // 全部返回 “？” 字符串
+}
+```
+
+该方法会调用 buildParameterMapping 方法构造传递的 content （占位符中的属性） 对应的 ParameterMapping 对象，并记录到 parameterMappings 集合中，同时返回 “?” 占位符将原始 SQL 中对应的占位符全部替换成 “?”，buildParameterMapping 的实现不再展开。这里我们以前面 SqlNode 的 apply 解析得到的 `SELECT * FROM t_user WHERE id IN ( #{__frch_itm_0} , #{__frch_itm_1} )` 为例，经过 SqlSourceBuilder 的 parse 方法处理之后，该 SQL 语句会被解析成为 `SELECT * FROM t_user WHERE id IN ( ? , ? )` 的形式封装到 StaticSqlSource 对象中，对应 parameterMappings 参数内容如下：
+
+```
+ParameterMapping{property='__frch_itm_0', mode=IN, javaType=class java.lang.Long, jdbcType=null, numericScale=null, resultMapId='null', jdbcTypeName='null', expression='null'}
+ParameterMapping{property='__frch_itm_1', mode=IN, javaType=class java.lang.Long, jdbcType=null, numericScale=null, resultMapId='null', jdbcTypeName='null', expression='null'}
+```
+
+了解了 SqlSourceBuilder 的作用，我们回头来看 DynamicSqlSource 的实现会比较容易，DynamicSqlSource 实现了 SqlSource 接口中声明的方法 getBoundSql，如下：
+
+```java
+public BoundSql getBoundSql(Object parameterObject) {
+    // 构造上下文对象
+    DynamicContext context = new DynamicContext(configuration, parameterObject);
+
+    // 应用 apply 方法（树型结构，会遍历应用树中各个节点的 apply 方法），各司其职追加 SQL 片段到 context 中
+    rootSqlNode.apply(context);
+
+    // 创建 SqlSourceBuilder 对象，解析占位符属性，并将 SQL 语句中的 ‘#{}’ 占位符替换成 ‘？’
+    SqlSourceBuilder sqlSourceParser = new SqlSourceBuilder(configuration);
+    Class<?> parameterType = parameterObject == null ? Object.class : parameterObject.getClass(); // 解析用户实参类型
+    SqlSource sqlSource = sqlSourceParser.parse(context.getSql(), parameterType, context.getBindings()); // StaticSqlSource 封装的解析结果
+
+    // 基于 SqlSourceBuilder 解析结果和实参创建 BoundSql 对象
+    BoundSql boundSql = sqlSource.getBoundSql(parameterObject);
+    // 将 DynamicContext.bindings 中的参数信息复制到 BoundSql 对象的 additionalParameters 属性中
+    for (Map.Entry<String, Object> entry : context.getBindings().entrySet()) {
+        boundSql.setAdditionalParameter(entry.getKey(), entry.getValue());
+    }
+    return boundSql;
+}
+```
+
+DynamicSqlSource 的 getBoundSql 最终会将解析得到的 SQL 语句，以及相应的参数全部封装到 BoundSql 对象中返回，具体过程可以参考上述代码注释。相对于 DynamicSqlSource 来说，RawSqlSource 的 getBoundSql 实现就要简单了许多，它的实现直接委托给了 StaticSqlSource 处理，本质上就是基于用户传递的参数来构造 BoundSql 对象。对应 SQL 的解析则放置在构造方法中，在构造方法中会调用 getSql 方法获取对应的 SQL 定义，同样基于 SqlSourceBuilder 进行解析对原始 SQL 语句进行解析，封装成 StaticSqlSource 对象记录到属性中，在实际运行时只要填充参数即可。这也是很容易理解的，毕竟对于静态 SQL 来说，它的形式在整个应用程序运行过程中是不变的，所以在系统初始化时完成解析操作，后续可以直接拿来使用，但是对于动态 SQL 来说，SQL 语句的具体形式取决于用户传递的参数，需要在运行时实时解析和执行。

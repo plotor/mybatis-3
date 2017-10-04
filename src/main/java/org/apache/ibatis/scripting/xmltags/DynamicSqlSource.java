@@ -24,7 +24,7 @@ import org.apache.ibatis.session.Configuration;
 import java.util.Map;
 
 /**
- * 处理动态SQL
+ * 处理动态 SQL 定义
  *
  * @author Clinton Begin
  */
@@ -40,18 +40,20 @@ public class DynamicSqlSource implements SqlSource {
 
     @Override
     public BoundSql getBoundSql(Object parameterObject) {
+        // 构造上下文对象
         DynamicContext context = new DynamicContext(configuration, parameterObject);
 
-        // 调用整个树型结构中全部的 apply 方法，各司其职追加 SQL 片段到 context 中
+        // 应用 apply 方法（树型结构，会遍历应用树中各个节点的 apply 方法），各司其职追加 SQL 片段到 context 中
         rootSqlNode.apply(context);
 
-        // 创建 SqlSourceBuilder 对象，解析参数属性，并将 SQL 语句中的 ‘#{}’ 占位符替换成 ‘？’
+        // 创建 SqlSourceBuilder 对象，解析占位符属性，并将 SQL 语句中的 ‘#{}’ 占位符替换成 ‘？’
         SqlSourceBuilder sqlSourceParser = new SqlSourceBuilder(configuration);
-        Class<?> parameterType = parameterObject == null ? Object.class : parameterObject.getClass();
-        SqlSource sqlSource = sqlSourceParser.parse(context.getSql(), parameterType, context.getBindings());
+        Class<?> parameterType = parameterObject == null ? Object.class : parameterObject.getClass(); // 解析用户实参类型
+        SqlSource sqlSource = sqlSourceParser.parse(context.getSql(), parameterType, context.getBindings()); // StaticSqlSource 封装的解析结果
 
-        // 创建 BoundSql，并将 DynamicContext.bindings 中的参数信息复制到 additionalParameters 集合中保存
+        // 基于 SqlSourceBuilder 解析结果和实参创建 BoundSql 对象
         BoundSql boundSql = sqlSource.getBoundSql(parameterObject);
+        // 将 DynamicContext.bindings 中的参数信息复制到 BoundSql 对象的 additionalParameters 属性中
         for (Map.Entry<String, Object> entry : context.getBindings().entrySet()) {
             boundSql.setAdditionalParameter(entry.getKey(), entry.getValue());
         }

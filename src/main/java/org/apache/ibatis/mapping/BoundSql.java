@@ -36,13 +36,13 @@ import java.util.Map;
  */
 public class BoundSql {
 
-    /** 记录 SQL 语句，其中可能包含 ‘？’ */
-    private final String sql;
+    /** 记录 SQL 语句，可能包含 ‘？’ */
+    private final String sql; // SELECT * FROM t_user WHERE id IN ( ? , ? )
 
     /** SQL 中的参数属性集合 */
     private final List<ParameterMapping> parameterMappings;
 
-    /** 执行SQL时传入的实参 */
+    /** 执行 SQL 时传入的实参 */
     private final Object parameterObject;
 
     private final Map<String, Object> additionalParameters;

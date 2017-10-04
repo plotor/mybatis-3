@@ -25,13 +25,12 @@ import java.util.List;
 
 /**
  * 封装处理后的 {@link org.apache.ibatis.scripting.defaults.RawSqlSource} 和 {@link org.apache.ibatis.scripting.xmltags.DynamicSqlSource}
- * 这里的 SQL 是可以直接执行的
  *
  * @author Clinton Begin
  */
 public class StaticSqlSource implements SqlSource {
 
-    private final String sql;
+    private final String sql; // 这里的 SQL 是可以直接执行的
     private final List<ParameterMapping> parameterMappings;
     private final Configuration configuration;
 

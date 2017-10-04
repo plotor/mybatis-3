@@ -22,6 +22,7 @@ import org.apache.ibatis.parsing.GenericTokenParser;
 import org.apache.ibatis.parsing.TokenHandler;
 import org.apache.ibatis.reflection.MetaClass;
 import org.apache.ibatis.reflection.MetaObject;
+import org.apache.ibatis.scripting.xmltags.DynamicContext;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.type.JdbcType;
 
@@ -44,16 +45,16 @@ public class SqlSourceBuilder extends BaseBuilder {
     }
 
     /**
-     * @param originalSql 经过 {@link SqlSourceBuilder#parse(String, Class, Map)} 方法处理之后的 SQL 语句
+     * @param originalSql 经过 {@link org.apache.ibatis.scripting.xmltags.SqlNode#apply(DynamicContext)} 方法处理之后的 SQL 语句
      * @param parameterType 用户传递的实参类型
-     * @param additionalParameters 记录形参与实参之间的对应关系
+     * @param additionalParameters 记录形参与实参之间的对应关系，即 {@link org.apache.ibatis.scripting.xmltags.SqlNode#apply(DynamicContext)} 方法处理之后记录在 {@link DynamicContext#bindings} 中的键值对
      * @return
      */
     public SqlSource parse(String originalSql, Class<?> parameterType, Map<String, Object> additionalParameters) {
         // 创建 ParameterMappingTokenHandler 对象，用于解析 ‘#{}’ 占位符
         ParameterMappingTokenHandler handler = new ParameterMappingTokenHandler(configuration, parameterType, additionalParameters);
         GenericTokenParser parser = new GenericTokenParser("#{", "}", handler);
-        String sql = parser.parse(originalSql);
+        String sql = parser.parse(originalSql); // SELECT * FROM t_user WHERE id IN ( ? , ? )
         // 构造 StaticSqlSource 对象，其中封装了被替换成 ‘？’ 的 SQL 语句以及参数对应的 ParameterMapping 集合
         return new StaticSqlSource(configuration, sql, handler.getParameterMappings());
     }
@@ -80,14 +81,23 @@ public class SqlSourceBuilder extends BaseBuilder {
         }
 
         @Override
-        public String handleToken(String content) {
-            parameterMappings.add(buildParameterMapping(content));
-            return "?";
+        public String handleToken(String content) { // content 为占位符中定义的属性，例如 __frch_itm_0
+            // 调用 buildParameterMapping 方法构造当前 content 对应的 ParameterMapping 对象，并记录到 parameterMappings 集合中
+            // ParameterMapping{property='__frch_itm_0', mode=IN, javaType=class java.lang.Long, jdbcType=null, numericScale=null, resultMapId='null', jdbcTypeName='null', expression='null'}
+            parameterMappings.add(this.buildParameterMapping(content));
+            return "?"; // 全部返回 “？” 字符串
         }
 
+        /**
+         *
+         * @param content
+         * @return
+         */
         private ParameterMapping buildParameterMapping(String content) {
-            Map<String, String> propertiesMap = parseParameterMapping(content);
+            // "property" -> "__frch_itm_0"
+            Map<String, String> propertiesMap = this.parseParameterMapping(content);
             String property = propertiesMap.get("property");
+            // 确定参数的 JAVA 类型
             Class<?> propertyType;
             if (metaParameters.hasGetter(property)) { // issue #448 get type from additional params
                 propertyType = metaParameters.getGetterType(property);
@@ -105,12 +115,13 @@ public class SqlSourceBuilder extends BaseBuilder {
                     propertyType = Object.class;
                 }
             }
+            // 创建 ParameterMapping 构造器对象，并设置相关属性
             ParameterMapping.Builder builder = new ParameterMapping.Builder(configuration, property, propertyType);
             Class<?> javaType = propertyType;
             String typeHandlerAlias = null;
             for (Map.Entry<String, String> entry : propertiesMap.entrySet()) {
-                String name = entry.getKey();
-                String value = entry.getValue();
+                String name = entry.getKey(); // property
+                String value = entry.getValue(); // __frch_itm_0
                 if ("javaType".equals(name)) {
                     javaType = resolveClass(value);
                     builder.javaType(javaType);
@@ -135,7 +146,7 @@ public class SqlSourceBuilder extends BaseBuilder {
                 }
             }
             if (typeHandlerAlias != null) {
-                builder.typeHandler(resolveTypeHandler(javaType, typeHandlerAlias));
+                builder.typeHandler(this.resolveTypeHandler(javaType, typeHandlerAlias));
             }
             return builder.build();
         }
