@@ -1394,3 +1394,48 @@ public BoundSql getBoundSql(Object parameterObject) {
 ```
 
 DynamicSqlSource 的 getBoundSql 最终会将解析得到的 SQL 语句，以及相应的参数全部封装到 BoundSql 对象中返回，具体过程可以参考上述代码注释。相对于 DynamicSqlSource 来说，RawSqlSource 的 getBoundSql 实现就要简单了许多，它的实现直接委托给了 StaticSqlSource 处理，本质上就是基于用户传递的参数来构造 BoundSql 对象。对应 SQL 的解析则放置在构造方法中，在构造方法中会调用 getSql 方法获取对应的 SQL 定义，同样基于 SqlSourceBuilder 进行解析对原始 SQL 语句进行解析，封装成 StaticSqlSource 对象记录到属性中，在实际运行时只要填充参数即可。这也是很容易理解的，毕竟对于静态 SQL 来说，它的形式在整个应用程序运行过程中是不变的，所以在系统初始化时完成解析操作，后续可以直接拿来使用，但是对于动态 SQL 来说，SQL 语句的具体形式取决于用户传递的参数，需要在运行时实时解析和执行。
+
+
+### 继续探究 org.apache.ibatis.builder.xml.XMLMapperBuilder#parse 方法
+
+饶了一大圈，看起来我们似乎完成映射文件的加载和解析工作，实际上我们确实完成了对映射文件的解析，但是光解析还是不够的，实际开发中我们对于这些定义在映射文件中的 SQL 的调用都是间接通过 Mapper 接口完成，所以还需要建立映射文件与具体 Mapper 接口之间的映射，这一过程位于 `XMLMapperBuilder#bindMapperForNamespace` 方法中：
+
+```java
+private void bindMapperForNamespace() {
+    // 获取当前映射文件的 namespace 配置
+    String namespace = builderAssistant.getCurrentNamespace();
+    if (namespace != null) {
+        Class<?> boundType = null;
+        try {
+            // 获取 namespace 的类型
+            boundType = Resources.classForName(namespace);
+        } catch (ClassNotFoundException e) {
+            //ignore, bound type is not required
+        }
+        if (boundType != null) {
+            // 当前 boundType 还未加载
+            if (!configuration.hasMapper(boundType)) {
+                // 记录当前已经加载的 namespace 标识到 Configuration.loadedResources 属性中
+                configuration.addLoadedResource("namespace:" + namespace);
+                // 注册对应的 Mapper 接口到 Configuration.mapperRegistry 属性中（对应 MapperRegistry）
+                configuration.addMapper(boundType);
+            }
+        }
+    }
+}
+```
+
+bindMapperForNamespace 首先会获取对应映射文件的命名空间，然后构造命名空间字面量对应的 Class 类型，并记录到 Configuration 对象相应的属性中，这里本质上调用的是 `MapperRegistry#addMapper` 方法执行注册逻辑，MapperRegistry 的实现之前已经分析过，这里就不再重复说明。
+
+```java
+// 处理解析失败的 <resultMap/> 节点
+this.parsePendingResultMaps();
+// 处理解析失败的 <cache-ref/> 节点
+this.parsePendingCacheRefs();
+// 处理解析失败的 SQL 语句节点
+this.parsePendingStatements();
+```
+
+在前面我们分析解析过程时，对于一些解析异常的标签会记录到 Configuration 对象的相应属性中，包括 SQL 语句标签、<resultMap/>，以及 <cache-ref/>，在映射文件解析过程的最后会再次尝试对这些标签进行解析（见上述代码），如果再度解析失败那就只能忽略了。这些再次触发解析的方法在实现上都是一个思路，就是从 Configuration 对象中获取解析失败的标签对象集合，然后遍历应用相应的解析方法，实现上都很简单，不再展开说明。
+
+// TODO 这里需要写一些结束语

@@ -177,8 +177,10 @@ public class XMLMapperBuilder extends BaseBuilder {
     }
 
     private void parsePendingResultMaps() {
+        // 获取记录的 ResultMapResolver 集合
         Collection<ResultMapResolver> incompleteResultMaps = configuration.getIncompleteResultMaps();
         synchronized (incompleteResultMaps) {
+            // 遍历应用各个 ResultMapResolver 对象的 resolve 方法
             Iterator<ResultMapResolver> iter = incompleteResultMaps.iterator();
             while (iter.hasNext()) {
                 try {
@@ -577,12 +579,12 @@ public class XMLMapperBuilder extends BaseBuilder {
      * 每个 namespace 绑定一个 Mapper 接口
      */
     private void bindMapperForNamespace() {
-        // 获取当前 namespace
+        // 获取当前映射文件的 namespace 配置
         String namespace = builderAssistant.getCurrentNamespace();
         if (namespace != null) {
             Class<?> boundType = null;
             try {
-                // 解析 namespace 的类型
+                // 获取 namespace 的类型
                 boundType = Resources.classForName(namespace);
             } catch (ClassNotFoundException e) {
                 //ignore, bound type is not required
@@ -590,10 +592,9 @@ public class XMLMapperBuilder extends BaseBuilder {
             if (boundType != null) {
                 // 当前 boundType 还未加载
                 if (!configuration.hasMapper(boundType)) {
-                    // Spring may not know the real resource name so we set a flag
-                    // to prevent loading again this resource from the mapper interface
-                    // look at MapperAnnotationBuilder#loadXmlResource
+                    // 记录当前已经加载的 namespace 标识到 Configuration.loadedResources 属性中
                     configuration.addLoadedResource("namespace:" + namespace);
+                    // 注册对应的 Mapper 接口到 Configuration.mapperRegistry 属性中（对应 MapperRegistry）
                     configuration.addMapper(boundType);
                 }
             }

@@ -159,6 +159,7 @@ public class Configuration {
     protected final Map<String, ParameterMap> parameterMaps = new StrictMap<ParameterMap>("Parameter Maps collection");
     protected final Map<String, KeyGenerator> keyGenerators = new StrictMap<KeyGenerator>("Key Generators collection");
 
+    /** 记录当前已经加载的映射文件对应的 namespace */
     protected final Set<String> loadedResources = new HashSet<String>();
 
     /** 记录 <sql/> 节点对应的 SQL 片段 */
