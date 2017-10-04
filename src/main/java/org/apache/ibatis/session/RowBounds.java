@@ -19,6 +19,9 @@ package org.apache.ibatis.session;
 /**
  * 对应查询的 LIMIT 语句
  *
+ * 需要注意的是这里对应的是逻辑分页，而不是物理分页，MyBatis 的做法是将所有的记录查询出来，
+ * 然后在内存中实现截断，从 offset 开始截取长 limit 的记录
+ *
  * @author Clinton Begin
  */
 public class RowBounds {

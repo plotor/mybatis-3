@@ -44,11 +44,23 @@ public class ResultSetWrapper {
 
     private final ResultSet resultSet;
     private final TypeHandlerRegistry typeHandlerRegistry;
+
+    /** 结果集中的列名集合 */
     private final List<String> columnNames = new ArrayList<String>();
+
+    /** 结果集中的列对应的 JAVA 类型集合 */
     private final List<String> classNames = new ArrayList<String>();
+
+    /** 结果集中的列对应的 JDBC 类型集合 */
     private final List<JdbcType> jdbcTypes = new ArrayList<JdbcType>();
+
+    /** 每列对应的 {@link TypeHandler} 集合 */
     private final Map<String, Map<Class<?>, TypeHandler<?>>> typeHandlerMap = new HashMap<String, Map<Class<?>, TypeHandler<?>>>();
+
+    /** 记录被映射的列名，key 为 <resultMap/> 配置对应的 ID， value 是对应 <resultMap/> 中映射的列名 */
     private final Map<String, List<String>> mappedColumnNamesMap = new HashMap<String, List<String>>();
+
+    /** 记录未被映射的列名，key 为 <resultMap/> 配置对应的 ID， value 是对应 <resultMap/> 中未映射的列名 */
     private final Map<String, List<String>> unMappedColumnNamesMap = new HashMap<String, List<String>>();
 
     public ResultSetWrapper(ResultSet rs, Configuration configuration) throws SQLException {
@@ -139,11 +151,18 @@ public class ResultSetWrapper {
         return null;
     }
 
+    /**
+     * 基于入参 resultMap 初始化配置和未配置映射的列名集合
+     *
+     * @param resultMap
+     * @param columnPrefix
+     * @throws SQLException
+     */
     private void loadMappedAndUnmappedColumnNames(ResultMap resultMap, String columnPrefix) throws SQLException {
         List<String> mappedColumnNames = new ArrayList<String>();
         List<String> unmappedColumnNames = new ArrayList<String>();
         final String upperColumnPrefix = columnPrefix == null ? null : columnPrefix.toUpperCase(Locale.ENGLISH);
-        final Set<String> mappedColumns = prependPrefixes(resultMap.getMappedColumns(), upperColumnPrefix);
+        final Set<String> mappedColumns = this.prependPrefixes(resultMap.getMappedColumns(), upperColumnPrefix);
         for (String columnName : columnNames) {
             final String upperColumnName = columnName.toUpperCase(Locale.ENGLISH);
             if (mappedColumns.contains(upperColumnName)) {
@@ -156,15 +175,31 @@ public class ResultSetWrapper {
         unMappedColumnNamesMap.put(getMapKey(resultMap, columnPrefix), unmappedColumnNames);
     }
 
+    /**
+     * 获取配置了映射的列名集合
+     *
+     * @param resultMap
+     * @param columnPrefix
+     * @return
+     * @throws SQLException
+     */
     public List<String> getMappedColumnNames(ResultMap resultMap, String columnPrefix) throws SQLException {
-        List<String> mappedColumnNames = mappedColumnNamesMap.get(getMapKey(resultMap, columnPrefix));
+        List<String> mappedColumnNames = mappedColumnNamesMap.get(this.getMapKey(resultMap, columnPrefix));
         if (mappedColumnNames == null) {
-            loadMappedAndUnmappedColumnNames(resultMap, columnPrefix);
+            this.loadMappedAndUnmappedColumnNames(resultMap, columnPrefix);
             mappedColumnNames = mappedColumnNamesMap.get(getMapKey(resultMap, columnPrefix));
         }
         return mappedColumnNames;
     }
 
+    /**
+     * 获取未配置了映射的列名集合
+     *
+     * @param resultMap
+     * @param columnPrefix
+     * @return
+     * @throws SQLException
+     */
     public List<String> getUnmappedColumnNames(ResultMap resultMap, String columnPrefix) throws SQLException {
         List<String> unMappedColumnNames = unMappedColumnNamesMap.get(getMapKey(resultMap, columnPrefix));
         if (unMappedColumnNames == null) {
