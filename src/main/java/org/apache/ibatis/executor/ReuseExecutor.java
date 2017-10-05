@@ -41,6 +41,7 @@ import java.util.Map;
  */
 public class ReuseExecutor extends BaseExecutor {
 
+    /** 缓存 Statement 对象，key 为对应的 SQL 语句 */
     private final Map<String, Statement> statementMap = new HashMap<String, Statement>();
 
     public ReuseExecutor(Configuration configuration, Transaction transaction) {
@@ -51,7 +52,8 @@ public class ReuseExecutor extends BaseExecutor {
     public int doUpdate(MappedStatement ms, Object parameter) throws SQLException {
         Configuration configuration = ms.getConfiguration();
         StatementHandler handler = configuration.newStatementHandler(this, ms, parameter, RowBounds.DEFAULT, null, null);
-        Statement stmt = prepareStatement(handler, ms.getStatementLog());
+        // 尝试从缓存中获取 Statement 对象，如果缓存不命中则创建新的并缓存
+        Statement stmt = this.prepareStatement(handler, ms.getStatementLog());
         return handler.update(stmt);
     }
 
@@ -60,7 +62,7 @@ public class ReuseExecutor extends BaseExecutor {
             throws SQLException {
         Configuration configuration = ms.getConfiguration();
         StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler, boundSql);
-        Statement stmt = prepareStatement(handler, ms.getStatementLog());
+        Statement stmt = this.prepareStatement(handler, ms.getStatementLog());
         return handler.<E>query(stmt, resultHandler);
     }
 
@@ -69,35 +71,53 @@ public class ReuseExecutor extends BaseExecutor {
             throws SQLException {
         Configuration configuration = ms.getConfiguration();
         StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, null, boundSql);
-        Statement stmt = prepareStatement(handler, ms.getStatementLog());
+        Statement stmt = this.prepareStatement(handler, ms.getStatementLog());
         return handler.<E>queryCursor(stmt);
     }
 
     @Override
     public List<BatchResult> doFlushStatements(boolean isRollback) throws SQLException {
         for (Statement stmt : statementMap.values()) {
-            closeStatement(stmt);
+            this.closeStatement(stmt);
         }
         statementMap.clear();
         return Collections.emptyList();
     }
 
+    /**
+     * 尝试从缓存中获取对应的 {@link Statement} 对象，获取不到则创建新的并缓存
+     *
+     * @param handler
+     * @param statementLog
+     * @return
+     * @throws SQLException
+     */
     private Statement prepareStatement(StatementHandler handler, Log statementLog) throws SQLException {
         Statement stmt;
         BoundSql boundSql = handler.getBoundSql();
         String sql = boundSql.getSql();
-        if (hasStatementFor(sql)) {
-            stmt = getStatement(sql);
-            applyTransactionTimeout(stmt);
+        if (this.hasStatementFor(sql)) {
+            // 获取缓存的 Statement 对象
+            stmt = this.getStatement(sql);
+            // 设置超时时间
+            this.applyTransactionTimeout(stmt);
         } else {
-            Connection connection = getConnection(statementLog);
+            Connection connection = this.getConnection(statementLog);
             stmt = handler.prepare(connection, transaction.getTimeout());
-            putStatement(sql, stmt);
+            // 缓存对应的 Statement 对象
+            this.putStatement(sql, stmt);
         }
+        // 绑定实参
         handler.parameterize(stmt);
         return stmt;
     }
 
+    /**
+     * 判断对应的 sql 语句是否有缓存的 {@link Statement}，且还没有被关闭
+     *
+     * @param sql
+     * @return
+     */
     private boolean hasStatementFor(String sql) {
         try {
             return statementMap.keySet().contains(sql) && !statementMap.get(sql).getConnection().isClosed();
