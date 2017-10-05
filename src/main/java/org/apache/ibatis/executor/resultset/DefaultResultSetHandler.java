@@ -230,17 +230,20 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     public <E> Cursor<E> handleCursorResultSets(Statement stmt) throws SQLException {
         ErrorContext.instance().activity("handling cursor results").object(mappedStatement.getId());
 
-        ResultSetWrapper rsw = getFirstResultSet(stmt);
+        // 获取第一个结果集，封装成 ResultSetWrapper 对象
+        ResultSetWrapper rsw = this.getFirstResultSet(stmt);
 
+        // 获取对应的 ResultMap 集合
         List<ResultMap> resultMaps = mappedStatement.getResultMaps();
 
         int resultMapCount = resultMaps.size();
-        validateResultMapsCount(rsw, resultMapCount);
+        this.validateResultMapsCount(rsw, resultMapCount);
         if (resultMapCount != 1) {
             throw new ExecutorException("Cursor results cannot be mapped to multiple resultMaps");
         }
 
         ResultMap resultMap = resultMaps.get(0);
+        // 构造 DefaultCursor 对象返回
         return new DefaultCursor<E>(this, resultMap, rsw, rowBounds);
     }
 
@@ -337,7 +340,8 @@ public class DefaultResultSetHandler implements ResultSetHandler {
      * @param parentMapping
      * @throws SQLException
      */
-    private void handleResultSet(ResultSetWrapper rsw, ResultMap resultMap, List<Object> multipleResults, ResultMapping parentMapping) throws SQLException {
+    private void handleResultSet(ResultSetWrapper rsw, ResultMap resultMap, List<Object> multipleResults, ResultMapping parentMapping)
+            throws SQLException {
         try {
             if (parentMapping != null) {
                 // 处理多结果集嵌套的情况
@@ -748,7 +752,8 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         }
     }
 
-    private CacheKey createKeyForMultipleResults(ResultSet rs, ResultMapping resultMapping, String names, String columns) throws SQLException {
+    private CacheKey createKeyForMultipleResults(ResultSet rs, ResultMapping resultMapping, String names, String columns)
+            throws SQLException {
         CacheKey cacheKey = new CacheKey();
         cacheKey.update(resultMapping);
         if (columns != null && names != null) {
@@ -787,6 +792,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
             for (ResultMapping propertyMapping : propertyMappings) {
                 // issue gcode #109 && issue #149
                 if (propertyMapping.getNestedQueryId() != null && propertyMapping.isLazy()) {
+                    // 存在嵌套查询，且配置为延迟加载，则创建对应的动态代理对象（默认使用 JavassistProxyFactory）
                     resultObject = configuration.getProxyFactory().createProxy(resultObject, lazyLoader, configuration, objectFactory, constructorArgTypes, constructorArgs);
                     break;
                 }
@@ -825,19 +831,32 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         throw new ExecutorException("Do not know how to create an instance of " + resultType);
     }
 
+    /**
+     * 基于 <resultMap/> 中配置的构造方法参数类型和值选择合适的构造方法创建结果对象
+     *
+     * @param rsw
+     * @param resultType
+     * @param constructorMappings
+     * @param constructorArgTypes
+     * @param constructorArgs
+     * @param columnPrefix
+     * @return
+     */
     Object createParameterizedResultObject(ResultSetWrapper rsw, Class<?> resultType, List<ResultMapping> constructorMappings,
                                            List<Class<?>> constructorArgTypes, List<Object> constructorArgs, String columnPrefix) {
         boolean foundValues = false;
+        //
         for (ResultMapping constructorMapping : constructorMappings) {
             final Class<?> parameterType = constructorMapping.getJavaType();
             final String column = constructorMapping.getColumn();
             final Object value;
             try {
                 if (constructorMapping.getNestedQueryId() != null) {
-                    value = getNestedQueryConstructorValue(rsw.getResultSet(), constructorMapping, columnPrefix);
+                    // 如果构造参数值是嵌套查询，执行嵌套查询返回对应的参数值
+                    value = this.getNestedQueryConstructorValue(rsw.getResultSet(), constructorMapping, columnPrefix);
                 } else if (constructorMapping.getNestedResultMapId() != null) {
                     final ResultMap resultMap = configuration.getResultMap(constructorMapping.getNestedResultMapId());
-                    value = getRowValue(rsw, resultMap);
+                    value = this.getRowValue(rsw, resultMap);
                 } else {
                     final TypeHandler<?> typeHandler = constructorMapping.getTypeHandler();
                     value = typeHandler.getResult(rsw.getResultSet(), prependPrefix(column, columnPrefix));
@@ -870,7 +889,8 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         throw new ExecutorException("No constructor found in " + resultType.getName() + " matching " + rsw.getClassNames());
     }
 
-    private Object createUsingConstructor(ResultSetWrapper rsw, Class<?> resultType, List<Class<?>> constructorArgTypes, List<Object> constructorArgs, String columnPrefix, Constructor<?> constructor) throws SQLException {
+    private Object createUsingConstructor(ResultSetWrapper rsw, Class<?> resultType, List<Class<?>> constructorArgTypes, List<Object> constructorArgs, String columnPrefix, Constructor<?> constructor)
+            throws SQLException {
         boolean foundValues = false;
         for (int i = 0; i < constructor.getParameterTypes().length; i++) {
             Class<?> parameterType = constructor.getParameterTypes()[i];
@@ -930,47 +950,72 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         return typeHandler.getResult(rsw.getResultSet(), columnName);
     }
 
-    //
-    // NESTED QUERY
-    //
-
+    /**
+     * 对于构造参数值是嵌套查询的情况，执行嵌套查询返回对应的参数值
+     *
+     * @param rs
+     * @param constructorMapping
+     * @param columnPrefix
+     * @return
+     * @throws SQLException
+     */
     private Object getNestedQueryConstructorValue(ResultSet rs, ResultMapping constructorMapping, String columnPrefix) throws SQLException {
         final String nestedQueryId = constructorMapping.getNestedQueryId();
+        // 获取嵌套查询id对应的 MappedStatement 对象
         final MappedStatement nestedQuery = configuration.getMappedStatement(nestedQueryId);
         final Class<?> nestedQueryParameterType = nestedQuery.getParameterMap().getType();
-        final Object nestedQueryParameterObject = prepareParameterForNestedQuery(rs, constructorMapping, nestedQueryParameterType, columnPrefix);
+        // 获取传递给嵌套查询的参数值
+        final Object nestedQueryParameterObject = this.prepareParameterForNestedQuery(rs, constructorMapping, nestedQueryParameterType, columnPrefix);
         Object value = null;
         if (nestedQueryParameterObject != null) {
             final BoundSql nestedBoundSql = nestedQuery.getBoundSql(nestedQueryParameterObject);
             final CacheKey key = executor.createCacheKey(nestedQuery, nestedQueryParameterObject, RowBounds.DEFAULT, nestedBoundSql);
             final Class<?> targetType = constructorMapping.getJavaType();
             final ResultLoader resultLoader = new ResultLoader(configuration, executor, nestedQuery, nestedQueryParameterObject, targetType, key, nestedBoundSql);
+            // 执行嵌套查询
             value = resultLoader.loadResult();
         }
         return value;
     }
 
+    /**
+     * 处理嵌套查询
+     * 如果开启了延迟加载，则创建相应的 {@link ResultLoader} 对象，并返回 DEFERED 标记对象，否则直接执行嵌套查询
+     *
+     * @param rs
+     * @param metaResultObject
+     * @param propertyMapping
+     * @param lazyLoader
+     * @param columnPrefix
+     * @return
+     * @throws SQLException
+     */
     private Object getNestedQueryMappingValue(ResultSet rs, MetaObject metaResultObject, ResultMapping propertyMapping, ResultLoaderMap lazyLoader, String columnPrefix)
             throws SQLException {
         final String nestedQueryId = propertyMapping.getNestedQueryId();
         final String property = propertyMapping.getProperty();
+        // 获取嵌套查询 SQL 对应的 MappedStatement 对象
         final MappedStatement nestedQuery = configuration.getMappedStatement(nestedQueryId);
         final Class<?> nestedQueryParameterType = nestedQuery.getParameterMap().getType();
-        final Object nestedQueryParameterObject = prepareParameterForNestedQuery(rs, propertyMapping, nestedQueryParameterType, columnPrefix);
+        // 获取传递给嵌套查询的参数类型和参数值
+        final Object nestedQueryParameterObject = this.prepareParameterForNestedQuery(rs, propertyMapping, nestedQueryParameterType, columnPrefix);
         Object value = null;
         if (nestedQueryParameterObject != null) {
             final BoundSql nestedBoundSql = nestedQuery.getBoundSql(nestedQueryParameterObject);
             final CacheKey key = executor.createCacheKey(nestedQuery, nestedQueryParameterObject, RowBounds.DEFAULT, nestedBoundSql);
             final Class<?> targetType = propertyMapping.getJavaType();
             if (executor.isCached(nestedQuery, key)) {
+                // 从缓存中加载结果对象
                 executor.deferLoad(nestedQuery, metaResultObject, property, key, targetType);
-                value = DEFERED;
+                value = DEFERED; // 返回 DEFERED 对象标识
             } else {
                 final ResultLoader resultLoader = new ResultLoader(configuration, executor, nestedQuery, nestedQueryParameterObject, targetType, key, nestedBoundSql);
                 if (propertyMapping.isLazy()) {
+                    // 开启了延迟加载，则记录 resultLoader 到 ResultLoaderMap 中，需要的时候再执行
                     lazyLoader.addLoader(property, metaResultObject, resultLoader);
                     value = DEFERED;
                 } else {
+                    // 没有开启延迟记载，直接执行
                     value = resultLoader.loadResult();
                 }
             }
@@ -978,7 +1023,8 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         return value;
     }
 
-    private Object prepareParameterForNestedQuery(ResultSet rs, ResultMapping resultMapping, Class<?> parameterType, String columnPrefix) throws SQLException {
+    private Object prepareParameterForNestedQuery(ResultSet rs, ResultMapping resultMapping, Class<?> parameterType, String columnPrefix)
+            throws SQLException {
         if (resultMapping.isCompositeResult()) {
             return prepareCompositeKeyParameter(rs, resultMapping, parameterType, columnPrefix);
         } else {
@@ -986,7 +1032,8 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         }
     }
 
-    private Object prepareSimpleKeyParameter(ResultSet rs, ResultMapping resultMapping, Class<?> parameterType, String columnPrefix) throws SQLException {
+    private Object prepareSimpleKeyParameter(ResultSet rs, ResultMapping resultMapping, Class<?> parameterType, String columnPrefix)
+            throws SQLException {
         final TypeHandler<?> typeHandler;
         if (typeHandlerRegistry.hasTypeHandler(parameterType)) {
             typeHandler = typeHandlerRegistry.getTypeHandler(parameterType);
@@ -996,7 +1043,8 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         return typeHandler.getResult(rs, prependPrefix(resultMapping.getColumn(), columnPrefix));
     }
 
-    private Object prepareCompositeKeyParameter(ResultSet rs, ResultMapping resultMapping, Class<?> parameterType, String columnPrefix) throws SQLException {
+    private Object prepareCompositeKeyParameter(ResultSet rs, ResultMapping resultMapping, Class<?> parameterType, String columnPrefix)
+            throws SQLException {
         final Object parameterObject = instantiateParameterObject(parameterType);
         final MetaObject metaObject = configuration.newMetaObject(parameterObject);
         boolean foundValues = false;
@@ -1189,33 +1237,41 @@ public class DefaultResultSetHandler implements ResultSetHandler {
      * @param newObject
      * @return
      */
-    private boolean applyNestedResultMappings(ResultSetWrapper rsw, ResultMap resultMap, MetaObject metaObject, String parentPrefix, CacheKey parentRowKey, boolean newObject) {
+    private boolean applyNestedResultMappings(
+            ResultSetWrapper rsw, ResultMap resultMap, MetaObject metaObject, String parentPrefix, CacheKey parentRowKey, boolean newObject) {
         boolean foundValues = false;
         // 遍历处理带有 property 属性的映射关系
         for (ResultMapping resultMapping : resultMap.getPropertyResultMappings()) {
+            // 获取嵌套映射ID
             final String nestedResultMapId = resultMapping.getNestedResultMapId();
             if (nestedResultMapId != null && resultMapping.getResultSet() == null) {
                 try {
-                    final String columnPrefix = getColumnPrefix(parentPrefix, resultMapping);
-                    final ResultMap nestedResultMap = getNestedResultMap(rsw.getResultSet(), nestedResultMapId, columnPrefix);
+                    // 获取列前缀
+                    final String columnPrefix = this.getColumnPrefix(parentPrefix, resultMapping);
+                    // 获取嵌套映射对应的 ResultMap 对象
+                    final ResultMap nestedResultMap = this.getNestedResultMap(rsw.getResultSet(), nestedResultMapId, columnPrefix);
+                    // 处理循环引用
                     if (resultMapping.getColumnPrefix() == null) {
-                        // try to fill circular reference only when columnPrefix
-                        // is not specified for the nested result map (issue #215)
                         Object ancestorObject = ancestorObjects.get(nestedResultMapId);
                         if (ancestorObject != null) {
                             if (newObject) {
-                                linkObjects(metaObject, resultMapping, ancestorObject); // issue #385
+                                this.linkObjects(metaObject, resultMapping, ancestorObject); // issue #385
                             }
                             continue;
                         }
                     }
-                    final CacheKey rowKey = createRowKey(nestedResultMap, rsw, columnPrefix);
-                    final CacheKey combinedKey = combineKeys(rowKey, parentRowKey);
+                    // 创建嵌套对象的 key 对象
+                    final CacheKey rowKey = this.createRowKey(nestedResultMap, rsw, columnPrefix);
+                    final CacheKey combinedKey = this.combineKeys(rowKey, parentRowKey);
+                    // 查找集合中是否存在对应的对象
                     Object rowValue = nestedResultObjects.get(combinedKey);
                     boolean knownValue = (rowValue != null);
-                    instantiateCollectionPropertyIfAppropriate(resultMapping, metaObject); // mandatory
-                    if (anyNotNullColumnHasValue(resultMapping, columnPrefix, rsw)) {
-                        rowValue = getRowValue(rsw, nestedResultMap, combinedKey, columnPrefix, rowValue);
+                    // 初始化外层对象中 Collection 类型的属性
+                    this.instantiateCollectionPropertyIfAppropriate(resultMapping, metaObject); // mandatory
+                    // 根据 notNullColumns 属性配置检测结果集中的空值
+                    if (this.anyNotNullColumnHasValue(resultMapping, columnPrefix, rsw)) {
+                        // 完成映射嵌套，生成嵌套对象
+                        rowValue = this.getRowValue(rsw, nestedResultMap, combinedKey, columnPrefix, rowValue);
                         if (rowValue != null && !knownValue) {
                             linkObjects(metaObject, resultMapping, rowValue);
                             foundValues = true;
@@ -1312,7 +1368,8 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         return resultMappings;
     }
 
-    private void createRowKeyForMappedProperties(ResultMap resultMap, ResultSetWrapper rsw, CacheKey cacheKey, List<ResultMapping> resultMappings, String columnPrefix) throws SQLException {
+    private void createRowKeyForMappedProperties(ResultMap resultMap, ResultSetWrapper rsw, CacheKey cacheKey, List<ResultMapping> resultMappings, String columnPrefix)
+            throws SQLException {
         for (ResultMapping resultMapping : resultMappings) {
             if (resultMapping.getNestedResultMapId() != null && resultMapping.getResultSet() == null) {
                 // Issue #392
@@ -1335,7 +1392,8 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         }
     }
 
-    private void createRowKeyForUnmappedProperties(ResultMap resultMap, ResultSetWrapper rsw, CacheKey cacheKey, String columnPrefix) throws SQLException {
+    private void createRowKeyForUnmappedProperties(ResultMap resultMap, ResultSetWrapper rsw, CacheKey cacheKey, String columnPrefix)
+            throws SQLException {
         final MetaClass metaType = MetaClass.forClass(resultMap.getType(), reflectorFactory);
         List<String> unmappedColumnNames = rsw.getUnmappedColumnNames(resultMap, columnPrefix);
         for (String column : unmappedColumnNames) {
