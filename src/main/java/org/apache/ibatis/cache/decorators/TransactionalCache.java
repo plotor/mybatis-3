@@ -34,6 +34,8 @@ import java.util.concurrent.locks.ReadWriteLock;
  * Blocking cache support has been added. Therefore any get() that returns a cache miss
  * will be followed by a put() so any lock associated with the key can be released.
  *
+ * 用于保存某个 {@link org.apache.ibatis.session.SqlSession} 需要向二级缓存添加的缓存数据
+ *
  * @author Clinton Begin
  * @author Eduardo Macarron
  */
@@ -41,10 +43,16 @@ public class TransactionalCache implements Cache {
 
     private static final Log log = LogFactory.getLog(TransactionalCache.class);
 
-    /** 被装饰的 {@link Cache} 对象 */
+    /** 被装饰的 {@link Cache} 对象（二级缓存） */
     private final Cache delegate;
+
+    /** 是否提交事务时清空缓存 */
     private boolean clearOnCommit;
+
+    /** 用于缓存数据，当提交事务时会将其中的数据写入二级缓存 */
     private final Map<Object, Object> entriesToAddOnCommit;
+
+    /** 缓存未命中的 key */
     private final Set<Object> entriesMissedInCache;
 
     public TransactionalCache(Cache delegate) {
@@ -66,12 +74,12 @@ public class TransactionalCache implements Cache {
 
     @Override
     public Object getObject(Object key) {
-        // issue #116
+        // 先尝试从二级缓存中查询
         Object object = delegate.getObject(key);
         if (object == null) {
+            // 二级缓存不命中，记录 key 到 entriesMissedInCache
             entriesMissedInCache.add(key);
         }
-        // issue #146
         if (clearOnCommit) {
             return null;
         } else {
@@ -86,6 +94,7 @@ public class TransactionalCache implements Cache {
 
     @Override
     public void putObject(Object key, Object object) {
+        // 缓存数据到 entriesToAddOnCommit 中
         entriesToAddOnCommit.put(key, object);
     }
 
@@ -119,10 +128,15 @@ public class TransactionalCache implements Cache {
         entriesMissedInCache.clear();
     }
 
+    /**
+     * 写本地缓存项到二级缓存
+     */
     private void flushPendingEntries() {
+        // 遍历 entriesToAddOnCommit 中的数据写入二级缓存
         for (Map.Entry<Object, Object> entry : entriesToAddOnCommit.entrySet()) {
             delegate.putObject(entry.getKey(), entry.getValue());
         }
+        // 遍历 entriesMissedInCache，将 entriesToAddOnCommit 不包含的缓存项对应二级缓存中的值置为 null
         for (Object entry : entriesMissedInCache) {
             if (!entriesToAddOnCommit.containsKey(entry)) {
                 delegate.putObject(entry, null);

@@ -70,7 +70,7 @@ public class BatchExecutor extends BaseExecutor {
         final String sql = boundSql.getSql();
         final Statement stmt;
         if (sql.equals(currentSql) && ms.equals(currentStatement)) {
-            // 当前执行的 SQL 与前一次执行的 SQL 相同，且对应的 MappedStatement 对象也相同
+            // 当前执行的 SQL 与前一次执行的 SQL （模式）相同，且对应的 MappedStatement 对象也相同
             // 获取 statementList 中缓存的最后一个 Statement 对象
             int last = statementList.size() - 1;
             stmt = statementList.get(last);
@@ -126,20 +126,23 @@ public class BatchExecutor extends BaseExecutor {
     @Override
     public List<BatchResult> doFlushStatements(boolean isRollback) throws SQLException {
         try {
-            List<BatchResult> results = new ArrayList<BatchResult>();
+            List<BatchResult> results = new ArrayList<BatchResult>(); // 用于存储批量处理结果
             if (isRollback) {
                 return Collections.emptyList();
             }
+            // 遍历处理 Statement 集合
             for (int i = 0, n = statementList.size(); i < n; i++) {
                 Statement stmt = statementList.get(i);
-                applyTransactionTimeout(stmt);
+                this.applyTransactionTimeout(stmt);
                 BatchResult batchResult = batchResultList.get(i);
                 try {
+                    // 批量执行当前 Statement 蕴含的多条 SQL，并记录每条 SQL 影响的行数
                     batchResult.setUpdateCounts(stmt.executeBatch());
                     MappedStatement ms = batchResult.getMappedStatement();
                     List<Object> parameterObjects = batchResult.getParameterObjects();
                     KeyGenerator keyGenerator = ms.getKeyGenerator();
                     if (Jdbc3KeyGenerator.class.equals(keyGenerator.getClass())) {
+                        // 获取数据库生成的主键，并记录到 parameterObjects 中
                         Jdbc3KeyGenerator jdbc3KeyGenerator = (Jdbc3KeyGenerator) keyGenerator;
                         jdbc3KeyGenerator.processBatch(ms, stmt, parameterObjects);
                     } else if (!NoKeyGenerator.class.equals(keyGenerator.getClass())) { //issue #141
@@ -149,15 +152,9 @@ public class BatchExecutor extends BaseExecutor {
                     }
                 } catch (BatchUpdateException e) {
                     StringBuilder message = new StringBuilder();
-                    message.append(batchResult.getMappedStatement().getId())
-                            .append(" (batch index #")
-                            .append(i + 1)
-                            .append(")")
-                            .append(" failed.");
+                    message.append(batchResult.getMappedStatement().getId()).append(" (batch index #").append(i + 1).append(")").append(" failed.");
                     if (i > 0) {
-                        message.append(" ")
-                                .append(i)
-                                .append(" prior sub executor(s) completed successfully, but will be rolled back.");
+                        message.append(" ").append(i).append(" prior sub executor(s) completed successfully, but will be rolled back.");
                     }
                     throw new BatchExecutorException(message.toString(), e, results, batchResult);
                 }
@@ -165,8 +162,9 @@ public class BatchExecutor extends BaseExecutor {
             }
             return results;
         } finally {
+            // 关闭所有的 Statement
             for (Statement stmt : statementList) {
-                closeStatement(stmt);
+                this.closeStatement(stmt);
             }
             currentSql = null;
             statementList.clear();

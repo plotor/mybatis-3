@@ -22,14 +22,19 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * 管理 {@link TransactionalCache}
+ *
+ * 实现思路上有点类似于 {@link ThreadLocal}
+ *
  * @author Clinton Begin
  */
 public class TransactionalCacheManager {
 
+    /** key 为对应的 {@link org.apache.ibatis.executor.CachingExecutor} 使用的二级缓存对象 */
     private final Map<Cache, TransactionalCache> transactionalCaches = new HashMap<Cache, TransactionalCache>();
 
     public void clear(Cache cache) {
-        getTransactionalCache(cache).clear();
+        this.getTransactionalCache(cache).clear();
     }
 
     public Object getObject(Cache cache, CacheKey key) {
@@ -52,6 +57,12 @@ public class TransactionalCacheManager {
         }
     }
 
+    /**
+     * 获取当前二级缓存对象对应的 {@link TransactionalCache}
+     *
+     * @param cache
+     * @return
+     */
     private TransactionalCache getTransactionalCache(Cache cache) {
         TransactionalCache txCache = transactionalCaches.get(cache);
         if (txCache == null) {

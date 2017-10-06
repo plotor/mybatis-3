@@ -30,6 +30,7 @@ public class BatchResult {
     private final String sql;
     private final List<Object> parameterObjects;
 
+    /** 批量执行时，记录每条 SQL 影响的行数 */
     private int[] updateCounts;
 
     public BatchResult(MappedStatement mappedStatement, String sql) {
