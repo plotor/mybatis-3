@@ -88,9 +88,18 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
         return configuration;
     }
 
+    /**
+     * 基于数据源配置创建对应的 {@link SqlSession} 对象
+     *
+     * @param execType
+     * @param level
+     * @param autoCommit
+     * @return
+     */
     private SqlSession openSessionFromDataSource(ExecutorType execType, TransactionIsolationLevel level, boolean autoCommit) {
         Transaction tx = null;
         try {
+            // 获取当前数据库环境
             final Environment environment = configuration.getEnvironment();
             final TransactionFactory transactionFactory = this.getTransactionFactoryFromEnvironment(environment);
             tx = transactionFactory.newTransaction(environment.getDataSource(), level, autoCommit);
@@ -104,14 +113,20 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
         }
     }
 
+    /**
+     * 基于数据库连接创建 {@link SqlSession} 对象
+     *
+     * @param execType
+     * @param connection
+     * @return
+     */
     private SqlSession openSessionFromConnection(ExecutorType execType, Connection connection) {
         try {
             boolean autoCommit;
             try {
                 autoCommit = connection.getAutoCommit();
             } catch (SQLException e) {
-                // Failover to true, as most poor drivers
-                // or databases won't support transactions
+                // 考虑到很多驱动或者数据库不支持事务，设置自动提交事务
                 autoCommit = true;
             }
             final Environment environment = configuration.getEnvironment();

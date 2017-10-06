@@ -93,6 +93,8 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
+ * 全局唯一的配置对象
+ *
  * @author Clinton Begin
  */
 public class Configuration {
