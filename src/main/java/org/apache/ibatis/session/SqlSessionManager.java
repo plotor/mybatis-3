@@ -35,6 +35,7 @@ import java.util.Properties;
  */
 public class SqlSessionManager implements SqlSessionFactory, SqlSession {
 
+    /** 封装的 {@link SqlSessionFactory} 对象 */
     private final SqlSessionFactory sqlSessionFactory;
 
     /** 线程私有的 SqlSession 对象的动态代理对象 */
@@ -47,9 +48,7 @@ public class SqlSessionManager implements SqlSessionFactory, SqlSession {
     private SqlSessionManager(SqlSessionFactory sqlSessionFactory) {
         this.sqlSessionFactory = sqlSessionFactory;
         this.sqlSessionProxy = (SqlSession) Proxy.newProxyInstance(
-                SqlSessionFactory.class.getClassLoader(),
-                new Class[] {SqlSession.class},
-                new SqlSessionInterceptor());
+                SqlSessionFactory.class.getClassLoader(), new Class[] {SqlSession.class}, new SqlSessionInterceptor());
     }
 
     public static SqlSessionManager newInstance(Reader reader) {
@@ -372,6 +371,7 @@ public class SqlSessionManager implements SqlSessionFactory, SqlSession {
                     autoSqlSession.rollback();
                     throw ExceptionUtil.unwrapThrowable(t);
                 } finally {
+                    // 使用完毕之后即关闭会话
                     autoSqlSession.close();
                 }
             }

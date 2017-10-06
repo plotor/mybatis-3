@@ -48,8 +48,10 @@ import java.util.Map;
  */
 public class DefaultSqlSession implements SqlSession {
 
+    /** 全局唯一的配置对象 */
     private final Configuration configuration;
 
+    /** SQL 执行器 */
     private final Executor executor;
 
     /** 是否自动提交事务 */
@@ -128,7 +130,7 @@ public class DefaultSqlSession implements SqlSession {
         try {
             MappedStatement ms = configuration.getMappedStatement(statement);
             Cursor<T> cursor = executor.queryCursor(ms, wrapCollection(parameter), rowBounds);
-            registerCursor(cursor);
+            this.registerCursor(cursor);
             return cursor;
         } catch (Exception e) {
             throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);
@@ -268,7 +270,7 @@ public class DefaultSqlSession implements SqlSession {
     public void close() {
         try {
             executor.close(isCommitOrRollbackRequired(false));
-            closeCursors();
+            this.closeCursors();
             dirty = false;
         } finally {
             ErrorContext.instance().reset();
@@ -323,7 +325,14 @@ public class DefaultSqlSession implements SqlSession {
         return (!autoCommit && dirty) || force;
     }
 
+    /**
+     * 如果是集合类型或者数组类型，转换成对应的 Map 类型
+     *
+     * @param object
+     * @return
+     */
     private Object wrapCollection(final Object object) {
+        // 如果是 Collection 类型
         if (object instanceof Collection) {
             StrictMap<Object> map = new StrictMap<Object>();
             map.put("collection", object);
@@ -332,6 +341,7 @@ public class DefaultSqlSession implements SqlSession {
             }
             return map;
         } else if (object != null && object.getClass().isArray()) {
+            // 如果是数组类型
             StrictMap<Object> map = new StrictMap<Object>();
             map.put("array", object);
             return map;
