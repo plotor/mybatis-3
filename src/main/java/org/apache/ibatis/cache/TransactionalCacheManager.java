@@ -17,6 +17,7 @@
 package org.apache.ibatis.cache;
 
 import org.apache.ibatis.cache.decorators.TransactionalCache;
+import org.apache.ibatis.executor.CachingExecutor;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +31,7 @@ import java.util.Map;
  */
 public class TransactionalCacheManager {
 
-    /** key 为对应的 {@link org.apache.ibatis.executor.CachingExecutor} 使用的二级缓存对象 */
+    /** key 为对应的 {@link CachingExecutor} 使用的二级缓存对象，value 为采用 {@link TransactionalCache} 装饰的二级缓存对象 */
     private final Map<Cache, TransactionalCache> transactionalCaches = new HashMap<Cache, TransactionalCache>();
 
     public void clear(Cache cache) {
@@ -38,11 +39,11 @@ public class TransactionalCacheManager {
     }
 
     public Object getObject(Cache cache, CacheKey key) {
-        return getTransactionalCache(cache).getObject(key);
+        return this.getTransactionalCache(cache).getObject(key);
     }
 
     public void putObject(Cache cache, CacheKey key, Object value) {
-        getTransactionalCache(cache).putObject(key, value);
+        this.getTransactionalCache(cache).putObject(key, value);
     }
 
     public void commit() {
@@ -58,7 +59,7 @@ public class TransactionalCacheManager {
     }
 
     /**
-     * 获取当前二级缓存对象对应的 {@link TransactionalCache}
+     * 获取当前二级缓存对象对应的 {@link TransactionalCache} 对象
      *
      * @param cache
      * @return

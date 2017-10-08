@@ -70,7 +70,7 @@ public class SimpleExecutor extends BaseExecutor {
             StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler, boundSql);
             // 创建 Statement 对象并绑定实参
             stmt = this.prepareStatement(handler, ms.getStatementLog());
-            // 执行数据库查询语句
+            // 执行数据库查询操作，结果集映射
             return handler.<E>query(stmt, resultHandler);
         } finally {
             // 关闭 Statement

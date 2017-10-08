@@ -46,10 +46,10 @@ public class BatchExecutor extends BaseExecutor {
 
     public static final int BATCH_UPDATE_RETURN_VALUE = Integer.MIN_VALUE + 1002;
 
-    /** 缓存多个 {@link Statement} 对象，每个对象都对应多条 SQL */
+    /** 缓存多个 {@link Statement} 对象，每个对象都对应多条 SQL 语句 */
     private final List<Statement> statementList = new ArrayList<Statement>();
 
-    /** 记录批处理的结果 */
+    /** 记录批处理的结果，每个 {@link BatchResult} 对应一个 {@link Statement} 对象 */
     private final List<BatchResult> batchResultList = new ArrayList<BatchResult>();
 
     /** 当前执行的 SQL 语句 */
@@ -64,32 +64,40 @@ public class BatchExecutor extends BaseExecutor {
 
     @Override
     public int doUpdate(MappedStatement ms, Object parameterObject) throws SQLException {
+        // 获取配置对象
         final Configuration configuration = ms.getConfiguration();
+        // 基于参数创建对应的 StatementHandler 对象
         final StatementHandler handler = configuration.newStatementHandler(this, ms, parameterObject, RowBounds.DEFAULT, null, null);
         final BoundSql boundSql = handler.getBoundSql();
         final String sql = boundSql.getSql();
         final Statement stmt;
         if (sql.equals(currentSql) && ms.equals(currentStatement)) {
-            // 当前执行的 SQL 与前一次执行的 SQL （模式）相同，且对应的 MappedStatement 对象也相同
+            // 当前执行的 SQL 与前一次执行的 SQL （不包含实参）相同，且对应的 MappedStatement 对象也相同
             // 获取 statementList 中缓存的最后一个 Statement 对象
             int last = statementList.size() - 1;
+            // 获取上次使用的 Statement 对象
             stmt = statementList.get(last);
+            // 设置本次超时时间
             this.applyTransactionTimeout(stmt);
-            // 绑定实参
-            handler.parameterize(stmt);//fix Issues 322
+            // 绑定本次实参
+            handler.parameterize(stmt);
             BatchResult batchResult = batchResultList.get(last);
             batchResult.addParameterObject(parameterObject);
         } else {
             // 当前执行的 SQL 与前一次执行的 SQL 不同
             Connection connection = this.getConnection(ms.getStatementLog());
+            // 获取一个新的 Statement 对象
             stmt = handler.prepare(connection, transaction.getTimeout());
-            handler.parameterize(stmt);    //fix Issues 322
+            // 绑定实参
+            handler.parameterize(stmt);
+            // 记录本次执行的 SQL 模式和 MappedStatement 对象
             currentSql = sql;
             currentStatement = ms;
+            // 缓存本次的
             statementList.add(stmt);
             batchResultList.add(new BatchResult(ms, sql, parameterObject));
         }
-        // 添加批量 SQL
+        // 基于底层的 addBatch 方法添加批量 SQL 语句
         handler.batch(stmt);
         return BATCH_UPDATE_RETURN_VALUE;
     }
@@ -99,10 +107,10 @@ public class BatchExecutor extends BaseExecutor {
             throws SQLException {
         Statement stmt = null;
         try {
-            flushStatements();
+            this.flushStatements();
             Configuration configuration = ms.getConfiguration();
             StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameterObject, rowBounds, resultHandler, boundSql);
-            Connection connection = getConnection(ms.getStatementLog());
+            Connection connection = this.getConnection(ms.getStatementLog());
             stmt = handler.prepare(connection, transaction.getTimeout());
             handler.parameterize(stmt);
             return handler.<E>query(stmt, resultHandler);
@@ -133,6 +141,7 @@ public class BatchExecutor extends BaseExecutor {
             // 遍历处理 Statement 集合
             for (int i = 0, n = statementList.size(); i < n; i++) {
                 Statement stmt = statementList.get(i);
+                // 设置超时时间
                 this.applyTransactionTimeout(stmt);
                 BatchResult batchResult = batchResultList.get(i);
                 try {
@@ -158,11 +167,12 @@ public class BatchExecutor extends BaseExecutor {
                     }
                     throw new BatchExecutorException(message.toString(), e, results, batchResult);
                 }
+                // 记录封装当前 Statement 对象的执行结果的 batchResult 到集合中
                 results.add(batchResult);
             }
             return results;
         } finally {
-            // 关闭所有的 Statement
+            // 关闭所有的 Statement 对象
             for (Statement stmt : statementList) {
                 this.closeStatement(stmt);
             }

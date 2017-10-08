@@ -94,7 +94,7 @@ public class CallableStatementHandler extends BaseStatementHandler {
 
     @Override
     public void parameterize(Statement statement) throws SQLException {
-        registerOutputParameters((CallableStatement) statement);
+        this.registerOutputParameters((CallableStatement) statement);
         parameterHandler.setParameters((CallableStatement) statement);
     }
 

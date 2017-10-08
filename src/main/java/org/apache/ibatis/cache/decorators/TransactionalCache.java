@@ -94,7 +94,7 @@ public class TransactionalCache implements Cache {
 
     @Override
     public void putObject(Object key, Object object) {
-        // 缓存数据到 entriesToAddOnCommit 中
+        // 缓存数据项到 entriesToAddOnCommit 中
         entriesToAddOnCommit.put(key, object);
     }
 
@@ -106,6 +106,7 @@ public class TransactionalCache implements Cache {
     @Override
     public void clear() {
         clearOnCommit = true;
+        // 清空缓存待提交的数据项
         entriesToAddOnCommit.clear();
     }
 
@@ -144,6 +145,9 @@ public class TransactionalCache implements Cache {
         }
     }
 
+    /**
+     * 从二级缓存中移除缓存未命中的数据项
+     */
     private void unlockMissedEntries() {
         for (Object entry : entriesMissedInCache) {
             try {

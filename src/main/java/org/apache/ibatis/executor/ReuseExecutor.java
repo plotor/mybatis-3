@@ -41,7 +41,7 @@ import java.util.Map;
  */
 public class ReuseExecutor extends BaseExecutor {
 
-    /** 缓存 Statement 对象，key 为对应的 SQL 语句 */
+    /** 缓存 Statement 对象，key 为对应的 SQL 语句（带有 “？” 占位符） */
     private final Map<String, Statement> statementMap = new HashMap<String, Statement>();
 
     public ReuseExecutor(Configuration configuration, Transaction transaction) {
@@ -60,9 +60,13 @@ public class ReuseExecutor extends BaseExecutor {
     @Override
     public <E> List<E> doQuery(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql)
             throws SQLException {
+        // 获取配置对象
         Configuration configuration = ms.getConfiguration();
+        // 创建对应的 StatementHandler 对象
         StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler, boundSql);
+        // 先尝试从缓存中获取当前 SQL 对应的 Statement 对象，缓存不命中则创建一个新的并缓存
         Statement stmt = this.prepareStatement(handler, ms.getStatementLog());
+        // 执行数据库查询操作，结果集映射
         return handler.<E>query(stmt, resultHandler);
     }
 

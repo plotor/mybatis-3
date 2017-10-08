@@ -39,6 +39,7 @@ import java.util.List;
  */
 public class CachingExecutor implements Executor {
 
+    /** 装饰的 {@link Executor} 对象 */
     private final Executor delegate;
 
     /** 用于管理当前使用的二级缓存对象 */
@@ -74,7 +75,7 @@ public class CachingExecutor implements Executor {
 
     @Override
     public int update(MappedStatement ms, Object parameterObject) throws SQLException {
-        flushCacheIfRequired(ms);
+        this.flushCacheIfRequired(ms);
         return delegate.update(ms, parameterObject);
     }
 
@@ -84,12 +85,13 @@ public class CachingExecutor implements Executor {
         // 获取对应的 BoundSql 对象，创建对应的 CacheKey
         BoundSql boundSql = ms.getBoundSql(parameterObject);
         CacheKey key = this.createCacheKey(ms, parameterObject, rowBounds, boundSql);
+        // 调用重载的 query 方法
         return this.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
     }
 
     @Override
     public <E> Cursor<E> queryCursor(MappedStatement ms, Object parameter, RowBounds rowBounds) throws SQLException {
-        flushCacheIfRequired(ms);
+        this.flushCacheIfRequired(ms);
         return delegate.queryCursor(ms, parameter, rowBounds);
     }
 
@@ -98,7 +100,7 @@ public class CachingExecutor implements Executor {
             throws SQLException {
         // 获取当前命名空间对应的二级缓存对象
         Cache cache = ms.getCache();
-        // 判断是否开启了二级缓存
+        // 判断是否启用了二级缓存
         if (cache != null) {
             // 依据配置执行是否清空二级缓存
             this.flushCacheIfRequired(ms);
