@@ -26,6 +26,11 @@ import java.sql.SQLException;
  */
 public interface ParameterHandler {
 
+    /**
+     * 获取输出类型参数
+     *
+     * @return
+     */
     Object getParameterObject();
 
     /**

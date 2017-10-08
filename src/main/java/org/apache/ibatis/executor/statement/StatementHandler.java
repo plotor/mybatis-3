@@ -42,7 +42,7 @@ public interface StatementHandler {
     Statement prepare(Connection connection, Integer transactionTimeout) throws SQLException;
 
     /**
-     * 绑定 statement 执行 SQL 时需要的实参
+     * 绑定 Statement 执行 SQL 时需要的实参
      *
      * @param statement
      * @throws SQLException
@@ -79,8 +79,18 @@ public interface StatementHandler {
 
     <E> Cursor<E> queryCursor(Statement statement) throws SQLException;
 
+    /**
+     * 获取对应的 SQL 对象
+     *
+     * @return
+     */
     BoundSql getBoundSql();
 
+    /**
+     * 获取对应的 {@link ParameterHandler} 对象，用于参数绑定
+     *
+     * @return
+     */
     ParameterHandler getParameterHandler();
 
 }

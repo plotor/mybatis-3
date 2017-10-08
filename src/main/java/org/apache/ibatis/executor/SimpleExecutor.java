@@ -45,12 +45,17 @@ public class SimpleExecutor extends BaseExecutor {
     public int doUpdate(MappedStatement ms, Object parameter) throws SQLException {
         Statement stmt = null;
         try {
+            // 获取全局配置对象
             Configuration configuration = ms.getConfiguration();
+            // 创建对应的 StatementHandler 对象
             StatementHandler handler = configuration.newStatementHandler(this, ms, parameter, RowBounds.DEFAULT, null, null);
+            // 创建 Statement 对象并绑定实参
             stmt = this.prepareStatement(handler, ms.getStatementLog());
+            // 执行数据库更新操作
             return handler.update(stmt);
         } finally {
-            closeStatement(stmt);
+            // 关闭 Statement
+            this.closeStatement(stmt);
         }
     }
 
@@ -61,11 +66,11 @@ public class SimpleExecutor extends BaseExecutor {
         try {
             // 获取全局配置对象
             Configuration configuration = ms.getConfiguration();
-            // 创建 StatementHandler 对象，采用 RoutingStatementHandler 实现类
+            // 创建 StatementHandler 对象
             StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler, boundSql);
             // 创建 Statement 对象并绑定实参
             stmt = this.prepareStatement(handler, ms.getStatementLog());
-            // 执行查询语句
+            // 执行数据库查询语句
             return handler.<E>query(stmt, resultHandler);
         } finally {
             // 关闭 Statement
@@ -89,8 +94,11 @@ public class SimpleExecutor extends BaseExecutor {
 
     private Statement prepareStatement(StatementHandler handler, Log statementLog) throws SQLException {
         Statement stmt;
+        // 获取数据库连接
         Connection connection = this.getConnection(statementLog);
+        // 获取 Statement 对象
         stmt = handler.prepare(connection, transaction.getTimeout());
+        // 执行参数绑定
         handler.parameterize(stmt);
         return stmt;
     }

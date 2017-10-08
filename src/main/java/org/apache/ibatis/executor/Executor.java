@@ -111,7 +111,7 @@ public interface Executor {
     void rollback(boolean required) throws SQLException;
 
     /**
-     * 创建缓存 key
+     * 创建缓存 key 对象
      *
      * @param ms
      * @param parameterObject

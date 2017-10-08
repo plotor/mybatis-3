@@ -54,6 +54,7 @@ public abstract class BaseStatementHandler implements StatementHandler {
 
     /** 对应 SQL 语句标签对象 */
     protected final MappedStatement mappedStatement;
+
     /** 可执行的 SQL 语句 */
     protected BoundSql boundSql;
 
@@ -96,7 +97,7 @@ public abstract class BaseStatementHandler implements StatementHandler {
         ErrorContext.instance().sql(boundSql.getSql());
         Statement statement = null;
         try {
-            // 从连接中获取 Statement 对象
+            // 模板方法，从数据库连接中获取 Statement 对象
             statement = this.instantiateStatement(connection);
             // 设置超时时间
             this.setStatementTimeout(statement, transactionTimeout);
@@ -104,9 +105,11 @@ public abstract class BaseStatementHandler implements StatementHandler {
             this.setFetchSize(statement);
             return statement;
         } catch (SQLException e) {
+            // 关闭 Statement
             this.closeStatement(statement);
             throw e;
         } catch (Exception e) {
+            // 关闭 Statement
             this.closeStatement(statement);
             throw new ExecutorException("Error preparing statement.  Cause: " + e, e);
         }

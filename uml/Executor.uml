@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>org.apache.ibatis.executor.Executor</OriginalElement>
+  <nodes>
+    <node x="310.25" y="0.0">org.apache.ibatis.executor.Executor</node>
+    <node x="376.5" y="85.0">org.apache.ibatis.executor.CachingExecutor</node>
+    <node x="0.0" y="170.0">org.apache.ibatis.executor.SimpleExecutor</node>
+    <node x="198.5" y="85.0">org.apache.ibatis.executor.BaseExecutor</node>
+    <node x="380.0" y="170.0">org.apache.ibatis.executor.ReuseExecutor</node>
+    <node x="195.0" y="170.0">org.apache.ibatis.executor.BatchExecutor</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="org.apache.ibatis.executor.ReuseExecutor" target="org.apache.ibatis.executor.BaseExecutor">
+      <point x="0.0" y="-17.5" />
+      <point x="464.5" y="145.0" />
+      <point x="330.16666666666663" y="145.0" />
+      <point x="52.66666666666663" y="17.5" />
+    </edge>
+    <edge source="org.apache.ibatis.executor.BaseExecutor" target="org.apache.ibatis.executor.Executor">
+      <point x="0.0" y="-17.5" />
+      <point x="277.5" y="60.0" />
+      <point x="341.5" y="60.0" />
+      <point x="-31.25" y="17.5" />
+    </edge>
+    <edge source="org.apache.ibatis.executor.CachingExecutor" target="org.apache.ibatis.executor.Executor">
+      <point x="0.0" y="-17.5" />
+      <point x="468.0" y="60.0" />
+      <point x="404.0" y="60.0" />
+      <point x="31.25" y="17.5" />
+    </edge>
+    <edge source="org.apache.ibatis.executor.SimpleExecutor" target="org.apache.ibatis.executor.BaseExecutor">
+      <point x="0.0" y="-17.5" />
+      <point x="87.5" y="145.0" />
+      <point x="224.83333333333334" y="145.0" />
+      <point x="-52.66666666666666" y="17.5" />
+    </edge>
+    <edge source="org.apache.ibatis.executor.BatchExecutor" target="org.apache.ibatis.executor.BaseExecutor">
+      <point x="0.0" y="-17.5" />
+      <point x="0.0" y="17.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="280.0" y="102.5" />
+  <SelectedNodes>
+    <node>org.apache.ibatis.executor.BatchExecutor</node>
+  </SelectedNodes>
+  <Categories />
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+

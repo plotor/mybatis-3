@@ -71,7 +71,7 @@ public class DefaultParameterHandler implements ParameterHandler {
         // 获取 BoundSql 中记录的参数映射关系列表
         List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
         if (parameterMappings != null) {
-            // 遍历为 SQL 语句绑定对应的参数值
+            // 遍历处理，为 SQL 语句绑定对应的参数值
             for (int i = 0; i < parameterMappings.size(); i++) {
                 ParameterMapping parameterMapping = parameterMappings.get(i);
                 // 忽略存储过程中的输出参数
@@ -80,14 +80,14 @@ public class DefaultParameterHandler implements ParameterHandler {
                     Object value;
                     // 获取参数名称
                     String propertyName = parameterMapping.getProperty();
-                    if (boundSql.hasAdditionalParameter(propertyName)) { // issue #448 ask first for additional params
+                    if (boundSql.hasAdditionalParameter(propertyName)) {
                         // 获取对应的参数值
                         value = boundSql.getAdditionalParameter(propertyName);
                     } else if (parameterObject == null) {
                         // 用户未传递实参
                         value = null;
                     } else if (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
-                        // 实参类型存在类型处理，直接转换成对应的目标值
+                        // 实参类型存在类型处理器，直接转换成对应的目标值
                         value = parameterObject;
                     } else {
                         // 获取实参对象中对应的参数值
@@ -100,7 +100,7 @@ public class DefaultParameterHandler implements ParameterHandler {
                         jdbcType = configuration.getJdbcTypeForNull();
                     }
                     try {
-                        // 为 SQL 语句绑定对应的实参
+                        // 为 SQL 语句绑定对应的实参到 PreparedStatement 对象中
                         typeHandler.setParameter(ps, i + 1, value, jdbcType);
                     } catch (TypeException e) {
                         throw new TypeException("Could not set parameters for mapping: " + parameterMapping + ". Cause: " + e, e);
