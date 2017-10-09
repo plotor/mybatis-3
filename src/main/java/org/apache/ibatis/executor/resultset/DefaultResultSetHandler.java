@@ -1016,12 +1016,14 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         if (nestedQueryParameterObject != null) {
             final BoundSql nestedBoundSql = nestedQuery.getBoundSql(nestedQueryParameterObject);
             final CacheKey key = executor.createCacheKey(nestedQuery, nestedQueryParameterObject, RowBounds.DEFAULT, nestedBoundSql);
+            // 获取嵌套 SQL 结果类型
             final Class<?> targetType = propertyMapping.getJavaType();
             if (executor.isCached(nestedQuery, key)) {
-                // 从缓存中加载结果对象
+                // 如果 SQL 在缓存中有对应的结果值，则从缓存中加载结果对象
                 executor.deferLoad(nestedQuery, metaResultObject, property, key, targetType);
                 value = DEFERED; // 返回 DEFERED 对象标识
             } else {
+                // 缓存不命中，即对应的 SQL 没有对应的缓存结果对象
                 final ResultLoader resultLoader = new ResultLoader(configuration, executor, nestedQuery, nestedQueryParameterObject, targetType, key, nestedBoundSql);
                 if (propertyMapping.isLazy()) {
                     // 开启了延迟加载，则记录 resultLoader 到 ResultLoaderMap 中，需要的时候再执行
@@ -1039,9 +1041,9 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     private Object prepareParameterForNestedQuery(ResultSet rs, ResultMapping resultMapping, Class<?> parameterType, String columnPrefix)
             throws SQLException {
         if (resultMapping.isCompositeResult()) {
-            return prepareCompositeKeyParameter(rs, resultMapping, parameterType, columnPrefix);
+            return this.prepareCompositeKeyParameter(rs, resultMapping, parameterType, columnPrefix);
         } else {
-            return prepareSimpleKeyParameter(rs, resultMapping, parameterType, columnPrefix);
+            return this.prepareSimpleKeyParameter(rs, resultMapping, parameterType, columnPrefix);
         }
     }
 
@@ -1197,11 +1199,11 @@ public class DefaultResultSetHandler implements ResultSetHandler {
      * @throws SQLException
      */
     private Object getRowValue(
-            ResultSetWrapper rsw, ResultMap resultMap, CacheKey combinedKey, String columnPrefix, Object partialObject)
-            throws SQLException {
+            ResultSetWrapper rsw, ResultMap resultMap, CacheKey combinedKey, String columnPrefix, Object partialObject) throws SQLException {
+        // 获取对应映射配置的ID
         final String resultMapId = resultMap.getId();
         Object rowValue = partialObject;
-        // 判断外层结果对象是否存在
+        // 如果存在外层对象
         if (rowValue != null) {
             // 创建 rowValue 的 MetaObject 对象
             final MetaObject metaObject = configuration.newMetaObject(rowValue);
@@ -1209,11 +1211,11 @@ public class DefaultResultSetHandler implements ResultSetHandler {
             this.applyNestedResultMappings(rsw, resultMap, metaObject, columnPrefix, combinedKey, false);
             ancestorObjects.remove(resultMapId);
         } else {
-            // 外层对象不存在
+            // 不存在外层对象
             final ResultLoaderMap lazyLoader = new ResultLoaderMap();
-            // 创建外层结果对象（此时对象映射的属性还未填充）
+            // 创建结果对象（此时对象映射的属性还未填充）
             rowValue = this.createResultObject(rsw, resultMap, lazyLoader, columnPrefix);
-            // 如果外层结果对象存在，且不存在对应的类型处理器
+            // 如果结果对象不为 null，且不存在对应的类型处理器
             if (rowValue != null && !this.hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
                 // 创建 rowValue 的 MetaObject 对象
                 final MetaObject metaObject = configuration.newMetaObject(rowValue);
@@ -1223,7 +1225,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
                     // 自动映射未在 <resultMap/> 标签中指明的列
                     foundValues = this.applyAutomaticMappings(rsw, resultMap, metaObject, columnPrefix) || foundValues;
                 }
-                // 映射在 <resultMap/> 标签中明确指明的列
+                // 映射在 <resultMap/> 标签中明确指定映射关系的列
                 foundValues = this.applyPropertyMappings(rsw, resultMap, metaObject, lazyLoader, columnPrefix) || foundValues;
                 // 记录外层结果对象到 ancestorObjects 属性中
                 this.putAncestor(rowValue, resultMapId, columnPrefix);

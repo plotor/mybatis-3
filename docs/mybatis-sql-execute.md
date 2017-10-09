@@ -624,7 +624,7 @@ private boolean applyPropertyMappings(
 }
 ```
 
-方法会获取当前结果集对应的映射关系配置和列名集合，然后遍历映射配置，针对嵌套查询、多结果集映射，以及普通映射的情况分别进行处理，这一过程位于 getPropertyMappingValue 方法中，针对嵌套查询的情况我们后面专门进行分析，对于多结果集的情况会将对应的结果集配置对象记录到 nextResultMaps 属性中，后面会专门处理（即前面的第二部分代码），针对普通的映射则会基于 TypeHandler 获取属性对应的 java 类型值。也就是我们期望的值，getPropertyMappingValue 方法的实现如下：
+方法会获取当前结果集对应的映射关系配置和列名集合，然后遍历映射配置，针对嵌套查询、多结果集映射，以及普通映射的情况分别进行处理，这一过程位于 getPropertyMappingValue 方法中，针对嵌套查询的情况稍后专门进行分析，对于多结果集的情况会将对应的结果集配置对象记录到 nextResultMaps 属性中，后面会专门处理（即前面的第二部分代码），针对普通的映射则会基于 TypeHandler 获取属性对应的 java 类型值。也就是我们期望的值，getPropertyMappingValue 方法的实现如下：
 
 ```java
 private Object getPropertyMappingValue(
@@ -648,8 +648,48 @@ private Object getPropertyMappingValue(
 
 最后会调用 storeObject 方法将结果对象记录到 `DefaultResultHandler#list` 属性中，并在 handleResultSet 方法中调用 `DefaultResultHandler#getResultList` 方法拿到这些结果对象。
 
-##### 3.3.2 嵌套结果集映射
+接下来探究一下嵌套查询的处理过程，一个属性的值可以直接从结果集中映射，也可以由一个具体的 SQL 语句结果对象进行赋值，对于这种嵌套查询的情况由 getNestedQueryMappingValue 方法专门进行处理。嵌套查询往往与延迟加载捆绑在一起，这主要是为了性能的考虑，一个 SQL 语句操作在某些情况下可能是非常昂贵，但不一定是必要的。getNestedQueryMappingValue 方法的实现如下：
 
+```java
+private Object getNestedQueryMappingValue(ResultSet rs, MetaObject metaResultObject, ResultMapping propertyMapping, ResultLoaderMap lazyLoader, String columnPrefix)
+        throws SQLException {
+    final String nestedQueryId = propertyMapping.getNestedQueryId();
+    final String property = propertyMapping.getProperty();
+    // 获取嵌套查询 SQL 对应的 MappedStatement 对象
+    final MappedStatement nestedQuery = configuration.getMappedStatement(nestedQueryId);
+    final Class<?> nestedQueryParameterType = nestedQuery.getParameterMap().getType();
+    // 获取传递给嵌套查询的参数类型和参数值
+    final Object nestedQueryParameterObject = this.prepareParameterForNestedQuery(rs, propertyMapping, nestedQueryParameterType, columnPrefix);
+    Object value = null;
+    if (nestedQueryParameterObject != null) {
+        final BoundSql nestedBoundSql = nestedQuery.getBoundSql(nestedQueryParameterObject);
+        final CacheKey key = executor.createCacheKey(nestedQuery, nestedQueryParameterObject, RowBounds.DEFAULT, nestedBoundSql);
+        // 获取嵌套 SQL 结果类型
+        final Class<?> targetType = propertyMapping.getJavaType();
+        if (executor.isCached(nestedQuery, key)) {
+            // 如果 SQL 在缓存中有对应的结果值，则从缓存中加载结果对象
+            executor.deferLoad(nestedQuery, metaResultObject, property, key, targetType);
+            value = DEFERED; // 返回 DEFERED 对象标识
+        } else {
+            // 缓存不命中，即对应的 SQL 没有对应的缓存结果对象
+            final ResultLoader resultLoader = new ResultLoader(configuration, executor, nestedQuery, nestedQueryParameterObject, targetType, key, nestedBoundSql);
+            if (propertyMapping.isLazy()) {
+                // 开启了延迟加载，则记录 resultLoader 到 ResultLoaderMap 中，需要的时候再执行
+                lazyLoader.addLoader(property, metaResultObject, resultLoader);
+                value = DEFERED;
+            } else {
+                // 没有开启延迟记载，直接执行
+                value = resultLoader.loadResult();
+            }
+        }
+    }
+    return value;
+}
+```
+
+方法首先会获取嵌套 SQL 对应的 MappedStatement 对象，并获取传递给嵌套 SQL 的参数值，后续的处理会尝试先从缓存中获取该 SQL 对应的结果对象，如果缓存命中的话则会注入该属性，如果缓存不命中则会基于是否启用延迟加载的配置来决定是否立即执行当前的 SQL 语句，如果允许延迟加载，则会记录封装该 SQL 及其执行条件的 ResultLoader 对象到 ResultLoaderMap 类型参数中，在 `DefaultResultSetHandler#createResultObject` 方法中会为该参数对象基于动态代理机制（这里的动态代理默认采用 javassist 实现，也可以指定采用 CGLib 实现）创建对应的动态代理对象，并在需要的地方直接执行 SQL 语句返回对应的结果对象。
+
+##### 3.3.2 嵌套结果集映射
 
 #### 3.4 Executor 的具体实现
 
