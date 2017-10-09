@@ -371,7 +371,6 @@ public void setParameters(PreparedStatement ps) {
 
 #### 3.3 结果集映射
 
-#### 3.3 结果集映射
 结果集映射是 MyBatis 提供的一个强大且易用的特性，标签 <resultMap/> 的用于配置数据库返回的结果集与 java bean 属性之间的映射关系，前面我们分析了该标签的解析过程，本小节我们一起来探究一下 MyBatis 如何基于这些配置执行结果集映射。
 
 Executor 在调用具体的 StatementHandler 执行数据库查询操作时会针对数据库返回的结果集调用 ResultSetHandler 的相应方法执行结果集到结果对象的映射处理，例如下面的代码块是 PreparedStatementHandler 在执行 query 时的具体逻辑：
@@ -532,8 +531,125 @@ handleRowValues 方法会判断当前映射配置中是否存在嵌套映射的�
 
 ##### 3.3.1 简单结果集映射
 
+handleRowValuesForSimpleResultMap 方法中实现了对简单（相对于嵌套而言）结果集映射的处理逻辑，方法首先会基于 RowBounds 设置定位具体的处理行，MyBatis 对于 LIMIT 分页的处理是逻辑分页，而不是物理分页，即将符合条件的记录全部载入内存，然后在内存中进行截取，如果希望执行物理分页，可以自己编码插件，或者使用第三方插件，然后会遍历结果集中目标记录行对其逐一映射，handleRowValuesForSimpleResultMap 方法的实现如下：
+
+```java
+private void handleRowValuesForSimpleResultMap(
+        ResultSetWrapper rsw, ResultMap resultMap, ResultHandler<?> resultHandler, RowBounds rowBounds, ResultMapping parentMapping)
+        throws SQLException {
+    DefaultResultContext<Object> resultContext = new DefaultResultContext<Object>();
+    // 针对设置了 RowBounds 定位指定的记录行
+    this.skipRows(rsw.getResultSet(), rowBounds);
+    // 检测是否可以继续对后续的记录行进行映射操作，可以的话就一直循环
+    while (this.shouldProcessMoreRows(resultContext, rowBounds) && rsw.getResultSet().next()) {
+        // 确定具体使用的映射配置，如果配置了 <discriminator/> 则获取最终引用的 ResultMap，否则使用当前 ResultMap
+        ResultMap discriminatedResultMap = this.resolveDiscriminatedResultMap(rsw.getResultSet(), resultMap, null);
+        // 基于映射配置对当前记录行进行解析
+        Object rowValue = this.getRowValue(rsw, discriminatedResultMap);
+        // 保存映射得到的结果对象
+        this.storeObject(resultHandler, resultContext, rowValue, parentMapping, rsw.getResultSet());
+    }
+}
+```
+
+针对记录行的映射处理，方法首先会获取记录行对应的真正 ResultMap 映射配置对象，因为可能存在配置了 <discriminator/> 标签执行条件映射的情况，如果没有配置该标签则会使用当前实参对应的 ResultMap 对象。<discriminator/> 标签的处理过程位于 resolveDiscriminatedResultMap 方法中，对照配置应该比较容易理解，不再展开。获取到 ResultMap 映射配置对象之后，下一步就可以调用 getRowValue 方法对当前记录行执行映射处理，该方法的实现如下：
+
+```java
+private Object getRowValue(ResultSetWrapper rsw, ResultMap resultMap) throws SQLException {
+    final ResultLoaderMap lazyLoader = new ResultLoaderMap();
+    // 创建记录行映射结果对象
+    Object rowValue = this.createResultObject(rsw, resultMap, lazyLoader, null);
+    // 如果结果对象不为 null，且没有对应的类型处理器
+    if (rowValue != null && !this.hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
+        // 创建结果对象的 MetaObject 对象
+        final MetaObject metaObject = configuration.newMetaObject(rowValue);
+        boolean foundValues = this.useConstructorMappings; // 标记是否成功映射任何一个属性
+        // 是否需要自动映射
+        if (this.shouldApplyAutomaticMappings(resultMap, false)) {
+            // 自动映射未在 <resultMap/> 中指定的映射列
+            foundValues = this.applyAutomaticMappings(rsw, resultMap, metaObject, null) || foundValues;
+        }
+        // 映射在 <resultMap/> 中指定的映射列
+        foundValues = this.applyPropertyMappings(rsw, resultMap, metaObject, lazyLoader, null) || foundValues;
+        foundValues = lazyLoader.size() > 0 || foundValues;
+        rowValue = (foundValues || configuration.isReturnInstanceForEmptyRow()) ? rowValue : null;
+    }
+    return rowValue;
+}
+```
+
+方法首先会调用 createResultObject 方法创建结果对象，然后为该对象执行属性映射注入，对于未配置映射关系的属性，方法会基于配置决定是否执行自动映射，对于明确指定映射关系的属性，则会调用 applyPropertyMappings 方法执行映射处理，该方法的具体实现如下：
+
+```java
+private boolean applyPropertyMappings(
+        ResultSetWrapper rsw, ResultMap resultMap, MetaObject metaObject, ResultLoaderMap lazyLoader, String columnPrefix)
+        throws SQLException {
+    // 获取所有指明了映射关系的列名集合
+    final List<String> mappedColumnNames = rsw.getMappedColumnNames(resultMap, columnPrefix);
+    boolean foundValues = false;
+    // 获取当前 ResultMap 包含的所有映射关系配置对象 ResultMapping
+    final List<ResultMapping> propertyMappings = resultMap.getPropertyResultMappings();
+    // 遍历处理映射关系 ResultMapping 集合
+    for (ResultMapping propertyMapping : propertyMappings) {
+        // 处理列前缀
+        String column = this.prependPrefix(propertyMapping.getColumn(), columnPrefix);
+        if (propertyMapping.getNestedResultMapId() != null) {
+            // 忽略嵌套的 ResultMap 映射
+            column = null;
+        }
+        // 嵌套查询 || 配置了映射关系 || 多结果集
+        if (propertyMapping.isCompositeResult()
+                || (column != null && mappedColumnNames.contains(column.toUpperCase(Locale.ENGLISH)))
+                || propertyMapping.getResultSet() != null) { // 存在多结果集
+            // 执行映射，返回属性值
+            Object value = this.getPropertyMappingValue(rsw.getResultSet(), metaObject, propertyMapping, lazyLoader, columnPrefix);
+            final String property = propertyMapping.getProperty();
+            if (property == null) {
+                continue;
+            } else if (value == DEFERED) {
+                // 延迟加载的情况
+                foundValues = true;
+                continue;
+            }
+            if (value != null) {
+                foundValues = true;
+            }
+            if (value != null || (configuration.isCallSettersOnNulls() && !metaObject.getSetterType(property).isPrimitive())) {
+                // 设置属性值
+                metaObject.setValue(property, value);
+            }
+        }
+    }
+    return foundValues;
+}
+```
+
+方法会获取当前结果集对应的映射关系配置和列名集合，然后遍历映射配置，针对嵌套查询、多结果集映射，以及普通映射的情况分别进行处理，这一过程位于 getPropertyMappingValue 方法中，针对嵌套查询的情况我们后面专门进行分析，对于多结果集的情况会将对应的结果集配置对象记录到 nextResultMaps 属性中，后面会专门处理（即前面的第二部分代码），针对普通的映射则会基于 TypeHandler 获取属性对应的 java 类型值。也就是我们期望的值，getPropertyMappingValue 方法的实现如下：
+
+```java
+private Object getPropertyMappingValue(
+        ResultSet rs, MetaObject metaResultObject, ResultMapping propertyMapping, ResultLoaderMap lazyLoader, String columnPrefix)
+        throws SQLException {
+    if (propertyMapping.getNestedQueryId() != null) {
+        // 嵌套查询
+        return this.getNestedQueryMappingValue(rs, metaResultObject, propertyMapping, lazyLoader, columnPrefix);
+    } else if (propertyMapping.getResultSet() != null) {
+        // 多结果集情况，记录对应的 resultSet，后续处理
+        this.addPendingChildRelation(rs, metaResultObject, propertyMapping);
+        return DEFERED;
+    } else {
+        // 基于 TypeHandler 获取属性值
+        final TypeHandler<?> typeHandler = propertyMapping.getTypeHandler();
+        final String column = this.prependPrefix(propertyMapping.getColumn(), columnPrefix);
+        return typeHandler.getResult(rs, column);
+    }
+}
+```
+
+最后会调用 storeObject 方法将结果对象记录到 `DefaultResultHandler#list` 属性中，并在 handleResultSet 方法中调用 `DefaultResultHandler#getResultList` 方法拿到这些结果对象。
 
 ##### 3.3.2 嵌套结果集映射
+
 
 #### 3.4 Executor 的具体实现
 

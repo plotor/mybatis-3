@@ -445,7 +445,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         this.skipRows(rsw.getResultSet(), rowBounds);
         // 检测是否可以继续对后续的记录行进行映射操作，可以的话就一直循环
         while (this.shouldProcessMoreRows(resultContext, rowBounds) && rsw.getResultSet().next()) {
-            // 确定具体使用的映射配置
+            // 确定具体使用的映射配置，如果配置了 <discriminator/> 则获取最终引用的 ResultMap，否则使用当前 ResultMap
             ResultMap discriminatedResultMap = this.resolveDiscriminatedResultMap(rsw.getResultSet(), resultMap, null);
             // 基于映射配置对当前记录行进行解析
             Object rowValue = this.getRowValue(rsw, discriminatedResultMap);
@@ -528,10 +528,11 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         final ResultLoaderMap lazyLoader = new ResultLoaderMap();
         // 创建记录行映射结果对象
         Object rowValue = this.createResultObject(rsw, resultMap, lazyLoader, null);
+        // 如果结果对象不为 null，且没有对应的类型处理器
         if (rowValue != null && !this.hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
             // 创建结果对象的 MetaObject 对象
             final MetaObject metaObject = configuration.newMetaObject(rowValue);
-            boolean foundValues = this.useConstructorMappings; // 标记是否成功映射
+            boolean foundValues = this.useConstructorMappings; // 标记是否成功映射任何一个属性
             // 是否需要自动映射
             if (this.shouldApplyAutomaticMappings(resultMap, false)) {
                 // 自动映射未在 <resultMap/> 中指定的映射列
@@ -578,13 +579,15 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         final List<ResultMapping> propertyMappings = resultMap.getPropertyResultMappings();
         // 遍历处理映射关系 ResultMapping 集合
         for (ResultMapping propertyMapping : propertyMappings) {
+            // 处理列前缀
             String column = this.prependPrefix(propertyMapping.getColumn(), columnPrefix);
             if (propertyMapping.getNestedResultMapId() != null) {
                 // 忽略嵌套的 ResultMap 映射
                 column = null;
             }
-            if (propertyMapping.isCompositeResult()  // 嵌套查询的情况
-                    || (column != null && mappedColumnNames.contains(column.toUpperCase(Locale.ENGLISH))) // 基本类型
+            // 嵌套查询 || 配置了映射关系 || 多结果集
+            if (propertyMapping.isCompositeResult()
+                    || (column != null && mappedColumnNames.contains(column.toUpperCase(Locale.ENGLISH)))
                     || propertyMapping.getResultSet() != null) { // 存在多结果集
                 // 执行映射，返回属性值
                 Object value = this.getPropertyMappingValue(rsw.getResultSet(), metaObject, propertyMapping, lazyLoader, columnPrefix);
@@ -592,6 +595,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
                 if (property == null) {
                     continue;
                 } else if (value == DEFERED) {
+                    // 延迟加载的情况
                     foundValues = true;
                     continue;
                 }
@@ -623,8 +627,8 @@ public class DefaultResultSetHandler implements ResultSetHandler {
             // 嵌套查询
             return this.getNestedQueryMappingValue(rs, metaResultObject, propertyMapping, lazyLoader, columnPrefix);
         } else if (propertyMapping.getResultSet() != null) {
-            // 多结果集情况
-            this.addPendingChildRelation(rs, metaResultObject, propertyMapping);   // TODO is that OK?
+            // 多结果集情况，记录对应的 resultSet，后续处理
+            this.addPendingChildRelation(rs, metaResultObject, propertyMapping);
             return DEFERED;
         } else {
             // 基于 TypeHandler 获取属性值
@@ -822,19 +826,19 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         // 获取 <constructor/> 节点配置信息，以确定结果类型中的构造方法
         final List<ResultMapping> constructorMappings = resultMap.getConstructorResultMappings();
 
-        /*创建结果对象*/
+        // 创建结果对象
 
         if (this.hasTypeHandlerForResultObject(rsw, resultType)) {
-            // 1. 结果对象含有类型处理器，基于类型处理器转换列为对应的 JAVA 类型
+            // 结果对象含有类型处理器，基于类型处理器转换为对应的 JAVA 类型对象
             return this.createPrimitiveResultObject(rsw, resultMap, columnPrefix);
         } else if (!constructorMappings.isEmpty()) {
-            // 2. 存在 <constructor/> 配置，基于对应的构造方法创建对象
+            // 存在 <constructor/> 配置，基于对应的构造方法创建对象
             return this.createParameterizedResultObject(rsw, resultType, constructorMappings, constructorArgTypes, constructorArgs, columnPrefix);
         } else if (resultType.isInterface() || metaType.hasDefaultConstructor()) {
-            // 3. 结果类型为接口或存在默认构造函数，则于无参构造方法创建指定类型对象
+            // 结果类型为接口或存在默认构造函数，则于无参构造方法创建指定类型对象
             return objectFactory.create(resultType);
         } else if (this.shouldApplyAutomaticMappings(resultMap, false)) {
-            // 4. 启用自动映射
+            // 基于自动映射获取对应的构造方法创建结果对象
             return this.createByConstructorSignature(rsw, resultType, constructorArgTypes, constructorArgs, columnPrefix);
         }
         throw new ExecutorException("Do not know how to create an instance of " + resultType);
