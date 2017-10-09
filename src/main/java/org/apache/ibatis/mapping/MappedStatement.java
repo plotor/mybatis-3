@@ -88,6 +88,8 @@ public final class MappedStatement {
     private String databaseId;
     private Log statementLog;
     private LanguageDriver lang;
+
+    /** 对应 resultSets 属性，适用于多结果集，它将列出语句执行后返回的结果集并每个结果集给一个名称，名称是逗号分隔的 */
     private String[] resultSets;
 
     MappedStatement() {

@@ -27,7 +27,7 @@ import java.sql.SQLException;
 public interface ParameterHandler {
 
     /**
-     * 获取输出类型参数
+     * 获取存储过程输出类型参数
      *
      * @return
      */

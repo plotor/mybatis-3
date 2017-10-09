@@ -17,12 +17,18 @@
 package org.apache.ibatis.mapping;
 
 /**
- * 表示存储过程中的参数类型
+ * 存储过程中的参数类型
+ * 关于IN和OUT的区别, 个人理解 IN 类似于值传递, OUT 类似于引用传递
  *
  * @author Clinton Begin
  */
 public enum ParameterMode {
+    /** 输入参数. 在调用存储过程时指定, 默认未指定类型时则是此类型 */
     IN,
+
+    /** 输出参数. 在存储过程里可以被改变, 并且可返回 */
     OUT,
+
+    /** 输入输出参数. IN 和 OUT 结合 */
     INOUT
 }

@@ -38,11 +38,14 @@ import java.util.Map;
 import java.util.Set;
 
 /**
+ * 结果集包装类
+ *
  * @author Iwao AVE!
  */
 public class ResultSetWrapper {
 
     private final ResultSet resultSet;
+
     private final TypeHandlerRegistry typeHandlerRegistry;
 
     /** 结果集中的列名集合 */

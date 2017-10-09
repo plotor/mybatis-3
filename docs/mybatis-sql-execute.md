@@ -371,6 +371,170 @@ public void setParameters(PreparedStatement ps) {
 
 #### 3.3 结果集映射
 
+#### 3.3 结果集映射
+结果集映射是 MyBatis 提供的一个强大且易用的特性，标签 <resultMap/> 的用于配置数据库返回的结果集与 java bean 属性之间的映射关系，前面我们分析了该标签的解析过程，本小节我们一起来探究一下 MyBatis 如何基于这些配置执行结果集映射。
+
+Executor 在调用具体的 StatementHandler 执行数据库查询操作时会针对数据库返回的结果集调用 ResultSetHandler 的相应方法执行结果集到结果对象的映射处理，例如下面的代码块是 PreparedStatementHandler 在执行 query 时的具体逻辑：
+
+```java
+// org.apache.ibatis.executor.statement.PreparedStatementHandler#query
+public <E> List<E> query(Statement statement, ResultHandler resultHandler) throws SQLException {
+    PreparedStatement ps = (PreparedStatement) statement;
+    // 执行数据库操作
+    ps.execute();
+    // 调用 ResultSetHandler#handleResultSets 执行结果集映射
+    return resultSetHandler.<E>handleResultSets(ps);
+}
+```
+
+ResultSetHandler 接口定义了结果集映射所需要的方法，具体如下：
+
+```java
+public interface ResultSetHandler {
+
+    /** 处理结果集，返回结果对象集合 */
+    <E> List<E> handleResultSets(Statement stmt) throws SQLException;
+    /** 处理结果集，返回对应的游标对象 */
+    <E> Cursor<E> handleCursorResultSets(Statement stmt) throws SQLException;
+    /** 处理存储过程中的输出类型参数 */
+    void handleOutputParameters(CallableStatement cs) throws SQLException;
+}
+```
+
+DefaultResultSetHandler 是目前 ResultSetHandler 接口的唯一实现，该实现类的属性定义如下：
+
+```java
+// TODO 此处添加属性定义
+```
+
+MyBatis 为结果集映射提供了灵活的配置，灵活的背后是强（复）大（杂）的映射解析过程，尤其是对于嵌套映射配置的情况，本小节力图对整个映射过程做一个比较详细的介绍，不过还是建议读者自己亲自 debug 跟踪整个执行过程。接下来我们基于普通数据库查询操作结果集映射处理方法 handleResultSets 进行分析，该方法的实现如下：
+
+```java
+public List<Object> handleResultSets(Statement stmt) throws SQLException {
+    ErrorContext.instance().activity("handling results").object(mappedStatement.getId());
+
+    /* 1. 处理普通映射情况 */
+
+    // 用于记录结果集映射的结果对象集合
+    final List<Object> multipleResults = new ArrayList<Object>();
+    int resultSetCount = 0;
+    // 获取第一个结果集
+    ResultSetWrapper rsw = this.getFirstResultSet(stmt);
+    // 获取之前解析得到的封装结果集映射配置的 ResultMap 对象集合
+    List<ResultMap> resultMaps = mappedStatement.getResultMaps();
+    int resultMapCount = resultMaps.size();
+    // 验证，如果结果集不为 null，则 resultMaps 也不能为空
+    this.validateResultMapsCount(rsw, resultMapCount);
+    // 遍历处理所有的结果集，基于结果集映射规则进行映射，并将结果记录到 multipleResults 集合中
+    while (rsw != null && resultMapCount > resultSetCount) {
+        // 遍历获取一个配置的结果集映射对象 <resultMap/>
+        ResultMap resultMap = resultMaps.get(resultSetCount);
+        // 依据结果集映射配置对结果集对象进行解析，并记录到 multipleResults 集合中
+        this.handleResultSet(rsw, resultMap, multipleResults, null);
+        // 获取下一个结果集
+        rsw = this.getNextResultSet(stmt);
+        // 清空 nestedResultObjects
+        this.cleanUpAfterHandlingResultSet();
+        resultSetCount++;
+    }
+
+    /*
+     * 2. 处理多结果集的情况
+     * 常见于存储过程，存在 <select resultSets="aaa,bbb"/> 类似的配置
+     * 针对过程 1 未执行映射的结果集进行映射
+     */
+    String[] resultSets = mappedStatement.getResultSets();
+    if (resultSets != null) {
+        while (rsw != null && resultSetCount < resultSets.length) {
+            // 获取 resultSet 配置名称对应的 ResultMapping 配置
+            ResultMapping parentMapping = nextResultMaps.get(resultSets[resultSetCount]);
+            if (parentMapping != null) {
+                // 获取对应的 <resultMap/> 配置
+                String nestedResultMapId = parentMapping.getNestedResultMapId();
+                ResultMap resultMap = configuration.getResultMap(nestedResultMapId);
+                // 执行结果集映射
+                this.handleResultSet(rsw, resultMap, null, parentMapping);
+            }
+            // 获取下一个结果集
+            rsw = this.getNextResultSet(stmt);
+            // 清空 nestedResultObjects
+            this.cleanUpAfterHandlingResultSet();
+            resultSetCount++;
+        }
+    }
+
+    // multipleResults.size() == 1 ? (List<Object>) multipleResults.get(0) : multipleResults
+    return this.collapseSingleResultList(multipleResults);
+}
+```
+
+handleResultSets 方法的执行过程可以分为两大块执行，其中第一大块可以视为普通的结果映射处理，第二大块则是针对多结果集映射处理，多结果集映射一般用于存储过程，这是一个小众化的需求，所以大部分时候该方法仅执行第一部分的逻辑，这一部分的执行过程如代码注释，其核心在于 handleResultSet 方法，该方法在第二部分中也会被调用，后面会针对该方法进行专门说明。下面就第二部分的触发机制举例说明，能够执行到这里一般都伴随着存储过程，这里以 MySQL 数据库为例创建一个可以返回多结果集的存储过程，其中 t_blog 表和 t_post 表的定义参考官方文档示例：
+
+```sql
+CREATE PROCEDURE usp_demo(IN ID INT)
+    BEGIN
+        SELECT * FROM t_blog WHERE id = ID;
+        SELECT * FROM t_post WHERE id = ID;
+    END;
+```
+
+对应的映射配置如下：
+
+```xml
+<resultMap id="usp_demo_result_map" type="org.zhenchao.mybatis.entity.Blog">
+    <constructor>
+        <idArg column="id" javaType="int"/>
+    </constructor>
+    <result property="title" column="title"/>
+    <collection property="posts" ofType="org.zhenchao.mybatis.entity.Post" resultSet="posts">
+        <id property="id" column="id"/>
+        <result property="subject" column="subject"/>
+    </collection>
+</resultMap>
+
+<select id="uspDemo" resultSets="blogs,posts" resultMap="usp_demo_result_map" statementType="CALLABLE">
+    {CALL usp_demo(#{id, jdbcType=INTEGER, mode=IN})}
+</select>
+```
+
+上述配置中，我们基于 resultSets 属性分别为对应的结果集命名，在执行该存储过程时会先映射 t_blog 对应的结果集，映射的过程中遇到名为 posts 的结果集，这个时候 MyBatis 不会转去解析该结果集，而是会将该结果集记录到 `DefaultResultSetHandler#nextResultMaps` 属性中，等到代码运行到第二部分时再对这些未解析的结果集统一进行映射。
+
+上述过程中处理结果集映射的核心逻辑都位于 handleResultSet 方法中，该方法主要执行的逻辑在于判断当前是否指定了结果集处理器（即前面介绍过的 ResultHandler），如果没有指定则会创建一个默认的结果集处理器（默认采用 DefaultResultHandler 实现），然后调用 handleRowValues 方法执行映射逻辑，handleResultSet 方法的实现如下：
+
+```java
+private void handleResultSet(ResultSetWrapper rsw, ResultMap resultMap, List<Object> multipleResults, ResultMapping parentMapping)
+        throws SQLException {
+    try {
+        if (parentMapping != null) {
+            // 处理多结果集嵌套映射的情况
+            this.handleRowValues(rsw, resultMap, null, RowBounds.DEFAULT, parentMapping);
+        } else {
+            if (resultHandler == null) {
+                // 未指定 ResultHandler，构造默认的处理器
+                DefaultResultHandler defaultResultHandler = new DefaultResultHandler(objectFactory);
+                // 对结果集进行映射，并将映射结果记录到 DefaultResultHandler 对象中
+                this.handleRowValues(rsw, resultMap, defaultResultHandler, rowBounds, null);
+                // 获取保存在 DefaultResultHandler 对象中映射结果，记录到 multipleResults 中
+                multipleResults.add(defaultResultHandler.getResultList());
+            } else {
+                // 用户指定了 ResultHandler，使用指定的处理器进行处理
+                this.handleRowValues(rsw, resultMap, resultHandler, rowBounds, null);
+            }
+        }
+    } finally {
+        // 关闭结果集
+        this.closeResultSet(rsw.getResultSet());
+    }
+}
+```
+
+handleRowValues 方法会判断当前映射配置中是否存在嵌套映射的情况，如果存在嵌套则执行方法 handleRowValuesForNestedResultMap 处理嵌套结果集映射，否则执行 handleRowValuesForSimpleResultMap 方法，处理简单的结果集映射，下面就这两种情况分别进行分析。
+
+##### 3.3.1 简单结果集映射
+
+
+##### 3.3.2 嵌套结果集映射
+
 #### 3.4 Executor 的具体实现
 
 - __BaseExecutor__

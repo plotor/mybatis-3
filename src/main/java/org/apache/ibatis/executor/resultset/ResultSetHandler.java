@@ -24,6 +24,8 @@ import java.sql.Statement;
 import java.util.List;
 
 /**
+ * 结果集映射处理器
+ *
  * @author Clinton Begin
  */
 public interface ResultSetHandler {
@@ -49,7 +51,7 @@ public interface ResultSetHandler {
     <E> Cursor<E> handleCursorResultSets(Statement stmt) throws SQLException;
 
     /**
-     * 处理存储过程中的输出参数
+     * 处理存储过程中的输出类型参数
      *
      * @param cs
      * @throws SQLException
