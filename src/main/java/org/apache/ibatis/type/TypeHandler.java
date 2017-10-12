@@ -29,7 +29,7 @@ import java.sql.SQLException;
 public interface TypeHandler<T> {
 
     /**
-     * 将数据由 JDBC 类型转换成 JAVA 类型
+     * 为 {@link PreparedStatement} 对象绑定参数（将数据由 JAVA 类型转换成 JDBC 类型）
      *
      * @param ps
      * @param i
@@ -40,7 +40,7 @@ public interface TypeHandler<T> {
     void setParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType) throws SQLException;
 
     /**
-     * 将数据由 JAVA 类型转换成 JDBC 类型
+     * 获取结果集中对应的参数值（将数据由 JDBC 类型转换成 JAVA 类型）
      *
      * @param rs
      * @param columnName
@@ -50,7 +50,7 @@ public interface TypeHandler<T> {
     T getResult(ResultSet rs, String columnName) throws SQLException;
 
     /**
-     * 将数据由 JAVA 类型转换成 JDBC 类型
+     * 获取结果集中对应的参数值（将数据由 JDBC 类型转换成 JAVA 类型）
      *
      * @param rs
      * @param columnIndex
@@ -60,7 +60,7 @@ public interface TypeHandler<T> {
     T getResult(ResultSet rs, int columnIndex) throws SQLException;
 
     /**
-     * 将数据由 JAVA 类型转换成 JDBC 类型
+     * 获取存储过程中输出类型的参数值（将数据由 JDBC 类型转换成 JAVA 类型）
      *
      * @param cs
      * @param columnIndex

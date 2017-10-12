@@ -1,20 +1,10 @@
+前面我们曾约定 mybatis-config.xml 为配置文件，SQL 配置文件为映射文件，本文我们将沿用上一篇中的示例程序，一起来探究一下 MyBatis 加载和解析配置文件，即 mybatis-config.xml 的过程。
 
-MyBatis 的基本用法如下（不依赖于 Spring），
+在示例程序中，执行配置文件（包括后面要介绍映射文件）加载与解析的过程位于第一行代码中（如下），其中 Resources 是一个简单的基于类路径获取数据流的工具类，借助该工具类可以获取配置文件 mybatis-config.xml 的 InputStream 对象，然后将其传递给 SqlSessionFactoryBuilder 的 build 方法以构造 SqlSessionFactory。
 
 ```java
-// 获取配置文件对应的输入流
-InputStream stream = Resources.getResourceAsStream("mybatis-config.xml");
-// 解析配置文件 mybatis-config.xml 封装成配置对象, 并构造 SqlSessionFactory 对象返回
-SqlSessionFactory sessionFactory = new SqlSessionFactoryBuilder().build(stream);
-// 获取当前数据源对应的 SqlSession
-SqlSession sqlSession = sessionFactory.openSession();
-UserMapper mapper = sqlSession.getMapper(UserMapper.class);
-User user = mapper.selectByPrimaryKey(1L);
-System.out.println(user.toString());
-sqlSession.close();
+SqlSessionFactory sessionFactory = new SqlSessionFactoryBuilder().build(Resources.getResourceAsStream("mybatis-config.xml"));
 ```
-
-Resources 是一个简单的基于类路径获取数据流的工具类，上述代码借助该工具类获取配置文件 mybatis-config.xml 的 InputStream 对象，然后将其传递给 SqlSessionFactoryBuilder 的 build 方法以构造 SqlSessionFactory。
 
 SqlSessionFactoryBuilder 由名字可知它是一个构造器，用于构造 SqlSessionFactory 对象。按照 MyBatis 的官方文档来说，SqlSessionFactoryBuilder 一旦构造完 SqlSessionFactory 对象便完成了其使命。其实现也比较简单，只有 build 这一个方法及其重载版本，这里选取一个典型的底层重载版本来说明一下：
 
@@ -38,14 +28,14 @@ public SqlSessionFactory build(InputStream inputStream, String environment, Prop
 }
 ```
 
-上述代码抛去异常处理逻辑，核心在于下面两行，第一行用来构造 XMLConfigBuilder 对象，XMLConfigBuilder 可以看作是 mybatis-config.xml 配置文件的解析器，第二行则调用该对象的 parse() 方法对配置文件进行解析，并记录相关配置项到 `org.apache.ibatis.session.Configuration` 对象中，然后基于配置对象创建 SqlSessionFactory 对象返回，Configuration 可以看做是一个 MyBatis 框架内部全局唯一的配置对象，几乎涵盖了所有的配置项，后面我们会经常遇到它。
+上述代码抛去异常处理逻辑，核心在于下面两行，第一行用来构造 XMLConfigBuilder 对象，XMLConfigBuilder 可以看作是 mybatis-config.xml 配置文件的解析器，第二行则调用该对象的 parse() 方法对配置文件进行解析，并记录相关配置项到 `org.apache.ibatis.session.Configuration` 对象中，然后基于配置对象创建 SqlSessionFactory 对象返回，Configuration 可以看做是 MyBatis 框架内部全局唯一的配置类，用于记录几乎所有的配置和映射，以及运行过程中的中间值，后面我们会经常遇到它，现在可以将其理解为 MyBatis 框架的配置中心。
 
 ```java
 1. XMLConfigBuilder parser = new XMLConfigBuilder(inputStream, environment, properties);
 2. return this.build(parser.parse());
 ```
 
-先来看一下 XMLConfigBuilder 对象的构造过程，调用的构造方法版本如下：
+我们来看一下 XMLConfigBuilder 对象的构造过程，调用的构造方法版本如下：
 
 ```java
 public XMLConfigBuilder(InputStream inputStream, String environment, Properties props) {
@@ -74,30 +64,28 @@ private XMLConfigBuilder(XPathParser parser, String environment, Properties prop
 }
 ```
 
-各项参数的意义已经注释的比较清楚，这里针对一些比较不太直观的参数进一步说明。首先来看一下 XPathParser 类型的构造参数，首先我们需要知道的一点是 MyBatis 基于 DOM 树对 XML 配置文件进行解析，而操作 DOM 树的方式则是基于 [XPath(XML Path Language)](https://zh.wikipedia.org/wiki/XPath)，它是一种能够极大简化 XML 操作的路径语言，笔者第一次写程序操作 XML 文件的时候就用到了该语言，确实很简单、直观，也很好用，没有接触过的同学可以针对性的学习一下。XPathParser 基于 XPath 语法对 XML 进行解析，其实现比较简单，这里不展开说明。
+构造方法各参数的释义见代码注释，这里针对一些比较不太直观的参数进一步说明。首先来看一下 XPathParser 类型的构造参数，首先我们需要知道的一点是 MyBatis 基于 DOM 树对 XML 配置文件进行解析，而操作 DOM 树的方式则是基于 [XPath(XML Path Language)](https://zh.wikipedia.org/wiki/XPath)，它是一种能够极大简化 XML 操作的路径语言，笔者第一次写程序操作 XML 文件的时候就用到了该语言，简单、直观，也很好用，没有接触过的同学可以针对性的学习一下。XPathParser 基于 XPath 语法对 XML 进行解析，其实现比较简单，这里不展开说明。
 
-再来看一下 environment 参数，基于配置的框架一般都允许配置多套环境，以应对开发，测试，灰度，以及生产。除了后面会讲到的 <environment/> 配置，MyBatis 也允许我们通过参数指定，我们在调用 `SqlSessionFactoryBuilder#build` 方法构造 SqlSessionFactory 对象时，可以以参数形式指定当前运行的配置环境。
+再来看一下 environment 参数，基于配置的框架一般都允许配置多套环境，以应对开发、测试、灰度，以及生产。除了后面会讲到的 `<environment/>` 配置，MyBatis 也允许我们通过参数指定实际生效的配置环境，我们在调用 `SqlSessionFactoryBuilder#build` 方法时，可以以参数形式指定当前运行的配置环境。
 
-### 相关基础组件
+### 一. 基础组件实现
 
-XMLConfigBuilder 从 BaseBuilder 抽象类派生而来，包括后面会介绍的 XMLMapperBuilder、XMLStatementBuilder，以及 SqlSourceBuilder 等都继承自该抽象类。先来看一下类的字段定义：
+在具体分析配置文件的解析实现之前，先用一节的篇幅介绍一下后续过程依赖的一些运行组件。首先来看一下 BaseBuilder 抽象类，XMLConfigBuilder 从 BaseBuilder 派生而来，包括后面会介绍的 XMLMapperBuilder、XMLStatementBuilder，以及 SqlSourceBuilder 等都继承自该抽象类。先来看一下 BaseBuilder 的字段定义：
 
 ```java
-/** 全局唯一的配置对象(几乎包含全部的配置信息) */
+/** 全局唯一的配置对象 */
 protected final Configuration configuration;
-
 /** 记录别名与类型的映射关系 */
 protected final TypeAliasRegistry typeAliasRegistry;
-
 /** 记录类型对应的类型处理器 */
 protected final TypeHandlerRegistry typeHandlerRegistry;
 ```
 
-BaseBuilder 仅定义了三个字段，各字段的注释见注释，XMLConfigBuilder 构造方法中调用了 BaseBuilder 的构造方法来触发这三个字段的初始化。前面我们提及到的封装全局配置的 Configuration 对象就是在这里定义，接下来我们探究一下属性 typeAliasRegistry 和 typeHandlerRegistry 分别对应的 TypeAliasRegistry 和 TypeHandlerRegistry 类型的作用和实现。
+BaseBuilder 仅定义了三个字段，各字段的作用见代码注释，XMLConfigBuilder 构造方法调用了 BaseBuilder 的构造方法来触发这三个字段的初始化。前面我们提及到的封装全局配置的 Configuration 对象就是在这里定义，接下来我们探究一下属性 typeAliasRegistry 和 typeHandlerRegistry 分别对应的 TypeAliasRegistry 类和 TypeHandlerRegistry 类的作用和实现。
 
-首先来看一下 TypeAliasRegistry，我们都知道在编写 SQL 语句时可以为表名或列明定义别名，从而减少书写量，而 TypeAliasRegistry 是对别名这一机制的延伸，借助于此，我们可以为任意一个类型定义别名。
+首先来看一下 TypeAliasRegistry 类，我们都知道在编写 SQL 语句时可以为表名或列名定义别名（alias），以减少书写量，而 TypeAliasRegistry 是对别名这一机制的延伸，借助于此，我们可以为任意一个类型定义别名。
 
-TypeAliasRegistry 中仅定义了一个 `Map<String, Class<?>>` 类型的属性，充当内存数据库，蕴含别名与具体类型的映射关系。TypeAliasRegistry 持有一个无参数的构造方法，其中只做一件事，即调用 registerAlias 方法为常用类型注册对应的别名，没什么复杂逻辑，具体实现可以参考源码，我们来一起看一下 registerAlias 方法的实现细节：
+TypeAliasRegistry 中仅定义了一个 `Map<String, Class<?>>` 类型的属性，充当内存数据库，蕴含别名与具体类型的映射关系。TypeAliasRegistry 持有一个无参数的构造方法，其中只做一件事，即调用 registerAlias 方法为常用类型注册对应的别名，没什么复杂逻辑，具体实现可以参考源码，我们来一起看一下这里调用的 registerAlias 方法的实现细节：
 
 ```java
 public void registerAlias(String alias, Class<?> value) {
@@ -116,19 +104,21 @@ public void registerAlias(String alias, Class<?> value) {
 }
 ```
 
-整个方法的过程本质上就是将 (alias, value) 这对键值对插入 Map 集合中，只是在插入之前需要保证 alias 不为 null，且不允许相同的别名和类型重复注册。除了这里的单个注册，TypeAliasRegistry 还提供了 registerAlias 方法，允许扫描注册一个 package 下面的所有类或指定类型及其子类，在批量扫描注册时，我们可以利用 `@Alias` 注解为类指定别名，否则 MyBatis 将会以当前类的 simple name 作为类型别名。当然，能够注册就能够获取，resolveAlias 提供了获取指定别名对应类型的能力，代码比较简单，无非就是从 Map 集合中获取指定 key 对应的 value，不再多做撰述。
+整个方法的过程本质上就是将 (alias, value) 键值对写入 Map 集合中，只是在插入之前需要保证 alias 不为 null，且不允许相同的别名和类型重复注册。除了这里的单个注册，TypeAliasRegistry 还提供了 registerAlias 方法，允许扫描注册一个 package 下面的所有类或指定类型及其子类，在批量扫描注册时，我们可以利用 `@Alias` 注解为类指定别名，否则 MyBatis 将会以当前类的 simple name 作为类型别名。当然，能够注册就能够获取，resolveAlias 提供了获取指定别名对应类型的能力，代码比较简单，无非就是从 Map 集合中获取指定 key 对应的 value，不再多做撰述。
 
-再来看一下 TypeHandlerRegistry，在具体分析之前我们必须对 TypeHandler 类有一个了解。我们都知道 JDBC 定义的类型（枚举类 JdbcType 对已有 JDBC 类型进行了封装）与 JAVA 定义的类型并不是完全匹配的，所以我们就需要在这中间进行相互映射，而 TypeHandler 的职责就在于此。TypeHandler 是一个接口，其中定义了 4 个方法：
+再来看一下 TypeHandlerRegistry 类，在开始分析之前我们必须对 TypeHandler 接口有一个了解。我们都知道 JDBC 定义的类型（枚举类 JdbcType 对已有 JDBC 类型进行了封装）与 JAVA 定义的类型并不是完全匹配的，所以我们就需要在这中间进行相互映射，而 TypeHandler 的职责就在于此。TypeHandler 是一个接口，其中定义了 4 个方法：
 
 ```java
 public interface TypeHandler<T> {
 
-    /** 将数据由 JDBC 类型转换成 JAVA 类型 */
+    /** 为 {@link PreparedStatement} 对象绑定参数（将数据由 JAVA 类型转换成 JDBC 类型） */
     void setParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType) throws SQLException;
 
-    /** 下面三个方法用于将数据由 JAVA 类型转换成 JDBC 类型 */
+    /** 获取结果集中对应的参数值（将数据由 JDBC 类型转换成 JAVA 类型） */
     T getResult(ResultSet rs, String columnName) throws SQLException;
     T getResult(ResultSet rs, int columnIndex) throws SQLException;
+
+    /** 获取存储过程中输出类型的参数值（将数据由 JDBC 类型转换成 JAVA 类型） */
     T getResult(CallableStatement cs, int columnIndex) throws SQLException;
 }
 ```
@@ -174,7 +164,7 @@ private void register(Type javaType, JdbcType jdbcType, TypeHandler<?> handler) 
 }
 ```
 
-方法的核心逻辑就是往对应的 Map 集合中注册类型及其类型处理器。MyBatis 基于该方法封装了多层重载版本，其中大部分实现都比较简单，这里就基于注解 `@MappedJdbcTypes` 和注解 `@MappedTypes` 指定对应类型的版本进行说明。
+register 方法的核心逻辑就是往对应的 Map 集合中注册类型及其类型处理器。MyBatis 基于该方法封装了多层重载版本，其中大部分实现都比较简单，这里就基于注解 `@MappedJdbcTypes` 和注解 `@MappedTypes` 指定对应类型的版本进行说明。
 
 ```java
 /**
@@ -256,13 +246,13 @@ public <T> void register(TypeHandler<T> typeHandler) {
 }
 ```
 
-上述方法首先获取并遍历处理 `@MappedTypes` 注解指定的 JAVA 类型集合，如果未指定则会尝试自动发现并注册 TypeHandler 能够处理的 JAVA 类型。能够注册也就能够获取，TypeHandlerRegistry 中提供了 getTypeHandler 方法的多种重载实现，比较简单，不再展开。
+上述方法先是获取并遍历处理 `@MappedTypes` 注解指定的 JAVA 类型集合，如果未指定则会尝试自动发现并注册 TypeHandler 能够处理的 JAVA 类型。能够注册也就能够获取，TypeHandlerRegistry 中提供了 getTypeHandler 方法的多种重载实现，比较简单，不再展开。
 
-回过头我们再来看一下 BaseBuilder 的实现，其中定义了许多方法，但是只要了解上面介绍的 TypeAliasRegistry 和 TypeHandlerRegistry，那么这些方法的含义在理解上应该非常容易，这里就不多做撰述，有兴趣的同学可以去阅读一下源码。
+回过头再来看一下 BaseBuilder 的实现，其中定义了许多方法，但是只要了解上面介绍的 TypeAliasRegistry 和 TypeHandlerRegistry，那么这些方法的作用在理解上应该非常容易，这里就不多做撰述，有兴趣的同学可以参考上面的分析去阅读一下源码。
 
-### 配置文件的解析过程
+### 二. 配置文件的解析过程
 
-完成了 XMLConfigBuilder 对象的构造，下一步会调用其 parse 方法执行配置文件的解析过程，成员变量 parsed 会标记该过程是够被执行，以防止对配置文件的重复解析：
+完成了 XMLConfigBuilder 对象的构造，下一步会调用其 parse 方法执行配置文件的解析，成员变量 parsed 会标记该过程是够被执行，以防止对配置文件的重复解析：
 
 ```java
 public Configuration parse() {
@@ -277,7 +267,7 @@ public Configuration parse() {
 }
 ```
 
-mybatis-config.xml 文件以 `<configuration />` 作为配置根节点，上述方法的核心在于触发调用 parseConfiguration 方法对配置文件的各个元素进行解析，并封装解析结果到 Configuration 对象中，最终返回该配置对象。
+mybatis-config.xml 文件以 `<configuration/>` 作为配置文件根节点，上述方法的核心在于触发调用 parseConfiguration 方法对配置文件的各个元素进行解析，并封装解析结果到 Configuration 对象中，最终返回该配置对象。
 
 ```java
 private void parseConfiguration(XNode root) {
@@ -314,11 +304,11 @@ private void parseConfiguration(XNode root) {
 }
 ```
 
-parseConfiguration 在实现上比较清晰，各配置项的解析过程都采用专门的方法进行封装，下面逐一来探究。其中 <plugins/> 标签用于配置自定义插件，以拦截 SQL 语句的执行过程，相应的配置解析过程暂时先不做说明，留到后面专门解析插件的实现机制时一同讲解。
+parseConfiguration 在实现上比较直观，各配置项的解析过程都采用专门的方法进行封装，接下来逐一进行分析，其中 `<plugins/>` 标签用于配置自定义插件，以拦截 SQL 语句的执行过程，相应的解析过程暂时先不做说明，留到后面专门解析插件的实现机制时一同讲解。
 
-#### 解析 <properties/> 配置
+#### 2.1 标签 <properties/> 的解析机制
 
-先来看一下 <properties/> 配置文件怎么玩，其中配置的配置项可以在整个配置文件中用来动态替换配置的属性值，可以从外部 properties 文件读取，也可以通过 <property/> 标签指定。假设我们希望通过 <properties/> 来指定数据源配置，可以配置如下：
+先来看一下 `<properties/>` 标签怎么玩，其中的配置项可以在整个配置文件中用来动态替换对应的占位符，可以从外部 properties 文件读取，也可以通过 `<property/>` 子标签指定。假设我们希望通过 `<properties/>` 来指定数据源配置，可以配置如下：
 
 ```xml
 <properties resource="datasource.properties">
@@ -344,13 +334,13 @@ password=123456
 </dataSource>
 ```
 
-然后我们基于 OGNL 表达式在其他配置项中使用这些配置值，其中除了 driver 属性值是从 <property/> 中读取的，其余属性值都是从 properties 配置文件中获取，MyBatis 关于属性的读取顺序做如下需求：
+然后我们基于 OGNL 表达式在其他配置项中使用这些配置值，其中除了 driver 属性值是从 `<property/>` 中读取的，其余属性值都是从 properties 配置文件中获取，MyBatis 关于属性的读取顺序做如下规定：
 
 > 1. 在 properties 元素体内指定的属性首先被读取
 > 2. 然后根据 properties 元素中的 resource 属性读取类路径下属性文件或根据 url 属性指定的路径读取属性文件，并覆盖已读取的同名属性
 > 3. 最后读取作为方法参数传递的属性，并覆盖已读取的同名属性
 
-我们来分析一下 <properties/> 标签的解析过程，propertiesElement 方法中实现了对该标签的解析：
+我们来分析一下 `<properties/>` 标签的解析过程，propertiesElement 方法中实现了对该标签的解析：
 
 ```java
 private void propertiesElement(XNode context) throws Exception {
@@ -384,11 +374,11 @@ private void propertiesElement(XNode context) throws Exception {
 }
 ```
 
-由 MyBatis 的官方说明文档我们知道 <properties/> 标签支持以 resource 属性或 url 属性指定配置文件所在的路径，由上述实现我们可以看到 <properties/> 不允许我们同时使用这两个属性元素，否则会抛出异常。再将对应的配置加载成为 Properties 对象之后，方法会合并 Configuration 对象中已有的配置项，并将合并后的结果再次记录到 XPathParser 和 Configuration 对象的 variables 中，以备后用。
+由 MyBatis 的官方说明文档我们知道 `<properties/>` 标签支持以 resource 属性或 url 属性指定配置文件所在的路径，由上述实现我们可以看到 `<properties/>` 不允许我们同时使用这两个属性元素，否则会抛出异常。在将对应的配置加载成为 Properties 对象之后，方法会合并 Configuration 对象中已有的配置项，并将结果再次记录到 XPathParser 和 Configuration 对象的 variables 中，以备后用。
 
-#### 解析 <settings/> 配置
+#### 2.2 标签 <settings/> 的解析机制
 
-再来看一下 <settings/> 标签，MyBatis 通过 <settings/> 标签来提供一些全局性的配置，这些配置会影响 MyBatis 的运行行为，[官方文档](http://www.mybatis.org/mybatis-3/zh/configuration.html#settings) 对这些配置项进行了详细的说明，下面摘自文档的一个完整配置项，其中各项的含义可以参考文档说明：
+再来看一下 `<settings/>` 标签，MyBatis 通过 `<settings/>` 标签来提供一些全局性的配置，这些配置会影响 MyBatis 的运行行为，官方文档对这些配置项进行了详细的说明，下面摘自文档的一个完整配置项，其中各项的含义可以参考文档说明：
 
 ```xml
 <settings>
@@ -434,7 +424,7 @@ private Properties settingsAsProperties(XNode context) {
 
 接下来会调用 loadCustomVfs 方法从 Properties 对象中获取 vfsImpl 属性值（自定义 VFS 的实现的类全限定名，以逗号分隔）并进行记录。最后调用 settingsElement 方法将剩余的配置项记录到 Configuration 对象对应的属性中。
 
-#### 解析 <typeAliases/> 和 <typeHandlers/> 配置
+#### 2.3 标签 <typeAliases/> 和 <typeHandlers/> 的解析机制
 
 前面我们介绍了类 TypeAliasRegistry 和 TypeHandlerRegistry 的作用和实现，而这两个标签分别对应相关的配置，前者用于配置注册类型及其别名的映射关系，后者用于配置注册类型及其类型处理器之间的映射关系。二者在实现上基本相同，所以这里我们仅对 <typeAliases/> 标签的解析过程进行分析，有兴趣的读者可以自己阅读 <typeHandlers/> 的解析源码。
 
@@ -498,7 +488,7 @@ public void registerAliases(String packageName, Class<?> superType) {
 
 如果子节点是 <typeAlias alias="" type=""/> 这种形式，则会获取 alias 和 type，然后基于一定规则注册，具体过程如代码注释。
 
-#### 解析 <objectFactory/> 配置
+#### 2.4 标签 <objectFactory/> 的解析机制
 
 在具体分析 <objectFactory/> 标签的实现细节之前，我们必须先了解与之密切相连的 ObjectFactory 接口，由名字我们可以猜测这是一个工厂类，并且是创建对象的工厂，其定义如下：
 
@@ -578,7 +568,7 @@ private void objectFactoryElement(XNode context) throws Exception {
 上述方法实现了对该标签的解析，具体步骤如代码注释，基本流程就是获取我们在标签中通过 type 指定的自定义对象工厂全限定名和相应属性配置，然后构造自定义对象工厂对象，并将获取到的属性值注入到对象中，最后将对象工厂实例记录到
 Configuration.objectFactory 中。
 
-#### 解析 <reflectorFactory/> 配置
+#### 2.5 标签 <reflectorFactory/> 的解析机制
 
 <reflectorFactory/> 标签用于注册自定义 ReflectorFactory 实现，标签的解析过程与 <objectFactory/> 基本相同，不再展开，本小节我们将探究一下该标签涉及到相关类的作用与实现。ReflectorFactory 顾名思义是一个 Reflector 工厂，其接口定义如下，默认实现为 DefaultReflectorFactory：
 
@@ -676,7 +666,7 @@ public class Reflector {
 
 可以看到 Reflector 是对指定 Class 对象的封装，记录了对应的 Class 类型、属性、getter 和 setter 方法列表等信息，是反射操作的基础，其中的方法实现虽然较长，但是逻辑都比较简单，不再展开。
 
-#### 解析 <objectWrapperFactory/> 配置
+#### 2.6 标签 <objectWrapperFactory/> 的解析机制
 
 <objectWrapperFactory/> 标签用于注册自定义 ObjectWrapperFactory 实现，标签的解析过程与 <objectFactory/> 基本相同，不再展开，本小节我们将探究一下该标签涉及到相关类的作用与实现。
 
@@ -731,7 +721,7 @@ public interface ObjectWrapper {
 
 // TODO 后续再回来考虑是否继续深入分析
 
-#### 解析 <environments/> 配置
+#### 2.7 标签 <environments/> 的解析机制
 
 继续来看一下 <environments/> 标签，该标签用于配置多套数据库环境，典型的应用场景就是在开发、测试、灰度，以及生产等环境通过该标签分别指定相应的配置，当应用需要同时操作多套数据源时，也可以基于该标签分别配置，具体的配置请参阅官方文档，我们来分析一下该标签的解析过程（建议参考具体配置项进行阅读）：
 
@@ -800,7 +790,7 @@ MyBatis 允许我们配置两种类型的事务管理器，即 JDBC 类型和 MA
 
 Transaction 接口定义了事务，并为 JDBC 类型和 MANAGED 类型提供了相应的实现，即 JdbcTransaction 和 ManagedTransaction。正如上面引用的官方文档所说的那样，MyBatis 的事务操作实现实现的比较简单，考虑实际应用中更多是依赖于 Spring 的事务管理器，这里也就不再深究。
 
-#### 解析 <databaseIdProvider/> 配置
+#### 2.8 标签 <databaseIdProvider/> 的解析机制
 
 接着我们来看一下 <databaseIdProvider/> 标签，实际生产环境中可能会存在同时操作多套不同类型数据库的情形，我们知道 SQL 不能完全做到数据库无关，且 MyBatis 暂时还不能做到对上层完全屏蔽底层数据库的实现细节，所以在这种情况下执行 SQL 时，我们需要通过 databaseId 指定 SQL 应用的数据库产品，该标签的解析过程如下所示：
 
@@ -829,7 +819,7 @@ private void databaseIdProviderElement(XNode context) throws Exception {
 }
 ```
 
-#### 解析 <mappers/> 配置
+#### 2.9 标签 <mappers/> 的解析机制
 
 来看最后一个标签，<mappers/> 用于指定相应的映射文件，MyBatis 广受欢迎的一个很重要的原因是支持我们自己写 SQL，这样就可以保证 SQL 的优化可控。抛去注解配置 SQL 的形式（注解对于复杂 SQL 的支持较弱，一般仅用于编写简单的 SQL），对于框架自动生成的 SQL 和用户自定义的 SQL 都记录在映射 XML 文件中，<mappers/> 标签用于指明映射文件所在的路径，我们可以通过 <mapper resource=""> 或 <mapper url=""> 子标签指定映射 XML 文件所在的位置，也可以通过 <mapper class=""> 子标签指定一个或多个具体的 Mapper 接口，甚至可以通过 <package name=""/> 子标签指定映射文件所在的包名，扫描注册。
 
