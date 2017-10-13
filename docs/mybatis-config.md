@@ -426,7 +426,7 @@ private Properties settingsAsProperties(XNode context) {
 
 #### 2.3 标签 <typeAliases/> 和 <typeHandlers/> 的解析机制
 
-前面我们介绍了类 TypeAliasRegistry 和 TypeHandlerRegistry 的作用和实现，而这两个标签分别对应相关的配置，前者用于配置注册类型及其别名的映射关系，后者用于配置注册类型及其类型处理器之间的映射关系。二者在实现上基本相同，所以这里我们仅对 <typeAliases/> 标签的解析过程进行分析，有兴趣的读者可以自己阅读 <typeHandlers/> 的解析源码。
+前面我们介绍了 TypeAliasRegistry 和 TypeHandlerRegistry 两个类的作用和实现，本小节介绍的两个标签分别对应相关的配置，前者用于配置注册类型及其别名的映射关系，后者用于配置注册类型及其类型处理器之间的映射关系。二者在实现上基本相同，所以这里我们仅对 `<typeAliases/>` 标签的解析过程进行分析，有兴趣的读者可以自己阅读 `<typeHandlers/>` 的源码实现。
 
 ```java
 private void typeAliasesElement(XNode parent) {
@@ -463,7 +463,7 @@ private void typeAliasesElement(XNode parent) {
 }
 ```
 
-<typeAliases/> 具备两种配置方式，单一注册与批量扫描，具体示例可以参考官方文档，对应方法实现也需要区分这两种情况，如果是批量扫描，即子标签是 <package/>，则会调用 `TypeAliasRegistry#registerAliases` 方法进行扫描注册：
+`<typeAliases/>` 具备两种配置方式，单一注册与批量扫描，具体示例可以参考官方文档，对应的实现也需要区分这两种情况，如果是批量扫描，即子标签是 `<package/>`，则会调用 `TypeAliasRegistry#registerAliases` 方法进行扫描注册：
 
 ```java
 public void registerAliases(String packageName) {
@@ -486,30 +486,26 @@ public void registerAliases(String packageName, Class<?> superType) {
 }
 ```
 
-如果子节点是 <typeAlias alias="" type=""/> 这种形式，则会获取 alias 和 type，然后基于一定规则注册，具体过程如代码注释。
+如果子节点是 `<typeAlias alias="" type=""/>` 这种形式，则会获取 alias 和 type 属性值，然后基于一定规则进行注册，具体过程如代码注释。
 
 #### 2.4 标签 <objectFactory/> 的解析机制
 
-在具体分析 <objectFactory/> 标签的实现细节之前，我们必须先了解与之密切相连的 ObjectFactory 接口，由名字我们可以猜测这是一个工厂类，并且是创建对象的工厂，其定义如下：
+在具体分析 `<objectFactory/>` 标签的实现细节之前，我们必须先了解与之密切相连的 ObjectFactory 接口，由名字我们可以猜测这是一个工厂类，并且是创建对象的工厂，其定义如下：
 
 ```java
 public interface ObjectFactory {
-
     /** 设置配置信息 */
     void setProperties(Properties properties);
-
     /** 基于无参构造方法创建指定类型对象 */
     <T> T create(Class<T> type);
-
     /** 基于指定的构造参数（类型）选择对应的构造方法创建目标对象 */
     <T> T create(Class<T> type, List<Class<?>> constructorArgTypes, List<Object> constructorArgs);
-
     /** 检测指定类型是否是集合类型 */
     <T> boolean isCollection(Class<T> type);
 }
 ```
 
-各个方法的作用如注释所示，比较简单，DefaultObjectFactory 是该接口的默认实现，我们来重点看一下基于指定构造参数（类型）选择对应的构造方法创建目标对象的实现细节，基于无参构造方法创建对象的方法是对该方法的封装实现：
+各个方法的作用如代码注释，比较简单，DefaultObjectFactory 是该接口的默认实现，我们来重点看一下基于指定构造参数（类型）选择对应的构造方法创建目标对象的实现细节，基于无参构造方法创建对象的方法是对该方法的封装实现：
 
 ```java
 public <T> T create(Class<T> type, List<Class<?>> constructorArgTypes, List<Object> constructorArgs) {
@@ -520,7 +516,7 @@ public <T> T create(Class<T> type, List<Class<?>> constructorArgTypes, List<Obje
 }
 ```
 
-方法首先会判断当前指定的类型是否是接口类型，因为接口类型无法实例化，所以需要选择相应的实现类来代替，例如当我们传递的是一个 List 接口类型时，会返回相应的实现类 ArrayList，我们来看一下 instantiateClass 方法：
+方法首先会判断当前指定的类型是否是接口类型，因为接口类型无法实例化，所以需要选择相应的实现类代替，例如当我们传递的是一个 List 接口类型时，会返回相应的实现类 ArrayList，再来看一下 instantiateClass 方法实现：
 
 ```java
 <T> T instantiateClass(Class<T> type, List<Class<?>> constructorArgTypes, List<Object> constructorArgs) {
@@ -546,7 +542,7 @@ public <T> T create(Class<T> type, List<Class<?>> constructorArgTypes, List<Obje
 }
 ```
 
-instantiateClass 方法主要基于传递的参数以决策具体创建对象的构造方法版本，并基于反射机制创建对象。所以说 ObjectFactory 接口的作用主要是对我们传递的类型进行实例化，默认的实现版本比较简单，如果现有实现不能满足我们的需求，则可以扩展 ObjectFactory 接口，并将相应的自定义实现通过 <objectFactory/> 标签进行注册，具体的使用方式官方文档列举得比较清楚，这里不再画蛇添足，我们继续分析该标签的解析过程。
+instantiateClass 方法主要基于传递的参数以决策具体创建对象的构造方法版本，并基于反射机制创建对象。所以说 ObjectFactory 接口的作用主要是对我们传递的类型进行实例化，默认的实现版本比较简单，如果现有实现不能满足我们的需求，则可以扩展 ObjectFactory 接口，并将相应的自定义实现通过 `<objectFactory/>` 标签进行注册，具体的使用方式官方文档列举得比较清楚，这里不再画蛇添足，我们继续分析该标签的解析过程。
 
 ```java
 private void objectFactoryElement(XNode context) throws Exception {
@@ -565,28 +561,25 @@ private void objectFactoryElement(XNode context) throws Exception {
 }
 ```
 
-上述方法实现了对该标签的解析，具体步骤如代码注释，基本流程就是获取我们在标签中通过 type 指定的自定义对象工厂全限定名和相应属性配置，然后构造自定义对象工厂对象，并将获取到的属性值注入到对象中，最后将对象工厂实例记录到
-Configuration.objectFactory 中。
+上述方法实现了对该标签的解析，具体步骤如代码注释，基本流程就是获取我们在标签中通过 type 指定的自定义对象工厂全限定名和相应属性配置，然后构造自定义对象的工厂对象，并将获取到的属性值注入到对象中，最后将对象工厂实例记录到
+Configuration 对象的 objectFactory 属性中。
 
 #### 2.5 标签 <reflectorFactory/> 的解析机制
 
-<reflectorFactory/> 标签用于注册自定义 ReflectorFactory 实现，标签的解析过程与 <objectFactory/> 基本相同，不再展开，本小节我们将探究一下该标签涉及到相关类的作用与实现。ReflectorFactory 顾名思义是一个 Reflector 工厂，其接口定义如下，默认实现为 DefaultReflectorFactory：
+`<reflectorFactory/>` 标签用于注册自定义 ReflectorFactory 实现，标签的解析过程与 `<objectFactory/>` 基本相同，不再展开，本小节我们将探究一下该标签涉及到相关类的作用与实现。ReflectorFactory 顾名思义是一个 Reflector 工厂，其接口定义如下：
 
 ```java
 public interface ReflectorFactory {
-
     /** 是否缓存 {@link Reflector} 对象 */
     boolean isClassCacheEnabled();
-
     /** 设置是否缓存 {@link Reflector} 对象 */
     void setClassCacheEnabled(boolean classCacheEnabled);
-
     /** 获取指定类型的 {@link Reflector} 对象 */
     Reflector findForClass(Class<?> type);
 }
 ```
 
-各个方法的作用见代码注释，默认实现 DefaultReflectorFactory 通过一个 boolean 变量 classCacheEnabled 来记录是否启用缓存，并通过一个线程安全的 Map 集合 reflectorMap 来记录缓存的 Reflector 对象，前两个方法的实现比较简单，我们来看一下稍微复杂一点的 findForClass 默认实现：
+各个方法的作用见代码注释，默认实现 DefaultReflectorFactory 通过一个 boolean 变量 classCacheEnabled 记录是否启用缓存，并通过一个线程安全的 Map 集合 reflectorMap 记录缓存的 Reflector 对象，前两个方法的实现比较简单，我们来看一下稍微复杂一点的 findForClass 默认实现：
 
 ```java
 public Reflector findForClass(Class<?> type) {
@@ -606,35 +599,27 @@ public Reflector findForClass(Class<?> type) {
 }
 ```
 
-上述方法的作用是获取指定类型的 Reflector 对象，如果启用了缓存，则先尝试从缓存中获取，否则创建新的对象，那么 Reflector 又是什么呢？我们先来看一下 Reflector 的属性和构造方法定义：
+上述方法的目的是获取指定类型的 Reflector 对象，如果启用了缓存，则先尝试从缓存中获取，否则创建新的对象，那么 Reflector 又是什么呢？我们先来看一下 Reflector 的属性和构造方法定义：
 
 ```java
 public class Reflector {
 
     /** 隶属的 Class 类型 */
     private final Class<?> type;
-
     /** 可读属性名称集合 */
     private final String[] readablePropertyNames;
-
     /** 可写属性名称集合 */
     private final String[] writablePropertyNames;
-
     /** 属性对应的 setter 方法（封装成 Invoker 对象） */
     private final Map<String, Invoker> setMethods = new HashMap<String, Invoker>();
-
     /** 属性对应的 getter 方法（封装成 Invoker 对象） */
     private final Map<String, Invoker> getMethods = new HashMap<String, Invoker>();
-
     /** 属性对应 setter 方法的入参类型 */
     private final Map<String, Class<?>> setTypes = new HashMap<String, Class<?>>();
-
     /** 属性对应 getter 方法的返回类型 */
     private final Map<String, Class<?>> getTypes = new HashMap<String, Class<?>>();
-
-    /** 默认构造方法 */
+    /** 记录默认构造方法 */
     private Constructor<?> defaultConstructor;
-
     /** 记录所有的属性名称 */
     private Map<String, String> caseInsensitivePropertyMap = new HashMap<String, String>();
 
@@ -664,66 +649,52 @@ public class Reflector {
 }
 ```
 
-可以看到 Reflector 是对指定 Class 对象的封装，记录了对应的 Class 类型、属性、getter 和 setter 方法列表等信息，是反射操作的基础，其中的方法实现虽然较长，但是逻辑都比较简单，不再展开。
+可以看到 Reflector 是对指定 Class 对象的封装，记录了对应的 Class 类型、属性、getter 和 setter 方法列表等信息，是反射操作的基础，其中的方法实现虽然较长，但是逻辑都比较简单，可以自行阅读源码。
 
 #### 2.6 标签 <objectWrapperFactory/> 的解析机制
 
-<objectWrapperFactory/> 标签用于注册自定义 ObjectWrapperFactory 实现，标签的解析过程与 <objectFactory/> 基本相同，不再展开，本小节我们将探究一下该标签涉及到相关类的作用与实现。
+`<objectWrapperFactory/>` 标签用于注册自定义 ObjectWrapperFactory 实现，标签的解析过程与 `<objectFactory/>` 基本相同，不再展开，本小节我们将探究一下该标签涉及到相关类的作用与实现。
 
-ObjectWrapperFactory 顾名思义是一个 ObjectWrapper 工厂，其默认实现 DefaultObjectWrapperFactory 并没有编写有用的代码逻辑，所以可以忽略，但是借助于 <reflectorFactory/> 标签，我们可以注册自定义的 ObjectWrapperFactory 实现，这里我们重点关注一下 ObjectWrapper 的实现细节。
+ObjectWrapperFactory 顾名思义是一个 ObjectWrapper 工厂，其默认实现 DefaultObjectWrapperFactory 并没有编写有用的代码逻辑，所以可以忽略，但是借助于 `<reflectorFactory/>` 标签，我们可以注册自定义的 ObjectWrapperFactory 实现，这里我们重点关注一下 ObjectWrapper 的实现细节。
 
 ObjectWrapper 是一个接口，用于包装和处理一个对象，其中声明了多个操作对象的方法，包括获取、更新对象属性等，接口定义如下：
 
 ```java
 public interface ObjectWrapper {
-
     /** 获取对应属性的值（对于集合而言，则是获取对应下标的值） */
     Object get(PropertyTokenizer prop);
-
     /** 设置对应属性的值（对于集合而言，则是设置对应下标的值）*/
     void set(PropertyTokenizer prop, Object value);
-
     /** 查找属性表达式对应的属性 */
     String findProperty(String name, boolean useCamelCaseMapping);
-
     /** 获取可读属性名称集合 */
     String[] getGetterNames();
-
     /** 获取可写属性名称集合 */
     String[] getSetterNames();
-
     /** 获取属性表达式指定属性 setter 方法的入参类型 */
     Class<?> getSetterType(String name);
-
     /** 获取属性表达式指定属性 getter 方法的返回类型 */
     Class<?> getGetterType(String name);
-
     /** 判断属性是否有 setter 方法 */
     boolean hasSetter(String name);
-
     /** 判断属性是否有 getter 方法 */
     boolean hasGetter(String name);
-
     /** 为属性表达式指定的属性创建对应的 {@link MetaObject} 对象 */
     MetaObject instantiatePropertyValue(String name, PropertyTokenizer prop, ObjectFactory objectFactory);
-
     /** 是否是 {@link java.util.Collection} 类型 */
     boolean isCollection();
-
     /** 调用 {@link java.util.Collection} 对应的 add 方法 */
     void add(Object element);
-
     /** 调用 {@link java.util.Collection} 对应的 addAll 方法 */
     <E> void addAll(List<E> element);
-
 }
 ```
 
-// TODO 后续再回来考虑是否继续深入分析
+由接口定义可以看出 ObjectWrapper 是为了简化调用方对于对象的操作。
 
 #### 2.7 标签 <environments/> 的解析机制
 
-继续来看一下 <environments/> 标签，该标签用于配置多套数据库环境，典型的应用场景就是在开发、测试、灰度，以及生产等环境通过该标签分别指定相应的配置，当应用需要同时操作多套数据源时，也可以基于该标签分别配置，具体的配置请参阅官方文档，我们来分析一下该标签的解析过程（建议参考具体配置项进行阅读）：
+继续来看一下 `<environments/>` 标签，该标签用于配置多套数据库环境，典型的应用场景就是在开发、测试、灰度，以及生产等环境通过该标签分别指定相应的配置，当应用需要同时操作多套数据源时，也可以基于该标签分别配置，具体的使用请参阅官方文档，我们来分析一下该标签的解析过程（建议参考具体配置项进行阅读）：
 
 ```java
 private void environmentsElement(XNode context) throws Exception {
@@ -755,7 +726,7 @@ private void environmentsElement(XNode context) throws Exception {
 }
 ```
 
-方法首先会判断是否参数指定了 environment，如果没有的话则尝试获取 <environments/> 标签的 default 属性，然后开始遍历寻找指定生效的 <environment/> 配置进行解析，主要是对 <transactionManager/> 和 <dataSource/> 两个子标签的解析，前者用于指定 MyBatis 的事务管理器，后者用于配置数据源。先来看一下事务管理器配置的解析过程：
+方法首先会判断是否参数指定了 environment，如果没有的话则尝试获取 `<environments/>` 标签的 default 属性，然后开始遍历寻找指定生效的 `<environment/>` 配置并进行解析，主要是对 `<transactionManager/>` 和 `<dataSource/>` 两个子标签的解析，前者用于指定 MyBatis 的事务管理器，后者用于配置数据源。先来看一下事务管理器配置的解析过程：
 
 ```java
 private TransactionFactory transactionManagerElement(XNode context) throws Exception {
@@ -782,17 +753,17 @@ MyBatis 允许我们配置两种类型的事务管理器，即 JDBC 类型和 MA
 > - MANAGED – 这个配置几乎没做什么。它从来不提交或回滚一个连接，而是让容器来管理事务的整个生命周期（比如 JEE 应用服务器的上下文）。 默认情况下它会关闭连接，然而一些容器并不希望这样，因此需要将 closeConnection 属性设置为 false 来阻止它默认的关闭行为。例如:
 >
 > ```xml
-<transactionManager type="MANAGED">
-  <property name="closeConnection" value="false"/>
-</transactionManager>
-```
+> <transactionManager type="MANAGED">
+>  <property name="closeConnection" value="false"/>
+> </transactionManager>
+> ```
 > _如果你正在使用 Spring + MyBatis，则没有必要配置事务管理器， 因为 Spring 模块会使用自带的管理器来覆盖前面的配置。_
 
 Transaction 接口定义了事务，并为 JDBC 类型和 MANAGED 类型提供了相应的实现，即 JdbcTransaction 和 ManagedTransaction。正如上面引用的官方文档所说的那样，MyBatis 的事务操作实现实现的比较简单，考虑实际应用中更多是依赖于 Spring 的事务管理器，这里也就不再深究。
 
 #### 2.8 标签 <databaseIdProvider/> 的解析机制
 
-接着我们来看一下 <databaseIdProvider/> 标签，实际生产环境中可能会存在同时操作多套不同类型数据库的情形，我们知道 SQL 不能完全做到数据库无关，且 MyBatis 暂时还不能做到对上层完全屏蔽底层数据库的实现细节，所以在这种情况下执行 SQL 时，我们需要通过 databaseId 指定 SQL 应用的数据库产品，该标签的解析过程如下所示：
+接着我们来看一下 `<databaseIdProvider/>` 标签，实际生产环境中可能会存在同时操作多套不同类型数据库的场景，我们知道 SQL 不能完全做到数据库无关，且 MyBatis 暂时还不能做到对上层完全屏蔽底层数据库的实现细节，所以在这种情况下执行 SQL 时，我们需要通过 databaseId 指定 SQL 应用的数据库产品，该标签的解析过程如下：
 
 ```java
 private void databaseIdProviderElement(XNode context) throws Exception {
@@ -821,7 +792,7 @@ private void databaseIdProviderElement(XNode context) throws Exception {
 
 #### 2.9 标签 <mappers/> 的解析机制
 
-来看最后一个标签，<mappers/> 用于指定相应的映射文件，MyBatis 广受欢迎的一个很重要的原因是支持我们自己写 SQL，这样就可以保证 SQL 的优化可控。抛去注解配置 SQL 的形式（注解对于复杂 SQL 的支持较弱，一般仅用于编写简单的 SQL），对于框架自动生成的 SQL 和用户自定义的 SQL 都记录在映射 XML 文件中，<mappers/> 标签用于指明映射文件所在的路径，我们可以通过 <mapper resource=""> 或 <mapper url=""> 子标签指定映射 XML 文件所在的位置，也可以通过 <mapper class=""> 子标签指定一个或多个具体的 Mapper 接口，甚至可以通过 <package name=""/> 子标签指定映射文件所在的包名，扫描注册。
+来看最后一个标签，`<mappers/>` 用于指定映射文件，MyBatis 广受欢迎的一个很重要的原因是支持我们自己写 SQL，这样就可以保证 SQL 的优化可控。抛去注解配置 SQL 的形式（注解对于复杂 SQL 的支持较弱，一般仅用于编写简单的 SQL），对于框架自动生成的 SQL 和用户自定义的 SQL 都记录在映射 XML 文件中，`<mappers/>` 标签用于指明映射文件所在的路径，我们可以通过 `<mapper resource="">` 或 `<mapper url="">` 子标签指定映射 XML 文件所在的位置，也可以通过 `<mapper class="">` 子标签指定一个或多个具体的 Mapper 接口，甚至可以通过 `<package name=""/>` 子标签指定映射文件所在的包名，扫描注册。
 
 ```java
 private void mapperElement(XNode parent) throws Exception {
@@ -896,11 +867,9 @@ private void mapperElement(XNode parent) throws Exception {
 }
 ```
 
-上述方法用于解析 <mappers/> 标签配置，流程首先会判断当前是否是 package 配置，如果是的话则会获取配置的 package 名称，然后执行扫描注册逻辑。如果是 resource 或 url 配置，则会先获取指定路径映射文件的输入流，然后构造 XMLMapperBuilder 对象对映射文件进行解析。对于 class 配置而言，则会构建接口限定名对应的 Class 对象，并调用 `MapperRegistry#addMapper` 方法执行注册。整个方法的运行逻辑还是比较直观的，其中涉及到对映射文件的解析注册过程，即 XMLMapperBuilder 相关类，将留到下一篇介绍映射文件加载与解析时做专门介绍。
+上述方法用于解析 `<mappers/>` 标签配置，流程首先会判断当前是否是 package 配置，如果是的话则会获取配置的 package 名称，然后执行扫描注册逻辑。如果是 resource 或 url 配置，则会先获取指定路径映射文件的输入流，然后构造 XMLMapperBuilder 对象对映射文件进行解析。对于 class 配置而言，则会构建接口限定名对应的 Class 对象，并调用 `MapperRegistry#addMapper` 方法执行注册。整个方法的运行逻辑还是比较直观的，其中涉及到对映射文件的解析注册过程，即 XMLMapperBuilder 相关类实现，将留到下一篇介绍映射文件加载与解析时做专门介绍。
 
-### Mapper 接口的注册与方法调用
-
-下面来重点介绍一下 MapperRegistry 类及其周边类的作用和实现，我们在使用 MyBatis 框架时需要实现相应数据表的 Mapper 接口（以后统称为 Mapper 接口），其中声明了一系列数据库操作方法，我们可以通过注解的方式在方法上编写 SQL 语句，也可以通过映射 XML 文件的方式编写和关联对应的 SQL。上面解析 <mappers/> 标签实现时我们看到方法通过调用 MapperRegistry 的 addMapper 方法注册相应的 Mapper 接口，包括以 package 配置的方式，在扫描获取到相应的 Mapper 接口之后，也需要通过调用 MapperRegistry 的 addMapper 方法进行注册。MapperRegistry 中定义了两个属性：
+下面来重点介绍一下 MapperRegistry 类及其周边类的作用和实现，我们在使用 MyBatis 框架时需要实现相应数据表对应的 Mapper 接口（以后统称为 Mapper 接口），其中声明了一系列数据库操作方法，我们可以通过注解的方式在方法上编写 SQL 语句，也可以通过映射 XML 文件的方式编写和关联对应的 SQL。上面解析 `<mappers/>` 标签实现时我们看到方法通过调用 MapperRegistry 的 addMapper 方法注册相应的 Mapper 接口，包括以 package 配置的方式，在扫描获取到相应的 Mapper 接口之后，也需要通过调用 MapperRegistry 的 addMapper 方法进行注册。MapperRegistry 中定义了两个属性：
 
 ```java
 /** 全局唯一配置对象 */
@@ -937,337 +906,6 @@ public <T> void addMapper(Class<T> type) {
 }
 ```
 
-我们定义的 Mapper 方法必须是一个接口才会被注册，这主要是为了配合 jdk 内置的动态代理机制，后面会细讲。如果当前 Mapper 接口还没有被注册，则会创建对应的 MapperProxyFactory 对象并记录到 knownMappers 属性中，然后解析 Mapper 接口中注解的 SQL 配置，这一过程留到后面探究映射文件解析过程时再一并介绍，这里我们重点关注一下 Mapper 接口中的方法的触发调用机制。
+Mapper 方法必须是一个接口才会被注册，这主要是为了配合 jdk 内置的动态代理机制。上一篇介绍 MyBatis 的基本运行原理时我们曾说过 MyBatis 通过为 Mapper 接口创建相应的动态代理类以执行具体的数据库操作，这一块的详细实现留到后面介绍 SQL 执行机制时再细讲，这里先知道这样一个概念即可。如果当前 Mapper 接口还没有被注册，则会创建对应的 MapperProxyFactory 对象并记录到 knownMappers 属性中，然后解析 Mapper 接口中注解的 SQL 配置，这一过程留到后面分析映射文件解析过程时再一并介绍，
 
-我们先来复习一下 jdk 内置的动态代理机制，我们知道常用的动态代理除了 jdk 内置的方式还有基于 CGlib 的方式，MyBatis 采用了 jdk 内置的方式来创建 Mapper 接口的动态代理对象。假设现在有一个接口 Mapper 及其实现类如下：
-
-```java
-public interface Mapper {
-    int select();
-}
-
-public class MapperImpl implements Mapper {
-    @Override
-    public int select() {
-        System.out.println("do select.");
-        return 0;
-    }
-}
-```
-
-现在我们希望在方法执行之前打印一行调用日志，基于动态代理的实现方式如下，我们需要定义一个实现了 `java.lang.reflect.InvocationHandler` 接口的代理类，然后在其 invoke 方法中实现增强逻辑：
-
-```java
-public class MapperProxy implements InvocationHandler {
-
-    private Mapper mapper;
-
-    public MapperProxy(Mapper mapper) {
-        this.mapper = mapper;
-    }
-
-    @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        System.out.println("before invoke.");
-        return method.invoke(this.mapper, args);
-    }
-
-}
-```
-
-```java
-// 客户端调用
-Mapper mapper = new MapperImpl();
-Mapper mapperProxy = (Mapper) Proxy.newProxyInstance(
-        mapper.getClass().getClassLoader(), mapper.getClass().getInterfaces(), new MapperProxy(mapper));
-mapperProxy.select();
-```
-
-这也就能够满足我们的需求，回到 MyBatis 框架本身，在 MapperRegistry 的属性 knownMappers 中记录了 Mapper 接口与 MapperProxyFactory 的映射关系，MapperProxyFactory 由名字可以知道是 MapperProxy 的工厂类，其中定义了创建实例化 Mapper 接口代理对象的方法：
-
-```java
-protected T newInstance(MapperProxy<T> mapperProxy) {
-    // 创建Mapper接口对应的动态代理对象（基于原生JDK）
-    return (T) Proxy.newProxyInstance(mapperInterface.getClassLoader(), new Class[] {mapperInterface}, mapperProxy);
-}
-```
-
-我们来看一下 MapperProxy 的实现，该类实现了 InvocationHandler 接口，并对接口中声明的方法 invoke 做了如下实现：
-
-```java
-public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-    // 1. 反射调用Mapper接口中对应的方法
-    try {
-        if (Object.class.equals(method.getDeclaringClass())) {
-            // 如果是一个普通类，直接 invoke
-            return method.invoke(this, args);
-        } else if (this.isDefaultMethod(method)) {
-            // 支持 jdk1.7+ 动态语言
-            return this.invokeDefaultMethod(proxy, method, args);
-        }
-    } catch (Throwable t) {
-        throw ExceptionUtil.unwrapThrowable(t);
-    }
-
-    // 2. 获取方法关联的MapperMethod对象，并执行对应的SQL语句
-    final MapperMethod mapperMethod = this.cachedMapperMethod(method);
-    return mapperMethod.execute(sqlSession, args);
-}
-```
-
-方法首先会调用 Mapper 接口中定义的方法，然后获取方法关联的 MapperMethod 对象，并调用对象的 execute 方法执行方法对应的 SQL 语句。MapperMethod 中定义两个内部类：SqlCommand 和 MethodSignature。其中 SqlCommand 用于封装方法关联的 SQL 语句名称和类型，MethodSignature 则用来封装方法相关的信息。先来看一下 SqlCommand 的具体实现，该类定义了 name 和 type 两个属性，分别用于记录对应 SQL 语句的名称和类型，并在构造方法中实现了相应解析逻辑，并对这两个属性进行初始化：
-
-```java
-public SqlCommand(Configuration configuration, Class<?> mapperInterface, Method method) {
-    final String methodName = method.getName(); // 获取方法名称
-    final Class<?> declaringClass = method.getDeclaringClass(); // 获取方法隶属的Class
-    // 解析SQL语句名称对应的MappedStatement对象
-    MappedStatement ms = this.resolveMappedStatement(mapperInterface, methodName, declaringClass, configuration);
-    if (ms == null) {
-        // 没有找当前方法对应的MappedStatement（封装SQL语句相关信息）
-        if (method.getAnnotation(Flush.class) != null) {
-            // 如果对应方法注解了@Fulsh，则进行标记
-            name = null;
-            type = SqlCommandType.FLUSH;
-        } else {
-            throw new BindingException("Invalid bound statement (not found): " + mapperInterface.getName() + "." + methodName);
-        }
-    } else {
-        // 当前方法存在对应的MappedStatement对象，初始化SqlCommand相关属性
-        name = ms.getId();
-        type = ms.getSqlCommandType();
-        if (type == SqlCommandType.UNKNOWN) {
-            throw new BindingException("Unknown execution method for: " + name);
-        }
-    }
-}
-
-private MappedStatement resolveMappedStatement(
-        Class<?> mapperInterface, String methodName, Class<?> declaringClass, Configuration configuration) {
-    String statementId = mapperInterface.getName() + "." + methodName; // 接口名称.方法名
-    // 检测该SQL名称是否有对应的SQL语句
-    if (configuration.hasStatement(statementId)) {
-        // 存在对应的SQL，则获取封装SQL语句的MappedStatement对象并返回
-        return configuration.getMappedStatement(statementId);
-    } else if (mapperInterface.equals(declaringClass)) {
-        // 已经达到方法隶属的最上层类，仍然没有获取到对应的对应的MappedStatement，查询失败
-        return null;
-    }
-    // 依照继承关系向上递归查找
-    for (Class<?> superInterface : mapperInterface.getInterfaces()) {
-        if (declaringClass.isAssignableFrom(superInterface)) {
-            MappedStatement ms = this.resolveMappedStatement(superInterface, methodName, declaringClass, configuration);
-            if (ms != null) {
-                return ms;
-            }
-        }
-    }
-    return null;
-}
-```
-
-整个解析过程通过代码注释可以了解的比较清楚，需要清楚的一点是这里的 name 的具体形式是 “Mapper 接口名称.方法名”，可以对应到映射文件中的一个具体的 SQL 节点，并不是具体的 SQL 语句，而 type 对应具体的 SQL 类型，这些类型定义在枚举类 SqlCommandType 中。
-
-我们再来看一下 MethodSignature 类的定义，该类用于封装具体一个 Mapper 接口中方法的相关信息，其中方法的实现都比较简单，这里列举一下其属性定义：
-
-```java
-/** 标记返回值是否是 {@link java.util.Collection} 或数组类型 */
-private final boolean returnsMany;
-
-/** 标记返回值是否是 {@link Map} 类型 */
-private final boolean returnsMap;
-
-/** 标记返回值是否是 {@link Void} 类型 */
-private final boolean returnsVoid;
-
-/** 标记返回值是否是 {@link Cursor} 类型 */
-private final boolean returnsCursor;
-
-/** 返回值类型 */
-private final Class<?> returnType;
-
-/** 对于Map类型的返回值，用于标记key的别名 */
-private final String mapKey;
-
-/** 标记参数列表中 {@link ResultHandler} 的位置 */
-private final Integer resultHandlerIndex;
-
-/** 标记参数列表中 {@link RowBounds} 的位置 */
-private final Integer rowBoundsIndex;
-
-/** 参数名称解析器 */
-private final ParamNameResolver paramNameResolver;
-```
-
-上述属性中，重点需要介绍一下 ParamNameResolver 这个类，它的作用在于解析 Mapper 接口方法的参数列表，从而方便我们在方法实参和方法关联的 SQL 语句的参数之间建立起联系，其中一个比较重要的属性是 names，它的定义如下：
-
-```java
-/**
- * 记录参数在参数列表中的索引和参数名称之间的对应关系
- * 参数名称通过 {@link Param} 注解指定，如果没有指定则使用参数索引作为参数名称
- * 需要注意的是，如果参数列表中包含 {@link RowBounds} 或 {@link ResultHandler} 类型的参数，
- * 这两类功能型参数不会记录到集合中，这个时候如果用索引表示参数名称，索引值key与对应的参数名称（实际索引）可能会不一致
- *
- * <p>
- * The key is the index and the value is the name of the parameter.<br />
- * The name is obtained from {@link Param} if specified. When {@link Param} is not specified,
- * the parameter index is used. Note that this index could be different from the actual index
- * when the method has special parameters (i.e. {@link RowBounds} or {@link ResultHandler}).
- * </p>
- * <ul>
- * <li>aMethod(@Param("M") int a, @Param("N") int b) -&gt; {{0, "M"}, {1, "N"}}</li>
- * <li>aMethod(int a, int b) -&gt; {{0, "0"}, {1, "1"}}</li>
- * <li>aMethod(int a, RowBounds rb, int b) -&gt; {{0, "0"}, {2, "1"}}</li>
- * </ul>
- */
-private final SortedMap<Integer, String> names;
-```
-
-我把它的英文注释，以及我理解翻译的中文注释都留在这，应该可以清楚理解该属性的作用。至于为什么需要跳过 RowBounds 和 ResultHandler 两个参数类型，是因为前者用于设置 limit 参数，后者用于设置结果集处理器，所以都不是真正意义上的参数，按照我的话说这两个类型的参数都是功能型的参数。ParamNameResolver 在构造方法中实现了对参数列表的解析：
-
-```java
-public ParamNameResolver(Configuration config, Method method) {
-    // 获取参数类型列表
-    final Class<?>[] paramTypes = method.getParameterTypes();
-    // 获取参数列表上的注解
-    final Annotation[][] paramAnnotations = method.getParameterAnnotations();
-
-    final SortedMap<Integer, String> map = new TreeMap<Integer, String>();
-    int paramCount = paramAnnotations.length;
-
-    // 遍历处理方法所有的参数
-    for (int paramIndex = 0; paramIndex < paramCount; paramIndex++) {
-        if (isSpecialParameter(paramTypes[paramIndex])) {
-            // 跳过RowBounds和ResultHandler类型参数
-            continue;
-        }
-        String name = null;
-        // 查找当前参数是否有 @Param 注解
-        for (Annotation annotation : paramAnnotations[paramIndex]) {
-            if (annotation instanceof Param) {
-                hasParamAnnotation = true;
-                // 获取注解指定的参数名称
-                name = ((Param) annotation).value();
-                break;
-            }
-        }
-        // 没有 @Param 注解
-        if (name == null) {
-            // 基于配置开关决定是否获取参数的真实名称
-            if (config.isUseActualParamName()) {
-                name = this.getActualParamName(method, paramIndex);
-            }
-            // 使用索引名称作为参数名称
-            if (name == null) {
-                name = String.valueOf(map.size());
-            }
-        }
-        map.put(paramIndex, name);
-    }
-    names = Collections.unmodifiableSortedMap(map);
-}
-```
-
-整个过程概括来说就是遍历处理指定方法的参数列表，忽略 RowBounds 和 ResultHandler 类型的参数，并判断参数前面是否有 `@Param` 注解，如果有的话则尝试以注解指定的字符串作为参数名称，否则就会基于配置来决定是否采用参数的真实名称作为这里的参数名，再不济就采用索引值作为参数名称，但是考虑到会忽略 RowBounds 和 ResultHandler 两种类型的参数，但是 names 对应的 key 又是递增的，所以就可能出现在以索引值作为参数名称时，参数名称与对应索引值不一致的情况。例如，假设有一个方法的参数列表为 `(int a, RowBounds rb, int b)`, 因为有 RowBounds 类型夹在中间，如果以索引名称作为参数名称的最终解析结果就是 `{{0, "0"}, {2, "1"}}`，索引与具体的参数名称不一致。
-
-ParamNameResolver 中还有一个比较重要的方法 getNamedParams，用于关联实参和形参列表，其中 args 就是用户传递的实参数组，方法基于前面的参数列表解析结果，将传递的实现与对应的方法参数进行关联，最终记录到 Object 对象中进行返回，具体的映射过程参考下面方法的注释：
-
-```java
-public Object getNamedParams(Object[] args) {
-    final int paramCount = names.size(); // names 记录参数在参数列表中的索引和参数名称之间的对应关系
-    if (args == null || paramCount == 0) {
-        // 无参数，直接返回
-        return null;
-    } else if (!hasParamAnnotation && paramCount == 1) {
-        // 没有 @Param 注解，且只有一个参数
-        return args[names.firstKey()];
-    } else {
-        // 有 @Param 注解，或存在多个参数
-        final Map<String, Object> param = new ParamMap<Object>();
-        int i = 0;
-        // 遍历处理参数列表中的非功能性参数
-        for (Map.Entry<Integer, String> entry : names.entrySet()) {
-            // 记录参数名称与参数值之间的映射关系
-            param.put(entry.getValue(), args[entry.getKey()]);
-            // 构造一般参数名称，即(param1, param2, ...)形式参数
-            final String genericParamName = GENERIC_NAME_PREFIX + String.valueOf(i + 1);
-            // 以“param+索引”的形式再记录一次，如果@Param指定的参数名称就是这种形式则不覆盖
-            if (!names.containsValue(genericParamName)) {
-                param.put(genericParamName, args[entry.getKey()]);
-            }
-            i++;
-        }
-        return param;
-    }
-}
-```
-
-做了这么多的铺垫，我们是时候回来继续探究 MapperMethod 的核心方法 execute，这个方法的作用是基于 SqlSession 类型执行方法对应的 SQL 语句：
-
-```java
-public Object execute(SqlSession sqlSession, Object[] args) {
-    Object result;
-    switch (command.getType()) {
-        case INSERT: {
-            // 关联实参与方法参数列表
-            Object param = method.convertArgsToSqlCommandParam(args);
-            // 调用 SqlSession 的 insert 方法执行插入操作，并对执行结果进行转换
-            result = this.rowCountResult(sqlSession.insert(command.getName(), param));
-            break;
-        }
-        case UPDATE: {
-            // 关联实参与方法参数列表
-            Object param = method.convertArgsToSqlCommandParam(args);
-            // 调用 SqlSession 的 update 方法执行更新操作，并对执行结果进行转换
-            result = this.rowCountResult(sqlSession.update(command.getName(), param));
-            break;
-        }
-        case DELETE: {
-            // 关联实参与方法参数列表
-            Object param = method.convertArgsToSqlCommandParam(args);
-            // 调用 SqlSession 的 delete 方法执行删除操作，并对执行结果进行转换
-            result = this.rowCountResult(sqlSession.delete(command.getName(), param));
-            break;
-        }
-        case SELECT:
-            if (method.returnsVoid() && method.hasResultHandler()) {
-                // 返回值是 void，且指定 ResultHandler 处理结果集
-                this.executeWithResultHandler(sqlSession, args);
-                result = null;
-            } else if (method.returnsMany()) {
-                // 返回值为 Collection 或数组
-                result = this.executeForMany(sqlSession, args);
-            } else if (method.returnsMap()) {
-                // 返回值为 Map 类型
-                result = this.executeForMap(sqlSession, args);
-            } else if (method.returnsCursor()) {
-                // 返回值为 Cursor 类型
-                result = this.executeForCursor(sqlSession, args);
-            } else {
-                // 返回值为对象类型
-                Object param = method.convertArgsToSqlCommandParam(args);
-                result = sqlSession.selectOne(command.getName(), param);
-            }
-            break;
-        case FLUSH:
-            // 如果方法注解了@Flush，则执行 SqlSession.flushStatements()
-            result = sqlSession.flushStatements();
-            break;
-        default:
-            throw new BindingException("Unknown execution method for: " + command.getName());
-    }
-    if (result == null && method.getReturnType().isPrimitive() && !method.returnsVoid()) {
-        throw new BindingException("Mapper method '" + command.getName()
-                + " attempted to return null from a method with a primitive return type (" + method.getReturnType() + ").");
-    }
-    return result;
-}
-```
-
-方法会依据具体的 SQL 类型分而治之，对于 INSERT、UPDATE，以及 DELETE 类型而言，都会先调用 convertArgsToSqlCommandParam 方法关联实参与方法形参，其本质上是调用前面介绍的 getNamedParams 方法，然后就是调用 SqlSession 对应的方法执行数据库操作，并通过方法 rowCountResult 对执行结果进行转换，关于 SqlSession 类型的具体实现留到后面再针对性介绍。对于 SELECT 类型而言，则需要考虑到不同的返回类型，分为 void、Collection、数组、Map、Cursor，以及对象几类情况，这里所做的都是对于参数或返回结果的处理，核心逻辑也都位于 SqlSession 中，在这一层面的实现都比较简单，就不再一一展开。对于 FLUSH 类型来说，官方文档的说明如下：
-
-> 如果这个注解使用了，它将调用定义在 Mapper 接口中的 SqlSession#flushStatements() 方法
-
-而具体的实现我们在这里看到了。
-
-到此，我们算是完成了对配置文件 mybatis-config.xml 文件解析过程的详细探究，甚至内容还有些超纲，但是这些都是对后续知识点的必要铺垫，在下一篇，我们将一起来探究映射文件的详细解析过程。
+到此，我们完成了对配置文件 mybatis-config.xml 解析实现的探究，在下一篇，我们将一起来探究映射文件的加载和解析过程。
