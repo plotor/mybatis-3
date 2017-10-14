@@ -1025,7 +1025,7 @@ public interface SqlNode {
 }
 ```
 
-// TODO 这里添加一张 SqlNode 的 UML 图
+![image](https://github.com/procyon-lotor/procyon-lotor.github.io/blob/master/images/2017/mybatis-sqlnode.png?raw=false)
 
 上图为 SqlNode 的类继承关系图，下面我们逐个来分析其实现，首先来看一下前面多次遇到的 MixedSqlNode，该类型通过一个 `List<SqlNode>` 集合记录包含的 SqlNode 对象，其 apply 方法会遍历该集合并应用记录的各个 SqlNode 对象的 apply 方法，实现比较简单。与 MixedSqlNode 实现类似的还包括 StaticTextSqlNode 类，该类采用一个 String 类型的常量记录非动态的 SQL 节点，其 apply 方法则直接调用 DynamicContext 对象的 appendSql 方法将记录的 SQL 节点添加到一个 StringBuilder 类型属性中（该属性用于记录 SQL 语句片段，当我们最后调用 DynamicContext 对象的 getSql 方法时会调用该属性的 toString 方法拼接记录的 SQL 片段，返回最终完整的 SQL 语句）。
 
@@ -1320,7 +1320,7 @@ public interface SqlSource {
 }
 ```
 
-// TODO 这里添加一张 SqlSource 的 UML 图
+![image](https://github.com/procyon-lotor/procyon-lotor.github.io/blob/master/images/2017/mybatis-sqlsource.png?raw=false)
 
 上述类继承关系图描述了 SqlSource 及其实现类，其中 RawSqlSource 用于封装静态定义的 SQL 语句，DynamicSqlSource 用于封装动态定义的 SQL 语句，ProviderSqlSource 则用于封装注解形式定义的 SQL 语句，不管是动态还是静态的 SQL 语句，经过处理之后都会封装成为 StaticSqlSource 对象，其中包含的 SQL 语句是可以直接执行的。考虑到 MyBatis 目前的使用方式还是配置优先，所以不打算对 ProviderSqlSource 进行展开说明，在开始探究剩余 3 个实现类之前，需要先对这几个类共享的一个核心组件 SqlSourceBuilder 进行分析，SqlSourceBuilder 继承自 BaseBuilder，主要用于解析前面经过 SqlNode 的 apply 方法处理的 SQL 语句中的占位符属性，同时将占位符替换成 “？” 字符串。
 
