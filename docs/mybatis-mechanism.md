@@ -1,4 +1,4 @@
-在前面的分析过程中，我们完成了对 MyBatis 所有配置文件（包括配置文件和映射文件）的探秘。回忆一下我们最开始给出的 MyBatis 小示例（如下），经过前面千山万水的跋涉，我们终于完成了第一行代码的 ... 99% ...（手动滑稽），这最后的 1% 就是创建 SqlSessionFactory 对象，所有的配置解析最后都会封装到 Configuration 对象中，接下去就是调用 SqlSessionFactoryBuilder 对象的 build 方法创建 SqlSessionFactory 对象，这里本质上使用的是 DefaultSqlSessionFactory 实现类进行实例化。
+通过前面两篇文章，我们完成了对 MyBatis 所有配置文件（包括配置文件和映射文件）解析机制的分析。回忆一下我们最开始给出的 MyBatis 小示例（如下），经过前面千山万水的跋涉，我们终于完成了第一行代码的 ... 99% ...（手动滑稽），这最后的 1% 就是创建 SqlSessionFactory 对象，所有的配置解析最后都会封装到 Configuration 对象中，接下去就是调用 SqlSessionFactoryBuilder 对象的 build 方法创建 SqlSessionFactory 对象，这里使用的是 DefaultSqlSessionFactory 实现类进行实例化。<!-- more -->
 
 ```java
 SqlSessionFactory sessionFactory = new SqlSessionFactoryBuilder().build(Resources.getResourceAsStream("mybatis-config.xml"));
@@ -9,11 +9,11 @@ System.out.println(users);
 sqlSession.close();
 ```
 
-SqlSessionFactory 是一个工厂类，用于创建 SqlSession 对象，按照官方文档的说明，SqlSessionFactory 对象一旦被创建就应该在应用的运行期间一直存在，不应该在应用运行期间对其进行清除或重建。调用该工厂的 openSession 方法可以开启一次会话，即创建一个 SqlSession 对象，SqlSession 封装了面向数据库执行 SQL 的所有方法，它不是线程安全的，因此是不能被共享的，所以该对象的最佳的作用域是请求或方法作用域。在上面的示例中，我们用 SqlSession 拿到相应的 Mapper 接口对象（更准确的说是一个动态代理对象），然后执行指定的数据库操作，最后关闭此次对话。
+SqlSessionFactory 是一个工厂类，用于创建 SqlSession 对象，按照官方文档的说明，SqlSessionFactory 对象一旦被创建就应该在应用的运行期间一直存在，不应该在运行期间对其进行清除或重建。调用该工厂的 openSession 方法可以开启一次会话，即创建一个 SqlSession 对象，SqlSession 封装了面向数据库执行 SQL 的所有 API，它不是线程安全的，因此不能被共享，所以该对象的最佳作用域是请求或方法作用域。在上面的示例中，我们用 SqlSession 拿到相应的 Mapper 接口对象（更准确的说是一个动态代理对象），然后执行指定的数据库操作，最后关闭此次对话。
 
-![image](https://github.com/procyon-lotor/procyon-lotor.github.io/blob/master/img/2017/mybatis.png?raw=false)
+<div class="blockquote-center">![image](/images/2017/mybatis.png)</div>
 
-上面的时序图更加详细的描绘了此次执行过程中类之间的调用时序关系，我们简单概括一下这个过程，知道个大概就行，后面我们再来对涉及到的类和接口在源码层面进行分析。概括如下：
+上面的时序图我们在本系列开篇的文章中已经引用过，下面更加详细的说明这幅图所描绘的执行过程中类之间的调用时序关系，稍后我们会对图对涉及到的类和接口在源码层面进行分析，执行时序如下：
 
 > 1. 调用 SqlSessionFactory 对象的 openSession 方法创建 SqlSession 对象，开启一次会话。
 > 2. 调用 SqlSession 对象的 getMapper 方法获取指定 Mapper 接口对象，这里本质上调用的是 Configuration 接口的 getMapper 方法，由前面分析映射文件解析过程时我们知道所有的 Mapper。 接口都会注册到全局唯一的配置对象 Configuration 的 MapperRegistry 类型属性中。
@@ -24,13 +24,13 @@ SqlSessionFactory 是一个工厂类，用于创建 SqlSession 对象，按照�
 > 7. 返回查询结果。
 > 8. 调用当前会话对象 SqlSession 的 close 方法关闭本次会话。
 
-上述过程主要描绘了示例程序中查询多个 ID 用户的执行过程，虽然不能覆盖 MyBatis 执行 SQL 操作的各个方面，但主线上还是能够说明白 MyBatis 针对一次 SQL 执行的大概过程，在下面的篇幅中，我们将一起探究这一整套时序背后的源码实现。
+整个过程主要围绕示例程序中查询多个 ID 用户的数据库操作，虽然不能覆盖 MyBatis 执行 SQL 的各个方面，但主线上还是能够说明白 MyBatis 针对一次 SQL 执行的大概过程，在下面的篇幅中，我们将一起探究这一整套时序背后的源码实现。
 
 ### 一. SQL 会话管理
 
-SqlSession 接口是 MyBatis 对外提供的 API，也是 MyBatis 的核心接口之一，对于使用 MyBatis 框架的人来说对于该接口都不陌生。围绕 SqlSession 接口的类继承关系如下图，其中 DefaultSqlSession 是使用最为频繁的 SqlSession 实现。SqlSessionFactory 是一个工厂接口，其作用是用来创建 SqlSession 对象，该接口中声明了 openSession 方法的多个重载版本（比较简单，不多做撰述），DefaultSqlSessionFactory 是该接口的默认实现，上述示例程序中 SqlSessionFactoryBuilder 的 build 方法就是基于该实现类创建的 SqlSessionFactory 对象。SqlSessionManager 类实现了这两个接口，所以具备创建 SqlSession 对象，以及使用 SqlSession 对象的能力，后面再详细说明。
+SqlSession 接口是 MyBatis 对外提供的 API，也是 MyBatis 的核心接口之一，使用过 MyBatis 框架的人对于该接口都不陌生。围绕 SqlSession 接口的类继承关系如下图，其中 DefaultSqlSession 是使用最为频繁的 SqlSession 实现。SqlSessionFactory 是一个工厂接口，其作用是用来创建 SqlSession 对象，该接口中声明了 openSession 方法的多个重载版本（比较简单，不多做撰述），DefaultSqlSessionFactory 是该接口的默认实现，上述示例程序中 SqlSessionFactoryBuilder 的 build 方法就是基于该实现类创建的 SqlSessionFactory 对象。SqlSessionManager 类实现了这两个接口，所以具备创建 SqlSession 对象，以及使用 SqlSession 对象的能力，后面再详细说明。
 
-![image](https://github.com/procyon-lotor/procyon-lotor.github.io/blob/master/img/2017/mybatis-sqlsession.png?raw=false)
+<div class="blockquote-center">![image](/images/2017/mybatis-sqlsession.png)</div>
 
 SqlSession 接口中的方法定义都比较直观，且文档比较完善，感兴趣的读者可以自行查看源码。我们来看一下 DefaultSqlSession 实现类，该类的属性定义如下：
 
@@ -113,20 +113,20 @@ private final SqlSession sqlSessionProxy;
 private final ThreadLocal<SqlSession> localSqlSession = new ThreadLocal<SqlSession>();
 ```
 
-针对 SqlSessionFactory 接口中定义的功能，均通过包装的 SqlSessionFactory 实现类来完成。对于 SqlSession 接口中定义的功能来说，SqlSessionManager 提供了两种实现方式，如果当前线程已经绑定了一个 SqlSession 对象，那么只要未主动调用 SqlSessionManager 对象的 close 方法，就会一直该线程私有的 SqlSession 对象，否则会在每次执行数据库操作时创建一个新的 SqlSession 对象，并在使用完毕之后关闭会话，相关逻辑位于 SqlSessionInterceptor 类中，这是一个定义在 SqlSessionManager 中的内部类，sqlSessionProxy 属性是基于该类实现的动态代理对象：
+针对 SqlSessionFactory 接口中定义的功能，均通过包装的 SqlSessionFactory 实现类来完成。对于 SqlSession 接口中定义的功能来说，SqlSessionManager 提供了两种实现方式，如果当前线程已经绑定了一个 SqlSession 对象，那么只要未主动调用 SqlSessionManager 对象的 close 方法，就会一直复用该线程私有的 SqlSession 对象，否则会在每次执行数据库操作时创建一个新的 SqlSession 对象，并在使用完毕之后关闭会话，相关逻辑位于 SqlSessionInterceptor 类中，这是一个定义在 SqlSessionManager 中的内部类，sqlSessionProxy 属性是基于该类实现的动态代理对象：
 
 ```java
 this.sqlSessionProxy = (SqlSession) Proxy.newProxyInstance(
-            SqlSessionFactory.class.getClassLoader(), new Class[] {SqlSession.class}, new SqlSessionInterceptor());
+SqlSessionFactory.class.getClassLoader(), new Class[]{SqlSession.class}, new SqlSessionInterceptor());
 ```
 
 SqlSessionInterceptor 类实现如下：
 
 ```java
 private class SqlSessionInterceptor implements InvocationHandler {
-    
+
     public SqlSessionInterceptor() {}
-    
+
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         // 获取当前线程私有的 SqlSession 对象
@@ -163,15 +163,340 @@ private class SqlSessionInterceptor implements InvocationHandler {
 
 ### 二. Mapper 接口动态代理
 
+MyBatis 要求所有的 Mapper 都定义成接口的形式，这主要是为了配合 jdk 自带的动态代理机制，jdk 动态代理要求被代理的类必须抽象出一个接口。我们先来复习一下 jdk 的动态代理机制，常用的动态代理除了 jdk 内置的方式，还有基于 CGlib 等第三方组件的方式，MyBatis 采用了 jdk 内置的方式来创建 Mapper 接口的动态代理对象。假设现在有一个接口 Mapper 及其实现类如下：
+
+```java
+public interface Mapper {
+    int select();
+}
+
+public class MapperImpl implements Mapper {
+    @Override
+    public int select() {
+        System.out.println("do select.");
+        return 0;
+    }
+}
+```
+
+现在我们希望在方法执行之前打印一行调用日志，基于动态代理的实现方式如下，我们需要定义一个实现了 `java.lang.reflect.InvocationHandler` 接口的代理类，然后在其 invoke 方法中实现增强逻辑：
+
+```java
+public class MapperProxy implements InvocationHandler {
+
+    private Mapper mapper;
+
+    public MapperProxy(Mapper mapper) {
+        this.mapper = mapper;
+    }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        System.out.println("before invoke.");
+        return method.invoke(this.mapper, args);
+    }
+
+}
+```
+
+```java
+// 客户端调用
+Mapper mapper = new MapperImpl();
+Mapper mapperProxy = (Mapper) Proxy.newProxyInstance(
+        mapper.getClass().getClassLoader(), mapper.getClass().getInterfaces(), new MapperProxy(mapper));
+mapperProxy.select();
+```
+
+回到 MyBatis 框架本身，我们在执行目标数据库操作时，一般会直接调用目标 Mapper 对象的相应方法。这里框架返回给我们的实际上 Mapper 接口的动态代理类对象，MyBatis 基于 jdk 的动态代理机制实现 Mapper 接口中声明的方法，这其中包含了 SQL 语句获取、参数绑定、缓存操作、数据库操作，以及结果集映射处理等步骤，下面就 Mapper 接口动态代理机制涉及到相关类和方法进行分析。
+
+上一篇在分析映射文件时我们知道在 MapperRegistry 的属性 knownMappers 中记录了 Mapper 接口与 MapperProxyFactory 的映射关系，MapperProxyFactory 由名字可以知道是 MapperProxy 的工厂类，其中定义了创建实例化 Mapper 接口代理对象的方法：
+
+```java
+protected T newInstance(MapperProxy<T> mapperProxy) {
+    // 创建Mapper接口对应的动态代理对象（基于原生JDK）
+    return (T) Proxy.newProxyInstance(mapperInterface.getClassLoader(), new Class[] {mapperInterface}, mapperProxy);
+}
+```
+
+我们来看一下 MapperProxy 的实现，该类实现了 InvocationHandler 接口，并对接口中声明的方法 invoke 做了如下实现：
+
+```java
+public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    // 1. 反射调用Mapper接口中对应的方法
+    try {
+        if (Object.class.equals(method.getDeclaringClass())) {
+            // 如果是一个普通类，直接 invoke
+            return method.invoke(this, args);
+        } else if (this.isDefaultMethod(method)) {
+            // 支持 jdk1.7+ 动态语言
+            return this.invokeDefaultMethod(proxy, method, args);
+        }
+    } catch (Throwable t) {
+        throw ExceptionUtil.unwrapThrowable(t);
+    }
+
+    // 2. 获取方法关联的MapperMethod对象，并执行对应的SQL语句
+    final MapperMethod mapperMethod = this.cachedMapperMethod(method);
+    return mapperMethod.execute(sqlSession, args);
+}
+```
+
+方法首先会调用 Mapper 接口中定义的方法，然后获取方法关联的 MapperMethod 对象，并调用对象的 execute 方法执行方法对应的 SQL 语句。MapperMethod 中定义两个内部类：SqlCommand 和 MethodSignature。其中 SqlCommand 用于封装方法关联的 SQL 语句名称和类型，MethodSignature 则用来封装方法相关的信息。先来看一下 SqlCommand 的具体实现，该类定义了 name 和 type 两个属性，分别用于记录对应 SQL 语句的名称和类型，并在构造方法中实现了相应解析逻辑，并对这两个属性进行初始化：
+
+```java
+public SqlCommand(Configuration configuration, Class<?> mapperInterface, Method method) {
+    final String methodName = method.getName(); // 获取方法名称
+    final Class<?> declaringClass = method.getDeclaringClass(); // 获取方法隶属的Class
+    // 解析SQL语句名称对应的MappedStatement对象
+    MappedStatement ms = this.resolveMappedStatement(mapperInterface, methodName, declaringClass, configuration);
+    if (ms == null) {
+        // 没有找当前方法对应的MappedStatement（封装SQL语句相关信息）
+        if (method.getAnnotation(Flush.class) != null) {
+            // 如果对应方法注解了@Fulsh，则进行标记
+            name = null;
+            type = SqlCommandType.FLUSH;
+        } else {
+            throw new BindingException("Invalid bound statement (not found): " + mapperInterface.getName() + "." + methodName);
+        }
+    } else {
+        // 当前方法存在对应的MappedStatement对象，初始化SqlCommand相关属性
+        name = ms.getId();
+        type = ms.getSqlCommandType();
+        if (type == SqlCommandType.UNKNOWN) {
+            throw new BindingException("Unknown execution method for: " + name);
+        }
+    }
+}
+
+private MappedStatement resolveMappedStatement(
+        Class<?> mapperInterface, String methodName, Class<?> declaringClass, Configuration configuration) {
+    String statementId = mapperInterface.getName() + "." + methodName; // 接口名称.方法名
+    // 检测该SQL名称是否有对应的SQL语句
+    if (configuration.hasStatement(statementId)) {
+        // 存在对应的SQL，则获取封装SQL语句的MappedStatement对象并返回
+        return configuration.getMappedStatement(statementId);
+    } else if (mapperInterface.equals(declaringClass)) {
+        // 已经达到方法隶属的最上层类，仍然没有获取到对应的对应的MappedStatement，查询失败
+        return null;
+    }
+    // 依照继承关系向上递归查找
+    for (Class<?> superInterface : mapperInterface.getInterfaces()) {
+        if (declaringClass.isAssignableFrom(superInterface)) {
+            MappedStatement ms = this.resolveMappedStatement(superInterface, methodName, declaringClass, configuration);
+            if (ms != null) {
+                return ms;
+            }
+        }
+    }
+    return null;
+}
+```
+
+整个解析过程通过代码注释可以了解的比较清楚，需要清楚的一点是这里的 name 的具体形式是 “Mapper 接口名称.方法名”，可以对应到映射文件中的一个具体的 SQL 节点，并不是具体的 SQL 语句，而 type 对应具体的 SQL 类型，这些类型定义在枚举类 SqlCommandType 中。
+
+我们再来看一下 MethodSignature 类的定义，该类用于封装具体一个 Mapper 接口中方法的相关信息，其中方法的实现都比较简单，这里列举一下其属性定义：
+
+```java
+/** 标记返回值是否是 {@link java.util.Collection} 或数组类型 */
+private final boolean returnsMany;
+/** 标记返回值是否是 {@link Map} 类型 */
+private final boolean returnsMap;
+/** 标记返回值是否是 {@link Void} 类型 */
+private final boolean returnsVoid;
+/** 标记返回值是否是 {@link Cursor} 类型 */
+private final boolean returnsCursor;
+/** 返回值类型 */
+private final Class<?> returnType;
+/** 对于Map类型的返回值，用于标记key的别名 */
+private final String mapKey;
+/** 标记参数列表中 {@link ResultHandler} 的位置 */
+prvate final Integer resultHandlerIndex;
+/** 标记参数列表中 {@link RowBounds} 的位置 */
+private final Integer rowBoundsIndex;
+/** 参数名称解析器 */
+private final ParamNameResolver paramNameResolver;
+```
+
+上述属性中，重点需要介绍一下 ParamNameResolver 这个类，它的作用在于解析 Mapper 接口方法的参数列表，从而方便我们在方法实参和方法关联的 SQL 语句的参数之间建立起联系，其中一个比较重要的属性是 names，它的定义如下：
+
+```java
+/**
+ * 记录参数在参数列表中的索引和参数名称之间的对应关系
+ * 参数名称通过 {@link Param} 注解指定，如果没有指定则使用参数索引作为参数名称
+ * 需要注意的是，如果参数列表中包含 {@link RowBounds} 或 {@link ResultHandler} 类型的参数，
+ * 这两类功能型参数不会记录到集合中，这个时候如果用索引表示参数名称，索引值key与对应的参数名称（实际索引）可能会不一致
+ *
+ * <p>
+ * The key is the index and the value is the name of the parameter.<br />
+ * The name is obtained from {@link Param} if specified. When {@link Param} is not specified,
+ * the parameter index is used. Note that this index could be different from the actual index
+ * when the method has special parameters (i.e. {@link RowBounds} or {@link ResultHandler}).
+ * </p>
+ * <ul>
+ * <li>aMethod(@Param("M") int a, @Param("N") int b) -&gt; {{0, "M"}, {1, "N"}}</li>
+ * <li>aMethod(int a, int b) -&gt; {{0, "0"}, {1, "1"}}</li>
+ * <li>aMethod(int a, RowBounds rb, int b) -&gt; {{0, "0"}, {2, "1"}}</li>
+ * </ul>
+ */
+private final SortedMap<Integer, String> names;
+```
+
+我把它的英文注释，以及我理解翻译的中文注释都留在这，应该可以清楚理解该属性的作用。至于为什么需要跳过 RowBounds 和 ResultHandler 两个参数类型，是因为前者用于设置 limit 参数，后者用于设置结果集处理器，所以都不是真正意义上的参数，按照我的话说这两个类型的参数都是功能型的参数。ParamNameResolver 在构造方法中实现了对参数列表的解析：
+
+```java
+public ParamNameResolver(Configuration config, Method method) {
+    // 获取参数类型列表
+    final Class<?>[] paramTypes = method.getParameterTypes();
+    // 获取参数列表上的注解
+    final Annotation[][] paramAnnotations = method.getParameterAnnotations();
+
+    final SortedMap<Integer, String> map = new TreeMap<Integer, String>();
+    int paramCount = paramAnnotations.length;
+
+    // 遍历处理方法所有的参数
+    for (int paramIndex = 0; paramIndex < paramCount; paramIndex++) {
+        if (isSpecialParameter(paramTypes[paramIndex])) {
+            // 跳过RowBounds和ResultHandler类型参数
+            continue;
+        }
+        String name = null;
+        // 查找当前参数是否有 @Param 注解
+        for (Annotation annotation : paramAnnotations[paramIndex]) {
+            if (annotation instanceof Param) {
+                hasParamAnnotation = true;
+                // 获取注解指定的参数名称
+                name = ((Param) annotation).value();
+                break;
+            }
+        }
+        // 没有 @Param 注解
+        if (name == null) {
+            // 基于配置开关决定是否获取参数的真实名称
+            if (config.isUseActualParamName()) {
+                name = this.getActualParamName(method, paramIndex);
+            }
+            // 使用索引名称作为参数名称
+            if (name == null) {
+                name = String.valueOf(map.size());
+            }
+        }
+        map.put(paramIndex, name);
+    }
+    names = Collections.unmodifiableSortedMap(map);
+}
+```
+
+整个过程概括来说就是遍历处理指定方法的参数列表，忽略 RowBounds 和 ResultHandler 类型的参数，并判断参数前面是否有 `@Param` 注解，如果有的话则尝试以注解指定的字符串作为参数名称，否则就会基于配置来决定是否采用参数的真实名称作为这里的参数名，再不济就采用索引值作为参数名称，但是考虑到会忽略 RowBounds 和 ResultHandler 两种类型的参数，但是 names 对应的 key 又是递增的，所以就可能出现在以索引值作为参数名称时，参数名称与对应索引值不一致的情况。例如，假设有一个方法的参数列表为 `(int a, RowBounds rb, int b)`, 因为有 RowBounds 类型夹在中间，如果以索引名称作为参数名称的最终解析结果就是 `{{0, "0"}, {2, "1"}}`，索引与具体的参数名称不一致。
+
+ParamNameResolver 中还有一个比较重要的方法 getNamedParams，用于关联实参和形参列表，其中 args 就是用户传递的实参数组，方法基于前面的参数列表解析结果，将传递的实现与对应的方法参数进行关联，最终记录到 Object 对象中进行返回，具体的映射过程参考下面方法的注释：
+
+```java
+public Object getNamedParams(Object[] args) {
+    final int paramCount = names.size(); // names 记录参数在参数列表中的索引和参数名称之间的对应关系
+    if (args == null || paramCount == 0) {
+        // 无参数，直接返回
+        return null;
+    } else if (!hasParamAnnotation && paramCount == 1) {
+        // 没有 @Param 注解，且只有一个参数
+        return args[names.firstKey()];
+    } else {
+        // 有 @Param 注解，或存在多个参数
+        final Map<String, Object> param = new ParamMap<Object>();
+        int i = 0;
+        // 遍历处理参数列表中的非功能性参数
+        for (Map.Entry<Integer, String> entry : names.entrySet()) {
+            // 记录参数名称与参数值之间的映射关系
+            param.put(entry.getValue(), args[entry.getKey()]);
+            // 构造一般参数名称，即(param1, param2, ...)形式参数
+            final String genericParamName = GENERIC_NAME_PREFIX + String.valueOf(i + 1);
+            // 以“param+索引”的形式再记录一次，如果@Param指定的参数名称就是这种形式则不覆盖
+            if (!names.containsValue(genericParamName)) {
+                param.put(genericParamName, args[entry.getKey()]);
+            }
+            i++;
+        }
+        return param;
+    }
+}
+```
+
+做了这么多的铺垫，我们是时候回来继续探究 MapperMethod 的核心方法 execute，这个方法的作用是基于 SqlSession 对象执行方法对应的 SQL 语句：
+
+```java
+public Object execute(SqlSession sqlSession, Object[] args) {
+    Object result;
+    switch (command.getType()) {
+        case INSERT: {
+            // 关联实参与方法参数列表
+            Object param = method.convertArgsToSqlCommandParam(args);
+            // 调用 SqlSession 的 insert 方法执行插入操作，并对执行结果进行转换
+            result = this.rowCountResult(sqlSession.insert(command.getName(), param));
+            break;
+        }
+        case UPDATE: {
+            // 关联实参与方法参数列表
+            Object param = method.convertArgsToSqlCommandParam(args);
+            // 调用 SqlSession 的 update 方法执行更新操作，并对执行结果进行转换
+            result = this.rowCountResult(sqlSession.update(command.getName(), param));
+            break;
+        }
+        case DELETE: {
+            // 关联实参与方法参数列表
+            Object param = method.convertArgsToSqlCommandParam(args);
+            // 调用 SqlSession 的 delete 方法执行删除操作，并对执行结果进行转换
+            result = this.rowCountResult(sqlSession.delete(command.getName(), param));
+            break;
+        }
+        case SELECT:
+            if (method.returnsVoid() && method.hasResultHandler()) {
+                // 返回值是 void，且指定 ResultHandler 处理结果集
+                this.executeWithResultHandler(sqlSession, args);
+                result = null;
+            } else if (method.returnsMany()) {
+                // 返回值为 Collection 或数组
+                result = this.executeForMany(sqlSession, args);
+            } else if (method.returnsMap()) {
+                // 返回值为 Map 类型
+                result = this.executeForMap(sqlSession, args);
+            } else if (method.returnsCursor()) {
+                // 返回值为 Cursor 类型
+                result = this.executeForCursor(sqlSession, args);
+            } else {
+                // 返回值为对象类型
+                Object param = method.convertArgsToSqlCommandParam(args);
+                result = sqlSession.selectOne(command.getName(), param);
+            }
+            break;
+        case FLUSH:
+            // 如果方法注解了@Flush，则执行 SqlSession.flushStatements()
+            result = sqlSession.flushStatements();
+            break;
+        default:
+            throw new BindingException("Unknown execution method for: " + command.getName());
+    }
+    if (result == null && method.getReturnType().isPrimitive() && !method.returnsVoid()) {
+        throw new BindingException("Mapper method '" + command.getName()
+                + " attempted to return null from a method with a primitive return type (" + method.getReturnType() + ").");
+    }
+    return result;
+}
+```
+
+方法会依据具体的 SQL 类型分而治之，对于 INSERT、UPDATE，以及 DELETE 类型而言，都会先调用 convertArgsToSqlCommandParam 方法关联实参与方法形参，其本质上是调用前面介绍的 getNamedParams 方法，然后就是调用 SqlSession 对应的方法执行数据库操作，并通过方法 rowCountResult 对执行结果进行转换，关于 SqlSession 相关方法的具体实现（本质上就是 SQL 执行器相关方法的具体实现）留到下面再针对性介绍。对于 SELECT 类型而言，则需要考虑到不同的返回类型，分为 void、Collection、数组、Map、Cursor，以及对象几类情况，这里所做的都是对于参数或返回结果的处理，核心逻辑也都位于 SqlSession 中，在这一层面的实现都比较简单，就不再一一展开。对于 FLUSH 类型来说，官方文档的说明如下：
+
+> 如果这个注解使用了，它将调用定义在 Mapper 接口中的 `SqlSession#flushStatements()` 方法
+
+而具体的实现我们在这里看到了。
+
 ### 三. SQL 执行器
 
-Executor 接口定义了基本的数据库操作，前面在介绍 SqlSession 时曾描述 SqlSession 为 MyBatis 对外提供的 API 接口，其中声明了对数据库的基本操作方法，这些操作方法基本上都是对 Executor 操作方法的封装，该接口的定义如下：
+Executor 接口定义了基本的数据库操作，前面在介绍 SqlSession 时曾描述 SqlSession 为 MyBatis 框架对外提供的 API 接口，其中声明了对数据库的基本操作方法，这些操作方法基本上都是对 Executor 操作方法的封装，该接口的定义如下：
 
 ```java
 public interface Executor {
 
     ResultHandler NO_RESULT_HANDLER = null;
-    
+
     /** 执行数据库更新操作：update、insert、delete */
     int update(MappedStatement ms, Object parameter) throws SQLException;
     /** 执行数据库查询操作 */
@@ -207,30 +532,29 @@ public interface Executor {
 
 围绕 Executor 的类继承关系如下图，其中 CachingExecutor 实现类用于为 Executor 提供二级缓存支持。BaseExecutor 抽象类实现了 Executor 接口中声明的所有方法，并抽象了 4 个模板方法交由子类实现，这 4 个方法分别是：doUpdate、doFlushStatements、doQuery，以及 doQueryCursor。SimpleExecutor 继承了 BaseExecutor 抽象类，并为这 4 个模板方法提供了最简单的实现。ReuseExecutor 如其名，提供了重用的特性，用于对 Statement 对象进行重用，以减少 SQL 预编译以及创建和销毁 Statement 对象的开销。BatchExecutor 实现类则提供了对 SQL 语句批量执行的功能，也是针对提升性能的一种策略。
 
-![image](https://github.com/procyon-lotor/procyon-lotor.github.io/blob/master/img/2017/mybatis-executor.png?raw=false)
+<div class="blockquote-center">![image](/images/2017/mybatis-executor.png)</div>
 
 #### 3.1 缓存结构设计
 
-考虑到 Executor 在执行数据库操作时与缓存存在密切关系，所以在具体介绍 Executor 的实现之前我们先来了解一下 MyBatis 的缓存结构设计。我们在谈论数据库架构设计时，往往需要引入缓存的概念，数据库是相对脆弱且缓慢的，所以我们需要避免请求尽量落库。在实际项目架构设计中，我们一般会引入 Redis、Memcached 等组件来对数据进行缓存，MyBatis 作为一个强大的 ORM 框架，也为缓存提供了具体的实现，前面我们在分析配置文件加载过程时曾分析过 MyBatis 缓存组件的具体实现，MyBatis 在数据存储上采用 HashMap 作为基本存储结构，并提供了多种装饰器从多个侧面为缓存增加相应的特性。
+考虑到 Executor 在执行数据库操作时与缓存操作存在密切关系，所以在具体介绍 Executor 的实现之前我们先来了解一下 MyBatis 的缓存结构设计。在谈论数据库架构设计时，往往需要引入缓存的概念，数据库是相对脆弱且缓慢的，所以我们需要避免请求尽量落库。在实际项目架构设计中，我们一般会引入 Redis、Memcached 等组件来对数据进行缓存，MyBatis 作为一个强大的 ORM 框架，也为缓存提供了具体的实现，前面我们在分析配置文件加载过程时曾分析过 MyBatis 缓存组件的具体实现，MyBatis 在数据存储上采用 HashMap 作为基本存储结构，并提供了多种装饰器从多个侧面为缓存增加相应的特性。
 
-在本小节中，我们关注的是 MyBatis 在缓存结构方法的设计，MyBatis 缓存从结构可以分为 __一级缓存__ 和 __二级缓存__，一级缓存相对于二级缓存在粒度上更细，生命周期也更短。
+在本小节中，我们关注的是 MyBatis 在缓存结构方面的设计，MyBatis 缓存从结构上可以分为 __一级缓存__ 和 __二级缓存__，一级缓存相对于二级缓存在粒度上更细，生命周期也更短。
 
-![image](https://github.com/procyon-lotor/procyon-lotor.github.io/blob/master/img/2017/mybatis-cache-construction.png?raw=false)
+<div class="blockquote-center">![image](/images/2017/mybatis-cache-construction.png)</div>
 
+上图描绘了 MyBatis 缓存的结构设计，当我们发起一次数据库查询时，如果启用了二级缓存的话，MyBatis 首先会从二级缓存中检索查询结果，如果缓存不命中则会继续检索一级缓存，只有在这两层缓存都不命中的情况下才会查询数据库，最后会以数据库返回的结果更新一级缓存和二级缓存。
 
-上图简单描绘了 MyBatis 缓存的结构设计，当我们发起一次数据库查询时，如果启用了二级缓存的话，MyBatis 首先会从二级缓存中检索查询结果，如果缓存不命中则会继续检索一级缓存，只有在这两层缓存都不命中的情况下才会查询数据库，最后会以数据库返回的结果更新一级缓存和二级缓存。
+MyBatis 的一级缓存是会话级别的缓存（生命周期与本次会话相同），当我们开启一次会话时，框架会默认为本次会话绑定一个一级缓存对象，此类缓存主要应对在一个会话范围内的冗余查询操作，比如使用同一个 SqlSession 对象同时连续执行多次相同的查询语句，这种情况下每次查询都落库是没有必要的，因为短时间内数据库变化的可能性会很小，但是每次都落库却是一笔不必要的开销。一级缓存默认是开启的，且无需进行配置，即一级缓存对开发者是透明的，如果确实希望干预一级缓存的内在运行，可以借助于插件来实现。
 
-MyBatis 的一级缓存是会话级别的缓存（生命周期与本次会话相同），当我们开启一次会话时，框架会默认为本次会话绑定一个缓存对象，此类缓存主要应对在一个会话范围内的冗余查询操作，比如使用同一个 SqlSession 对象同时连续执行多次相同的查询语句，这种情况下每次查询都落库是没有必要的，因为短时间内数据库变化的可能性会很小，但是每次都落库却是一笔不必要的开销。一级缓存默认是开启的，且无需进行配置，即一级缓存对开发者是透明的，如果确实希望干预一级缓存的内在运行逻辑，可以借助于插件来实现。
-
-对于二级缓存来说，默认也是开启的，MyBatis 提供了相应的治理选项（参考官方文档），二级缓存是应有级别的缓存，随着服务的启动而存在，并随着服务的关闭消亡，前面我们在分析 <cache/> 和 <cache-ref/> 标签时知道一个二级缓存绑定一个 namespace，并且一个引用已定义 namespace 的缓存，即多个 namespace 可以共享同一个缓存。
+对于二级缓存来说，默认也是开启的，MyBatis 提供了相应的治理选项（参考官方文档），二级缓存是应用级别的缓存，随着服务的启动而存在，并随着服务的关闭消亡，前面我们在分析 `<cache/>` 和 `<cache-ref/>` 标签时知道一个二级缓存绑定一个 namespace，并且可以引用一个已定义 namespace 缓存，即多个 namespace 可以共享同一个缓存。
 
 本小节从缓存的整体结构上进行说明，目的在于对 MyBatis 的缓存有一个整体感知，关于一级缓存和二级缓存的具体实现，留到下面介绍 Executor 具体实现时穿插说明。
 
 #### 3.2 StatementHandler 接口定义及其实现
 
-StatementHandler 接口及其实现类是 Executor 实现的基础，可以将其看作是 MyBatis 与数据库操作之间的纽带，实现了 `java.sql.Statement` 对象的获取，SQL 参数绑定与执行的逻辑，其中 BaseStatementHandler 中实现了一些公共的逻辑，而 SimpleStatementHandler、PreparedStatementHandler，以及 CallableStatementHandler 实现类分别对应 Statement、PreparedStatement、CallableStatement 的相关实现，RoutingStatementHandler 并没有添加新的实现，而是对前面三种 StatementHandler 实现类的封装，它会在构造方法中依据当前的 Statement 类型创建对应的 StatementHandler 实现类对象。下图描述了 StatementHandler 接口及其实现类的类继承关系：
+StatementHandler 接口及其实现类是 Executor 实现的基础，可以将其看作是 MyBatis 与数据库操作之间的纽带，实现了 `java.sql.Statement` 对象的获取，以及 SQL 参数绑定与执行的逻辑，其中 BaseStatementHandler 中实现了一些公共的逻辑，而 SimpleStatementHandler、PreparedStatementHandler，以及 CallableStatementHandler 实现类分别对应 Statement、PreparedStatement、CallableStatement 的相关实现，RoutingStatementHandler 并没有添加新的实现，而是对前面三种 StatementHandler 实现类的封装，它会在构造方法中依据当前的 Statement 类型创建对应的 StatementHandler 实现类对象。下图描述了 StatementHandler 接口及其实现类的类继承关系：
 
-![image](https://github.com/procyon-lotor/procyon-lotor.github.io/blob/master/img/2017/mybatis-statementhandler.png?raw=false)
+<div class="blockquote-center">![image](/images/2017/mybatis-statementhandler.png)</div>
 
 StatementHandler 接口定义如下：
 
@@ -367,11 +691,11 @@ public void setParameters(PreparedStatement ps) {
 }
 ```
 
-关于其余几个实现类的实现都比较简单，就不再多做撰述。
+关于其余几个实现类的实现都比较简单，就不再进行分析。
 
 #### 3.3 结果集映射
 
-结果集映射是 MyBatis 提供的一个强大且易用的特性，标签 <resultMap/> 的用于配置数据库返回的结果集与 java bean 属性之间的映射关系，前面我们分析了该标签的解析过程，本小节我们一起来探究一下 MyBatis 如何基于这些配置执行结果集映射。
+结果集映射是 MyBatis 提供的一个强大且易用的特性，标签 `<resultMap/>` 用于配置数据库返回的结果集与 java bean 属性之间的映射关系，前面我们分析了该标签的解析过程，本小节我们一起来探究一下 MyBatis 如何基于这些配置执行结果集映射。
 
 Executor 在调用具体的 StatementHandler 执行数据库查询操作时会针对数据库返回的结果集调用 ResultSetHandler 的相应方法执行结果集到结果对象的映射处理，例如下面的代码块是 PreparedStatementHandler 在执行 query 时的具体逻辑：
 
@@ -400,13 +724,7 @@ public interface ResultSetHandler {
 }
 ```
 
-DefaultResultSetHandler 是目前 ResultSetHandler 接口的唯一实现，该实现类的属性定义如下：
-
-```java
-// TODO 此处添加属性定义
-```
-
-MyBatis 为结果集映射提供了灵活的配置，灵活的背后是强（复）大（杂）的映射解析过程，尤其是对于嵌套映射配置的情况，本小节力图对整个映射过程做一个比较详细的介绍，不过还是建议读者自己亲自 debug 跟踪整个执行过程。接下来我们基于普通数据库查询操作结果集映射处理方法 handleResultSets 进行分析，该方法的实现如下：
+DefaultResultSetHandler 是目前 ResultSetHandler 接口的唯一实现。MyBatis 为结果集映射提供了灵活的配置，灵活的背后是强（复）大（杂）的映射解析过程，尤其是对于嵌套映射配置的情况，本小节力图对整个映射过程做一个比较详细的介绍，不过还是建议读者自己亲自 debug 跟踪整个执行过程。接下来我们基于普通数据库查询操作结果集映射处理方法 handleResultSets 进行分析，该方法的实现如下：
 
 ```java
 public List<Object> handleResultSets(Statement stmt) throws SQLException {
@@ -467,7 +785,7 @@ public List<Object> handleResultSets(Statement stmt) throws SQLException {
 }
 ```
 
-handleResultSets 方法的执行过程可以分为两大块执行，其中第一大块可以视为普通的结果映射处理，第二大块则是针对多结果集映射处理，多结果集映射一般用于存储过程，这是一个小众化的需求，所以大部分时候该方法仅执行第一部分的逻辑，这一部分的执行过程如代码注释，其核心在于 handleResultSet 方法，该方法在第二部分中也会被调用，后面会针对该方法进行专门说明。下面就第二部分的触发机制举例说明，能够执行到这里一般都伴随着存储过程，这里以 MySQL 数据库为例创建一个可以返回多结果集的存储过程，其中 t_blog 表和 t_post 表的定义参考官方文档示例：
+handleResultSets 方法的执行过程可以分为两大块执行，其中第一大块可以视为普通的结果映射处理，第二大块则是针对多结果集映射处理，多结果集映射一般用于存储过程，这是一个小众化的需求，所以大部分时候该方法仅执行第一部分的逻辑，这一部分的执行过程如代码注释，其核心在于 handleResultSet 方法，该方法在第二部分中也会被调用，后面会针对该方法进行专门说明。下面就第二部分的触发机制举例说明，能够执行到这里一般都伴随着存储过程，这里以 MySQL 数据库为例创建一个可以返回多结果集的存储过程，其中 t\_blog 表和 t\_post 表的定义参考官方文档示例：
 
 ```sql
 CREATE PROCEDURE usp_demo(IN ID INT)
@@ -496,7 +814,7 @@ CREATE PROCEDURE usp_demo(IN ID INT)
 </select>
 ```
 
-上述配置中，我们基于 resultSets 属性分别为对应的结果集命名，在执行该存储过程时会先映射 t_blog 对应的结果集，映射的过程中遇到名为 posts 的结果集，这个时候 MyBatis 不会转去解析该结果集，而是会将该结果集记录到 `DefaultResultSetHandler#nextResultMaps` 属性中，等到代码运行到第二部分时再对这些未解析的结果集统一进行映射。
+上述配置中，我们基于 resultSets 属性分别为对应的结果集命名，在执行该存储过程时会先映射 t\_blog 对应的结果集，映射的过程中遇到名为 posts 的结果集，这个时候 MyBatis 不会转去解析该结果集，而是会将该结果集记录到 `DefaultResultSetHandler#nextResultMaps` 属性中，等到代码运行到第二部分时再对这些未解析的结果集统一进行映射。
 
 上述过程中处理结果集映射的核心逻辑都位于 handleResultSet 方法中，该方法主要执行的逻辑在于判断当前是否指定了结果集处理器（即前面介绍过的 ResultHandler），如果没有指定则会创建一个默认的结果集处理器（默认采用 DefaultResultHandler 实现），然后调用 handleRowValues 方法执行映射逻辑，handleResultSet 方法的实现如下：
 
@@ -527,9 +845,7 @@ private void handleResultSet(ResultSetWrapper rsw, ResultMap resultMap, List<Obj
 }
 ```
 
-handleRowValues 方法会判断当前映射配置中是否存在嵌套映射的情况，如果存在嵌套则执行方法 handleRowValuesForNestedResultMap 处理嵌套结果集映射，否则执行 handleRowValuesForSimpleResultMap 方法，处理简单的结果集映射，下面就这两种情况分别进行分析。
-
-##### 3.3.1 简单结果集映射
+handleRowValues 方法会判断当前映射配置中是否存在嵌套映射的情况，如果存在嵌套则执行方法 handleRowValuesForNestedResultMap 处理嵌套结果集映射，否则执行 handleRowValuesForSimpleResultMap 方法处理简单的结果集映射，下面就简单结果集映射的过程进行分析，对于嵌套结果集映射的过程还是强烈建议大家去 debug 跟踪理解，单凭静态文字很难说清楚。
 
 handleRowValuesForSimpleResultMap 方法中实现了对简单（相对于嵌套而言）结果集映射的处理逻辑，方法首先会基于 RowBounds 设置定位具体的处理行，MyBatis 对于 LIMIT 分页的处理是逻辑分页，而不是物理分页，即将符合条件的记录全部载入内存，然后在内存中进行截取，如果希望执行物理分页，可以自己编码插件，或者使用第三方插件，然后会遍历结果集中目标记录行对其逐一映射，handleRowValuesForSimpleResultMap 方法的实现如下：
 
@@ -552,7 +868,7 @@ private void handleRowValuesForSimpleResultMap(
 }
 ```
 
-针对记录行的映射处理，方法首先会获取记录行对应的真正 ResultMap 映射配置对象，因为可能存在配置了 <discriminator/> 标签执行条件映射的情况，如果没有配置该标签则会使用当前实参对应的 ResultMap 对象。<discriminator/> 标签的处理过程位于 resolveDiscriminatedResultMap 方法中，对照配置应该比较容易理解，不再展开。获取到 ResultMap 映射配置对象之后，下一步就可以调用 getRowValue 方法对当前记录行执行映射处理，该方法的实现如下：
+针对记录行的映射处理，方法首先会获取记录行对应的真正 ResultMap 映射配置对象，因为可能存在配置了 `<discriminator/>` 标签执行条件映射的情况，如果没有配置该标签则会使用当前实参对应的 ResultMap 对象。`<discriminator/>` 标签的处理过程位于 resolveDiscriminatedResultMap 方法中，对照配置应该比较容易理解，不再展开。获取到 ResultMap 映射配置对象之后，下一步就可以调用 getRowValue 方法对当前记录行执行映射处理，该方法的实现如下：
 
 ```java
 private Object getRowValue(ResultSetWrapper rsw, ResultMap resultMap) throws SQLException {
@@ -624,7 +940,7 @@ private boolean applyPropertyMappings(
 }
 ```
 
-方法会获取当前结果集对应的映射关系配置和列名集合，然后遍历映射配置，针对嵌套查询、多结果集映射，以及普通映射的情况分别进行处理，这一过程位于 getPropertyMappingValue 方法中，针对嵌套查询的情况稍后专门进行分析，对于多结果集的情况会将对应的结果集配置对象记录到 nextResultMaps 属性中，后面会专门处理（即前面的第二部分代码），针对普通的映射则会基于 TypeHandler 获取属性对应的 java 类型值。也就是我们期望的值，getPropertyMappingValue 方法的实现如下：
+这里首先会获取当前结果集对应的映射关系配置和列名集合，然后遍历映射配置，针对嵌套查询、多结果集映射，以及普通映射的情况分别进行处理，这一过程位于 getPropertyMappingValue 方法中，针对嵌套查询的情况我们后面专门进行分析，对于多结果集的情况会将对应的结果集配置对象记录到 nextResultMaps 属性中，后面会专门处理（即前面的第二部分代码），针对普通的映射则会基于 TypeHandler 获取属性对应的 java 类型值。也就是我们期望的值，getPropertyMappingValue 方法的实现如下：
 
 ```java
 private Object getPropertyMappingValue(
@@ -647,49 +963,6 @@ private Object getPropertyMappingValue(
 ```
 
 最后会调用 storeObject 方法将结果对象记录到 `DefaultResultHandler#list` 属性中，并在 handleResultSet 方法中调用 `DefaultResultHandler#getResultList` 方法拿到这些结果对象。
-
-接下来探究一下嵌套查询的处理过程，一个属性的值可以直接从结果集中映射，也可以由一个具体的 SQL 语句结果对象进行赋值，对于这种嵌套查询的情况由 getNestedQueryMappingValue 方法专门进行处理。嵌套查询往往与延迟加载捆绑在一起，这主要是为了性能的考虑，一个 SQL 语句操作在某些情况下可能是非常昂贵，但不一定是必要的。getNestedQueryMappingValue 方法的实现如下：
-
-```java
-private Object getNestedQueryMappingValue(ResultSet rs, MetaObject metaResultObject, ResultMapping propertyMapping, ResultLoaderMap lazyLoader, String columnPrefix)
-        throws SQLException {
-    final String nestedQueryId = propertyMapping.getNestedQueryId();
-    final String property = propertyMapping.getProperty();
-    // 获取嵌套查询 SQL 对应的 MappedStatement 对象
-    final MappedStatement nestedQuery = configuration.getMappedStatement(nestedQueryId);
-    final Class<?> nestedQueryParameterType = nestedQuery.getParameterMap().getType();
-    // 获取传递给嵌套查询的参数类型和参数值
-    final Object nestedQueryParameterObject = this.prepareParameterForNestedQuery(rs, propertyMapping, nestedQueryParameterType, columnPrefix);
-    Object value = null;
-    if (nestedQueryParameterObject != null) {
-        final BoundSql nestedBoundSql = nestedQuery.getBoundSql(nestedQueryParameterObject);
-        final CacheKey key = executor.createCacheKey(nestedQuery, nestedQueryParameterObject, RowBounds.DEFAULT, nestedBoundSql);
-        // 获取嵌套 SQL 结果类型
-        final Class<?> targetType = propertyMapping.getJavaType();
-        if (executor.isCached(nestedQuery, key)) {
-            // 如果 SQL 在缓存中有对应的结果值，则从缓存中加载结果对象
-            executor.deferLoad(nestedQuery, metaResultObject, property, key, targetType);
-            value = DEFERED; // 返回 DEFERED 对象标识
-        } else {
-            // 缓存不命中，即对应的 SQL 没有对应的缓存结果对象
-            final ResultLoader resultLoader = new ResultLoader(configuration, executor, nestedQuery, nestedQueryParameterObject, targetType, key, nestedBoundSql);
-            if (propertyMapping.isLazy()) {
-                // 开启了延迟加载，则记录 resultLoader 到 ResultLoaderMap 中，需要的时候再执行
-                lazyLoader.addLoader(property, metaResultObject, resultLoader);
-                value = DEFERED;
-            } else {
-                // 没有开启延迟记载，直接执行
-                value = resultLoader.loadResult();
-            }
-        }
-    }
-    return value;
-}
-```
-
-方法首先会获取嵌套 SQL 对应的 MappedStatement 对象，并获取传递给嵌套 SQL 的参数值，后续的处理会尝试先从缓存中获取该 SQL 对应的结果对象，如果缓存命中的话则会注入该属性，如果缓存不命中则会基于是否启用延迟加载的配置来决定是否立即执行当前的 SQL 语句，如果允许延迟加载，则会记录封装该 SQL 及其执行条件的 ResultLoader 对象到 ResultLoaderMap 类型参数中，在 `DefaultResultSetHandler#createResultObject` 方法中会为该参数对象基于动态代理机制（这里的动态代理默认采用 javassist 实现，也可以指定采用 CGLib 实现）创建对应的动态代理对象，并在需要的地方直接执行 SQL 语句返回对应的结果对象。
-
-##### 3.3.2 嵌套结果集映射
 
 #### 3.4 Executor 的具体实现
 
@@ -787,11 +1060,9 @@ public <E> List<E> query(MappedStatement ms, Object parameter, RowBounds rowBoun
 }
 ```
 
-整个 query 方法的执行过程如代码注释，这里针对方法最后涉及到的延迟加载相关逻辑进行进一步说明。
+整个 query 方法的执行过程如代码注释。
 
-// TODO 这里解释说明一下延迟加载
-
-queryCursor 与 query 都是提供数据库查询操作，区别在于前者返回的是一个游标（Cursor）对象，而 query 返回的是已经完成结果集映射的结果对象（数据库查询返回的是一个结果集，这与我们需要的 java bean 之间还差一个映射的过程，这个过程称之为结果集映射，下一节会专门讲解），而游标需要等待用户真正操作其对象时才会执行结果集映射的过程。下面的代码块是 queryCursor 方法的实现，这里并没有引入一级缓存的支持。
+queryCursor 与 query 都是提供数据库查询操作，区别在于前者返回的是一个游标（Cursor）对象，而 query 返回的是已经完成结果集映射的结果对象，游标则需要等待用户真正操作其对象时才会执行结果集映射的过程。下面的代码块是 queryCursor 方法的实现，这里并没有引入一级缓存的支持。
 
 ```java
 public <E> Cursor<E> queryCursor(MappedStatement ms, Object parameter, RowBounds rowBounds) throws SQLException {
@@ -1174,4 +1445,6 @@ public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds r
 
 正如我们一开始对于 MyBatis 缓存结构设计描绘的那样，query 方法会首先在二级缓存中进行检索，如果二级缓存不命中，则会执行被装饰的 Executor 的 query 方法，而 Executor 的实现都自带一级缓存属性，所以接下去会查询一级缓存，只有在一级缓存也不命中的情况下，请求才会落库，并由数据库返回的结果对象更新一级缓存和二级缓存。
 
-那么这里使用的二级缓存对象是在哪里创建的呢，实际上前面我们就定义说二级缓存是应用级别的，所以当应用启动时二级缓存就已经被创建的，这个过程发生在对映射文件进行解析时，在映射文件中我们会按照需要配置一定的 <cache/> 和 <cache-ref> 标签，而在解析 <cache/> 标签时会调用 `MapperBuilderAssistant#useNewCache` 方法创建对应的二级缓存对象。
+那么这里使用的二级缓存对象是在哪里创建的呢，实际上前面我们就定义说二级缓存是应用级别的，所以当应用启动时二级缓存就已经被创建的，这个过程发生在对映射文件进行解析时，在映射文件中我们会按照需要配置一定的 `<cache/>` 和 `<cache-ref>` 标签，而在解析 `<cache/>` 标签时会调用 `MapperBuilderAssistant#useNewCache` 方法创建对应的二级缓存对象。
+
+到这里我们基本上对 SQL 执行设涉及到的方方面面做了一个比较详细的介绍，由于时间仓促，再加上作者水平有限，整个系列的文章中不免有错误之处，还望批评指正！
