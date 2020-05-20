@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>org.apache.ibatis.builder.BaseBuilder</OriginalElement>
+  <nodes>
+    <node x="0.0" y="113.0">org.apache.ibatis.builder.xml.XMLMapperBuilder</node>
+    <node x="636.0" y="113.0">org.apache.ibatis.scripting.xmltags.XMLScriptBuilder</node>
+    <node x="212.0" y="113.0">org.apache.ibatis.builder.xml.XMLConfigBuilder</node>
+    <node x="446.5" y="0.0">org.apache.ibatis.builder.BaseBuilder</node>
+    <node x="424.0" y="113.0">org.apache.ibatis.builder.SqlSourceBuilder</node>
+    <node x="848.0" y="113.0">org.apache.ibatis.builder.xml.XMLStatementBuilder</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="org.apache.ibatis.builder.xml.XMLMapperBuilder" target="org.apache.ibatis.builder.BaseBuilder">
+      <point x="0.0" y="-31.5" />
+      <point x="96.0" y="83.0" />
+      <point x="461.2" y="83.0" />
+      <point x="-58.80000000000001" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.builder.SqlSourceBuilder" target="org.apache.ibatis.builder.BaseBuilder">
+      <point x="0.0" y="-31.5" />
+      <point x="0.0" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.scripting.xmltags.XMLScriptBuilder" target="org.apache.ibatis.builder.BaseBuilder">
+      <point x="0.0" y="-31.5" />
+      <point x="732.0" y="93.0" />
+      <point x="549.4" y="93.0" />
+      <point x="29.399999999999977" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.builder.xml.XMLStatementBuilder" target="org.apache.ibatis.builder.BaseBuilder">
+      <point x="0.0" y="-31.5" />
+      <point x="957.5" y="83.0" />
+      <point x="578.8" y="83.0" />
+      <point x="58.799999999999955" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.builder.xml.XMLConfigBuilder" target="org.apache.ibatis.builder.BaseBuilder">
+      <point x="0.0" y="-31.5" />
+      <point x="308.0" y="93.0" />
+      <point x="490.6" y="93.0" />
+      <point x="-29.399999999999977" y="31.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="533.5" y="88.0" />
+  <SelectedNodes />
+  <Categories />
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+
