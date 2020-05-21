@@ -150,10 +150,13 @@ public class XMLConfigBuilder extends BaseBuilder {
         if (context == null) {
             return new Properties();
         }
+        // 解析 <setting/> 配置，封装成 Properties 对象
         Properties props = context.getChildrenAsProperties();
-        // Check that all settings are known to the configuration class
+        // 构造 Configuration 对应的 MetaClass 对象
         MetaClass metaConfig = MetaClass.forClass(Configuration.class, localReflectorFactory);
+        // 遍历配置项，确保配置项是 MyBatis 可识别的
         for (Object key : props.keySet()) {
+            // 属性对应的 setter 方法不存在
             if (!metaConfig.hasSetter(String.valueOf(key))) {
                 throw new BuilderException("The setting " + key + " is not known.  Make sure you spelled it correctly (case sensitive).");
             }
@@ -183,17 +186,28 @@ public class XMLConfigBuilder extends BaseBuilder {
     private void typeAliasesElement(XNode parent) {
         if (parent != null) {
             for (XNode child : parent.getChildren()) {
+                /*
+                 * 子节点是 <package name=""/>，
+                 * 如果指定了一个包名，MyBatis 会在包名下搜索需要的 Java Bean，并处理 @Alias 注解，
+                 * 在没有注解的情况下，会使用 Bean 的首字母小写的简单名称作为它的别名。
+                 */
                 if ("package".equals(child.getName())) {
                     String typeAliasPackage = child.getStringAttribute("name");
                     configuration.getTypeAliasRegistry().registerAliases(typeAliasPackage);
-                } else {
-                    String alias = child.getStringAttribute("alias");
-                    String type = child.getStringAttribute("type");
+                }
+                // 子节点是 <typeAlias alias="" type=""/> 配置
+                else {
+                    String alias = child.getStringAttribute("alias"); // 别名
+                    String type = child.getStringAttribute("type"); // 类型限定名
                     try {
+                        // 获取类型对应的 Class 对象
                         Class<?> clazz = Resources.classForName(type);
+                        // 未配置 alias，先尝试获取 @Alias 注解，如果没有则使用类的简单名称
                         if (alias == null) {
                             typeAliasRegistry.registerAlias(clazz);
-                        } else {
+                        }
+                        // 配置了 alias，使用该 alias 进行注册
+                        else {
                             typeAliasRegistry.registerAlias(alias, clazz);
                         }
                     } catch (ClassNotFoundException e) {
@@ -218,10 +232,15 @@ public class XMLConfigBuilder extends BaseBuilder {
 
     private void objectFactoryElement(XNode context) throws Exception {
         if (context != null) {
+            // 获取 type 属性配置，对应自定义对象工厂类
             String type = context.getStringAttribute("type");
+            // 获取 <property/> 子标签列表，封装成 Properties 对象
             Properties properties = context.getChildrenAsProperties();
+            // 实例化自定义工厂类对象
             ObjectFactory factory = (ObjectFactory) this.resolveClass(type).getDeclaredConstructor().newInstance();
+            // 设置属性配置
             factory.setProperties(properties);
+            // 填充 Configuration 对象
             configuration.setObjectFactory(factory);
         }
     }
@@ -244,21 +263,29 @@ public class XMLConfigBuilder extends BaseBuilder {
 
     private void propertiesElement(XNode context) throws Exception {
         if (context != null) {
+            // 获取 <property/> 子标签列表，封装成 Properties 对象
             Properties defaults = context.getChildrenAsProperties();
+            // 支持通过 resource 或 url 属性指定外部配置文件
             String resource = context.getStringAttribute("resource");
             String url = context.getStringAttribute("url");
+            // 这两种类型的配置是互斥的
             if (resource != null && url != null) {
                 throw new BuilderException("The properties element cannot specify both a URL and a resource based property file reference.  Please specify one or the other.");
             }
+            // 从类路径加载配置文件
             if (resource != null) {
                 defaults.putAll(Resources.getResourceAsProperties(resource));
-            } else if (url != null) {
+            }
+            // 从 url 指定位置加载配置文件
+            else if (url != null) {
                 defaults.putAll(Resources.getUrlAsProperties(url));
             }
+            // 合并已有的配置项
             Properties vars = configuration.getVariables();
             if (vars != null) {
                 defaults.putAll(vars);
             }
+            // 填充 XPathParser 和 Configuration 对象
             parser.setVariables(defaults);
             configuration.setVariables(defaults);
         }

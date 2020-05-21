@@ -127,13 +127,15 @@ public class TypeAliasRegistry {
     }
 
     public void registerAliases(String packageName, Class<?> superType) {
+        // 获取指定 package 下所有 superType 类型及其子类型
         ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<>();
         resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
         Set<Class<? extends Class<?>>> typeSet = resolverUtil.getClasses();
+        // 遍历处理扫描到的类型
         for (Class<?> type : typeSet) {
-            // Ignore inner classes and interfaces (including package-info.java)
-            // Skip also inner classes. See issue #6
+            // 忽略内部类、接口，以及抽象类
             if (!type.isAnonymousClass() && !type.isInterface() && !type.isMemberClass()) {
+                // 尝试获取类的 @Alias 注解，如果没有则使用类的简单名称的小写形式作为别名进行注册
                 this.registerAlias(type);
             }
         }
