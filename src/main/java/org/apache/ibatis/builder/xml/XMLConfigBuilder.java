@@ -322,14 +322,21 @@ public class XMLConfigBuilder extends BaseBuilder {
 
     private void environmentsElement(XNode context) throws Exception {
         if (context != null) {
+            // 未使用指定 environment 参数，获取 default 属性值
             if (environment == null) {
                 environment = context.getStringAttribute("default");
             }
+            // 遍历处理 <environment/> 子标签
             for (XNode child : context.getChildren()) {
+                // 获取 id 属性配置
                 String id = child.getStringAttribute("id");
+                // 处理指定的 <environment/> 配置
                 if (this.isSpecifiedEnvironment(id)) {
+                    // 处理 <transactionManager/> 子标签
                     TransactionFactory txFactory = this.transactionManagerElement(child.evalNode("transactionManager"));
+                    // 处理 <dataSource/> 子标签
                     DataSourceFactory dsFactory = this.dataSourceElement(child.evalNode("dataSource"));
+                    // 基于解析到的值构造 Environment 对象填充 Configuration 对象
                     DataSource dataSource = dsFactory.getDataSource();
                     Environment.Builder environmentBuilder = new Environment.Builder(id)
                         .transactionFactory(txFactory)
@@ -348,10 +355,14 @@ public class XMLConfigBuilder extends BaseBuilder {
             if ("VENDOR".equals(type)) {
                 type = "DB_VENDOR";
             }
+            // 获取 <property/> 子标签列表，封装成 Properties 对象
             Properties properties = context.getChildrenAsProperties();
+            // 构造 DatabaseIdProvider 对象，并填充属性
             databaseIdProvider = (DatabaseIdProvider) this.resolveClass(type).getDeclaredConstructor().newInstance();
             databaseIdProvider.setProperties(properties);
         }
+
+        // 获取当前数据库环境对应的 databaseId，并记录到 Configuration 对象中，以备后用
         Environment environment = configuration.getEnvironment();
         if (environment != null && databaseIdProvider != null) {
             String databaseId = databaseIdProvider.getDatabaseId(environment.getDataSource());
@@ -361,8 +372,11 @@ public class XMLConfigBuilder extends BaseBuilder {
 
     private TransactionFactory transactionManagerElement(XNode context) throws Exception {
         if (context != null) {
+            // 获取事务管理器类型配置：JDBC or MANAGED
             String type = context.getStringAttribute("type");
+            // 获取 <property/> 子标签列表，封装成 Properties 对象
             Properties props = context.getChildrenAsProperties();
+            // 构造对应的 TransactionFactory 对象，并填充属性值
             TransactionFactory factory = (TransactionFactory) this.resolveClass(type).getDeclaredConstructor().newInstance();
             factory.setProperties(props);
             return factory;
@@ -411,25 +425,68 @@ public class XMLConfigBuilder extends BaseBuilder {
     private void mapperElement(XNode parent) throws Exception {
         if (parent != null) {
             for (XNode child : parent.getChildren()) {
+                /*
+                 * 配置了 package 属性，从指定包下面扫描注册
+                 * <mappers>
+                 *      <package name="org.mybatis.builder"/>
+                 * </mappers>
+                 */
                 if ("package".equals(child.getName())) {
                     String mapperPackage = child.getStringAttribute("name");
+                    // 调用 MapperRegistry 进行注册
                     configuration.addMappers(mapperPackage);
-                } else {
+                }
+                // 处理 resource、url，以及 class 配置的场景
+                else {
                     String resource = child.getStringAttribute("resource");
                     String url = child.getStringAttribute("url");
                     String mapperClass = child.getStringAttribute("class");
+                    /*
+                     * <!-- Using classpath relative resources -->
+                     * <mappers>
+                     *      <mapper resource="org/mybatis/builder/AuthorMapper.xml"/>
+                     *      <mapper resource="org/mybatis/builder/BlogMapper.xml"/>
+                     *      <mapper resource="org/mybatis/builder/PostMapper.xml"/>
+                     * </mappers>
+                     */
                     if (resource != null && url == null && mapperClass == null) {
                         ErrorContext.instance().resource(resource);
+                        // 从类路径获取文件输入流
                         InputStream inputStream = Resources.getResourceAsStream(resource);
+                        // 构建 XMLMapperBuilder 对象
                         XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
+                        // 执行映射文件解析
                         mapperParser.parse();
-                    } else if (resource == null && url != null && mapperClass == null) {
+                    }
+                    /*
+                     * <!-- Using url fully qualified paths -->
+                     * <mappers>
+                     *      <mapper url="file:///var/mappers/AuthorMapper.xml"/>
+                     *      <mapper url="file:///var/mappers/BlogMapper.xml"/>
+                     *      <mapper url="file:///var/mappers/PostMapper.xml"/>
+                     * </mappers>
+                     */
+                    else if (resource == null && url != null && mapperClass == null) {
                         ErrorContext.instance().resource(url);
+                        // 基于 url 获取配置文件输入流
                         InputStream inputStream = Resources.getUrlAsStream(url);
+                        // 构建 XMLMapperBuilder 对象
                         XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url, configuration.getSqlFragments());
+                        // 执行映射文件解析
                         mapperParser.parse();
-                    } else if (resource == null && url == null && mapperClass != null) {
+                    }
+                    /*
+                     * <!-- Using mapper interface classes -->
+                     * <mappers>
+                     *      <mapper class="org.mybatis.builder.AuthorMapper"/>
+                     *      <mapper class="org.mybatis.builder.BlogMapper"/>
+                     *      <mapper class="org.mybatis.builder.PostMapper"/>
+                     * </mappers>
+                     */
+                    else if (resource == null && url == null && mapperClass != null) {
+                        // 获取指定接口 Class 对象
                         Class<?> mapperInterface = Resources.classForName(mapperClass);
+                        // 调用 MapperRegistry 进行注册
                         configuration.addMapper(mapperInterface);
                     } else {
                         throw new BuilderException("A mapper element may only specify a url, resource or class, but not more than one.");
