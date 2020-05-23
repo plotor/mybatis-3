@@ -278,38 +278,53 @@ public class XMLMapperBuilder extends BaseBuilder {
 
     private ResultMap resultMapElement(XNode resultMapNode, List<ResultMapping> additionalResultMappings, Class<?> enclosingType) {
         ErrorContext.instance().activity("processing " + resultMapNode.getValueBasedIdentifier());
+        // 获取 type 属性，支持 type、ofType、resultType，以及 javaType 配置
         String type = resultMapNode.getStringAttribute("type",
             resultMapNode.getStringAttribute("ofType",
                 resultMapNode.getStringAttribute("resultType",
                     resultMapNode.getStringAttribute("javaType"))));
+        // 基于 TypeAliasRegistry 解析 type 属性对应的 Class 对象
         Class<?> typeClass = this.resolveClass(type);
         if (typeClass == null) {
             typeClass = this.inheritEnclosingType(resultMapNode, enclosingType);
         }
         Discriminator discriminator = null;
+        // 用于记录解析结果
         List<ResultMapping> resultMappings = new ArrayList<>(additionalResultMappings);
+        // 获取并遍历处理所有的子标签
         List<XNode> resultChildren = resultMapNode.getChildren();
         for (XNode resultChild : resultChildren) {
+            // 解析 <constructor/> 子标签
             if ("constructor".equals(resultChild.getName())) {
                 this.processConstructorElement(resultChild, typeClass, resultMappings);
-            } else if ("discriminator".equals(resultChild.getName())) {
+            }
+            // 解析 <discriminator/> 子标签
+            else if ("discriminator".equals(resultChild.getName())) {
                 discriminator = this.processDiscriminatorElement(resultChild, typeClass, resultMappings);
-            } else {
+            }
+            // 解析 <association/>、<collection/>、<id/> 和 <result/> 子标签
+            else {
                 List<ResultFlag> flags = new ArrayList<>();
                 if ("id".equals(resultChild.getName())) {
                     flags.add(ResultFlag.ID);
                 }
+                // 创建 ResultMapping 对象，并记录到 resultMappings 集合中
                 resultMappings.add(this.buildResultMappingFromContext(resultChild, typeClass, flags));
             }
         }
-        String id = resultMapNode.getStringAttribute("id",
-            resultMapNode.getValueBasedIdentifier());
+        // 获取 id 属性（标识当前 <resultMap/> 标签），如果没有指定则基于规则生成一个
+        String id = resultMapNode.getStringAttribute("id", resultMapNode.getValueBasedIdentifier());
+        // 获取 extends 属性，用于指定继承关系
         String extend = resultMapNode.getStringAttribute("extends");
+        // 获取 autoMapping 属性，是否启用自动映射（自动查找与列名相同的属性名称，并执行注入）
         Boolean autoMapping = resultMapNode.getBooleanAttribute("autoMapping");
-        ResultMapResolver resultMapResolver = new ResultMapResolver(builderAssistant, id, typeClass, extend, discriminator, resultMappings, autoMapping);
+        ResultMapResolver resultMapResolver = new ResultMapResolver(
+            builderAssistant, id, typeClass, extend, discriminator, resultMappings, autoMapping);
         try {
+            // 创建 ResultMap 对象，记录到 Configuration#resultMaps 中
             return resultMapResolver.resolve();
         } catch (IncompleteElementException e) {
+            // 记录解析异常的 <resultMap/> 标签，后续尝试二次解析
             configuration.addIncompleteResultMap(resultMapResolver);
             throw e;
         }
@@ -328,47 +343,68 @@ public class XMLMapperBuilder extends BaseBuilder {
         return null;
     }
 
-    private void processConstructorElement(XNode resultChild, Class<?> resultType, List<ResultMapping> resultMappings) {
+    private void processConstructorElement(
+        XNode resultChild, Class<?> resultType, List<ResultMapping> resultMappings) {
+        // 获取并处理 <constructor/> 标签中配置的子标签列表
         List<XNode> argChildren = resultChild.getChildren();
         for (XNode argChild : argChildren) {
             List<ResultFlag> flags = new ArrayList<>();
             flags.add(ResultFlag.CONSTRUCTOR);
             if ("idArg".equals(argChild.getName())) {
-                flags.add(ResultFlag.ID);
+                flags.add(ResultFlag.ID); // 添加 ID 标识
             }
+            // 创建 ResultMapping 对象，记录到 resultMappings 集合中
             resultMappings.add(this.buildResultMappingFromContext(argChild, resultType, flags));
         }
     }
 
-    private Discriminator processDiscriminatorElement(XNode context, Class<?> resultType, List<ResultMapping> resultMappings) {
+    private Discriminator processDiscriminatorElement(
+        XNode context, Class<?> resultType, List<ResultMapping> resultMappings) {
+        // 获取相关属性配置
         String column = context.getStringAttribute("column");
         String javaType = context.getStringAttribute("javaType");
         String jdbcType = context.getStringAttribute("jdbcType");
         String typeHandler = context.getStringAttribute("typeHandler");
+        // 基于 TypeAliasRegistry 解析类型属性对应的 Class 对象
         Class<?> javaTypeClass = this.resolveClass(javaType);
         Class<? extends TypeHandler<?>> typeHandlerClass = this.resolveClass(typeHandler);
         JdbcType jdbcTypeEnum = this.resolveJdbcType(jdbcType);
+        // 遍历处理子标签列表
         Map<String, String> discriminatorMap = new HashMap<>();
         for (XNode caseChild : context.getChildren()) {
             String value = caseChild.getStringAttribute("value");
-            String resultMap = caseChild.getStringAttribute("resultMap", this.processNestedResultMappings(caseChild, resultMappings, resultType));
+            String resultMap = caseChild.getStringAttribute("resultMap",
+                // 嵌套解析
+                this.processNestedResultMappings(caseChild, resultMappings, resultType));
             discriminatorMap.put(value, resultMap);
         }
-        return builderAssistant.buildDiscriminator(resultType, column, javaTypeClass, jdbcTypeEnum, typeHandlerClass, discriminatorMap);
+        // 创建 Discriminator 对象，本质上依赖于 Discriminator 的构造器构建
+        return builderAssistant.buildDiscriminator(
+            resultType, column, javaTypeClass, jdbcTypeEnum, typeHandlerClass, discriminatorMap);
     }
 
     private void sqlElement(List<XNode> list) {
         if (configuration.getDatabaseId() != null) {
+            // 获取当前运行数据库环境对应的 databaseId
             this.sqlElement(list, configuration.getDatabaseId());
         }
         this.sqlElement(list, null);
     }
 
     private void sqlElement(List<XNode> list, String requiredDatabaseId) {
+        // 遍历处理所有的 <sql/> 标签
         for (XNode context : list) {
+            // 获取 databaseId 属性
             String databaseId = context.getStringAttribute("databaseId");
+            // 获取 id 属性
             String id = context.getStringAttribute("id");
+            // 格式化 id，格式：namespace.id
             id = builderAssistant.applyCurrentNamespace(id, false);
+            /*
+             * 判断 databaseId 与当前 Configuration 中配置的是否一致：
+             * 1. 如果指定了 requiredDatabaseId，则 databaseId 必须和 requiredDatabaseId 一致
+             * 2. 如果没有指定了 requiredDatabaseId，则 databaseId 必须为 null
+             */
             if (this.databaseIdMatchesCurrent(id, databaseId, requiredDatabaseId)) {
                 sqlFragments.put(id, context);
             }
@@ -390,7 +426,9 @@ public class XMLMapperBuilder extends BaseBuilder {
         return context.getStringAttribute("databaseId") == null;
     }
 
-    private ResultMapping buildResultMappingFromContext(XNode context, Class<?> resultType, List<ResultFlag> flags) {
+    private ResultMapping buildResultMappingFromContext(
+        XNode context, Class<?> resultType, List<ResultFlag> flags) {
+        // 获取对应的属性配置
         String property;
         if (flags.contains(ResultFlag.CONSTRUCTOR)) {
             property = context.getStringAttribute("name");
@@ -401,6 +439,7 @@ public class XMLMapperBuilder extends BaseBuilder {
         String javaType = context.getStringAttribute("javaType");
         String jdbcType = context.getStringAttribute("jdbcType");
         String nestedSelect = context.getStringAttribute("select");
+        // 存在嵌套配置，嵌套解析
         String nestedResultMap = context.getStringAttribute("resultMap", () ->
             this.processNestedResultMappings(context, Collections.emptyList(), resultType));
         String notNullColumn = context.getStringAttribute("notNullColumn");
@@ -409,10 +448,16 @@ public class XMLMapperBuilder extends BaseBuilder {
         String resultSet = context.getStringAttribute("resultSet");
         String foreignColumn = context.getStringAttribute("foreignColumn");
         boolean lazy = "lazy".equals(context.getStringAttribute("fetchType", configuration.isLazyLoadingEnabled() ? "lazy" : "eager"));
+        // 基于 TypeAliasRegistry 解析 JavaType 对应的 Class 对象
         Class<?> javaTypeClass = this.resolveClass(javaType);
+        // 基于 TypeAliasRegistry 解析 TypeHandler 对应的 Class 对象
         Class<? extends TypeHandler<?>> typeHandlerClass = this.resolveClass(typeHandler);
+        // 获取 JdbcType 对应的具体枚举对象
         JdbcType jdbcTypeEnum = this.resolveJdbcType(jdbcType);
-        return builderAssistant.buildResultMapping(resultType, property, column, javaTypeClass, jdbcTypeEnum, nestedSelect, nestedResultMap, notNullColumn, columnPrefix, typeHandlerClass, flags, resultSet, foreignColumn, lazy);
+        // 创建 ResultMapping 对象
+        return builderAssistant.buildResultMapping(
+            resultType, property, column, javaTypeClass, jdbcTypeEnum, nestedSelect, nestedResultMap,
+            notNullColumn, columnPrefix, typeHandlerClass, flags, resultSet, foreignColumn, lazy);
     }
 
     private String processNestedResultMappings(XNode context, List<ResultMapping> resultMappings, Class<?> enclosingType) {
