@@ -148,11 +148,16 @@ public class XMLMapperBuilder extends BaseBuilder {
     }
 
     private void buildStatementFromContext(List<XNode> list, String requiredDatabaseId) {
+        // 遍历处理获取到的所有 SQL 语句标签
         for (XNode context : list) {
-            final XMLStatementBuilder statementParser = new XMLStatementBuilder(configuration, builderAssistant, context, requiredDatabaseId);
+            // 创建 XMLStatementBuilder 解析器，负责解析具体的 SQL 语句标签
+            final XMLStatementBuilder statementParser =
+                new XMLStatementBuilder(configuration, builderAssistant, context, requiredDatabaseId);
             try {
+                // 执行解析操作
                 statementParser.parseStatementNode();
             } catch (IncompleteElementException e) {
+                // 记录解析异常的 SQL 语句标签，稍后尝试二次解析
                 configuration.addIncompleteStatement(statementParser);
             }
         }
