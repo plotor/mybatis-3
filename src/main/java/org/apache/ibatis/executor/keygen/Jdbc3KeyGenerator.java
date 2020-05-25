@@ -86,6 +86,7 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
             if (rsmd.getColumnCount() < keyProperties.length) {
                 // Error?
             } else {
+                // 填充目标属性
                 this.assignKeys(configuration, rs, rsmd, keyProperties, parameter);
             }
         } catch (Exception e) {
@@ -94,12 +95,16 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
     }
 
     @SuppressWarnings("unchecked")
-    private void assignKeys(Configuration configuration, ResultSet rs, ResultSetMetaData rsmd, String[] keyProperties,
+    private void assignKeys(Configuration configuration,
+                            ResultSet rs,
+                            ResultSetMetaData rsmd,
+                            String[] keyProperties,
                             Object parameter) throws SQLException {
         if (parameter instanceof ParamMap || parameter instanceof StrictMap) {
             // Multi-param or single param with @Param
             this.assignKeysToParamMap(configuration, rs, rsmd, keyProperties, (Map<String, ?>) parameter);
-        } else if (parameter instanceof ArrayList && !((ArrayList<?>) parameter).isEmpty()
+        } else if (parameter instanceof ArrayList
+            && !((ArrayList<?>) parameter).isEmpty()
             && ((ArrayList<?>) parameter).get(0) instanceof ParamMap) {
             // Multi-param or single param with @Param in batch operation
             this.assignKeysToParamMapList(configuration, rs, rsmd, keyProperties, (ArrayList<ParamMap<?>>) parameter);
@@ -109,8 +114,12 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
         }
     }
 
-    private void assignKeysToParam(Configuration configuration, ResultSet rs, ResultSetMetaData rsmd,
-                                   String[] keyProperties, Object parameter) throws SQLException {
+    private void assignKeysToParam(Configuration configuration,
+                                   ResultSet rs,
+                                   ResultSetMetaData rsmd,
+                                   String[] keyProperties,
+                                   Object parameter) throws SQLException {
+        // 将 Object 类型参数转换成相应的集合类型
         Collection<?> params = collectionize(parameter);
         if (params.isEmpty()) {
             return;
@@ -151,8 +160,11 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
         }
     }
 
-    private void assignKeysToParamMap(Configuration configuration, ResultSet rs, ResultSetMetaData rsmd,
-                                      String[] keyProperties, Map<String, ?> paramMap) throws SQLException {
+    private void assignKeysToParamMap(Configuration configuration,
+                                      ResultSet rs,
+                                      ResultSetMetaData rsmd,
+                                      String[] keyProperties,
+                                      Map<String, ?> paramMap) throws SQLException {
         if (paramMap.isEmpty()) {
             return;
         }
@@ -261,9 +273,11 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
                 // If paramName is set, param is ParamMap
                 param = ((ParamMap<?>) param).get(paramName);
             }
+            // 创建实参对应的 MetaObject 对象
             MetaObject metaParam = configuration.newMetaObject(param);
             try {
                 if (typeHandler == null) {
+                    // 获取每个 keyProperty 对应的类型处理器
                     if (metaParam.hasSetter(propertyName)) {
                         Class<?> propertyType = metaParam.getSetterType(propertyName);
                         typeHandler = typeHandlerRegistry.getTypeHandler(propertyType,
@@ -276,6 +290,7 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
                 if (typeHandler == null) {
                     // Error?
                 } else {
+                    // 将生成的主键值与用户传入的参数相映射
                     Object value = typeHandler.getResult(rs, columnPosition);
                     metaParam.setValue(propertyName, value);
                 }

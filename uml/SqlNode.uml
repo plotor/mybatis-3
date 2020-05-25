@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>org.apache.ibatis.scripting.xmltags.SqlNode</OriginalElement>
+  <nodes>
+    <node x="158.0" y="246.0">org.apache.ibatis.scripting.xmltags.WhereSqlNode</node>
+    <node x="1117.0" y="133.0">org.apache.ibatis.scripting.xmltags.StaticTextSqlNode</node>
+    <node x="941.0" y="133.0">org.apache.ibatis.scripting.xmltags.MixedSqlNode</node>
+    <node x="246.0" y="133.0">org.apache.ibatis.scripting.xmltags.TextSqlNode</node>
+    <node x="598.0" y="133.0">org.apache.ibatis.scripting.xmltags.ForEachSqlNode</node>
+    <node x="1338.0" y="133.0">org.apache.ibatis.scripting.xmltags.VarDeclSqlNode</node>
+    <node x="792.0" y="133.0">org.apache.ibatis.scripting.xmltags.IfSqlNode</node>
+    <node x="79.0" y="133.0">org.apache.ibatis.scripting.xmltags.TrimSqlNode</node>
+    <node x="413.0" y="133.0">org.apache.ibatis.scripting.xmltags.ChooseSqlNode</node>
+    <node x="715.25" y="0.0">org.apache.ibatis.scripting.xmltags.SqlNode</node>
+    <node x="0.0" y="246.0">org.apache.ibatis.scripting.xmltags.SetSqlNode</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="org.apache.ibatis.scripting.xmltags.StaticTextSqlNode" target="org.apache.ibatis.scripting.xmltags.SqlNode">
+      <point x="0.0" y="-31.5" />
+      <point x="1217.5" y="93.0" />
+      <point x="805.4375" y="93.0" />
+      <point x="34.6875" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.scripting.xmltags.TextSqlNode" target="org.apache.ibatis.scripting.xmltags.SqlNode">
+      <point x="0.0" y="-31.5" />
+      <point x="319.5" y="93.0" />
+      <point x="736.0625" y="93.0" />
+      <point x="-34.6875" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.scripting.xmltags.ChooseSqlNode" target="org.apache.ibatis.scripting.xmltags.SqlNode">
+      <point x="0.0" y="-31.5" />
+      <point x="495.5" y="103.0" />
+      <point x="749.9375" y="103.0" />
+      <point x="-20.8125" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.scripting.xmltags.SetSqlNode" target="org.apache.ibatis.scripting.xmltags.TrimSqlNode">
+      <point x="0.0" y="-31.5" />
+      <point x="69.0" y="221.0" />
+      <point x="115.75" y="221.0" />
+      <point x="-36.75" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.scripting.xmltags.IfSqlNode" target="org.apache.ibatis.scripting.xmltags.SqlNode">
+      <point x="0.0" y="-31.5" />
+      <point x="856.5" y="113.0" />
+      <point x="777.6875" y="113.0" />
+      <point x="6.9375" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.scripting.xmltags.MixedSqlNode" target="org.apache.ibatis.scripting.xmltags.SqlNode">
+      <point x="0.0" y="-31.5" />
+      <point x="1019.0" y="103.0" />
+      <point x="791.5625" y="103.0" />
+      <point x="20.8125" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.scripting.xmltags.WhereSqlNode" target="org.apache.ibatis.scripting.xmltags.TrimSqlNode">
+      <point x="0.0" y="-31.5" />
+      <point x="236.0" y="221.0" />
+      <point x="189.25" y="221.0" />
+      <point x="36.75" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.scripting.xmltags.TrimSqlNode" target="org.apache.ibatis.scripting.xmltags.SqlNode">
+      <point x="0.0" y="-31.5" />
+      <point x="152.5" y="83.0" />
+      <point x="722.1875" y="83.0" />
+      <point x="-48.5625" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.scripting.xmltags.ForEachSqlNode" target="org.apache.ibatis.scripting.xmltags.SqlNode">
+      <point x="0.0" y="-31.5" />
+      <point x="685.0" y="113.0" />
+      <point x="763.8125" y="113.0" />
+      <point x="-6.9375" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.scripting.xmltags.VarDeclSqlNode" target="org.apache.ibatis.scripting.xmltags.SqlNode">
+      <point x="0.0" y="-31.5" />
+      <point x="1425.0" y="83.0" />
+      <point x="819.3125" y="83.0" />
+      <point x="48.5625" y="31.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="615.0" y="93.0" />
+  <SelectedNodes />
+  <Categories />
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+
