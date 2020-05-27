@@ -75,9 +75,9 @@ public class SqlSessionFactoryBuilder {
 
     public SqlSessionFactory build(InputStream inputStream, String environment, Properties properties) {
         try {
-            // 解析配置文件封装成 Configuration 对象
+            // 创建 XML 配置文件解析器，期间会创建 Configuration 对象
             XMLConfigBuilder parser = new XMLConfigBuilder(inputStream, environment, properties);
-            // 基于 Configuration 对象构造 SqlSessionFactory, 使用 DefaultSqlSessionFactory 类
+            // 解析配置文件填充 Configuration 对象，并基于配置构造 SqlSessionFactory
             return this.build(parser.parse());
         } catch (Exception e) {
             throw ExceptionFactory.wrapException("Error building SqlSession.", e);

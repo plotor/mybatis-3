@@ -160,7 +160,7 @@ public class TypeAliasRegistry {
         if (typeAliases.containsKey(key) && typeAliases.get(key) != null && !typeAliases.get(key).equals(value)) {
             throw new TypeException("The alias '" + alias + "' is already mapped to the value '" + typeAliases.get(key).getName() + "'.");
         }
-        // 记录到 Map 中
+        // 建立映射关系记录到 Map 中
         typeAliases.put(key, value);
     }
 

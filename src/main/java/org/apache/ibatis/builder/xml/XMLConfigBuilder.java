@@ -82,14 +82,15 @@ public class XMLConfigBuilder extends BaseBuilder {
         this(
             // 构造 XPath 解析器
             new XPathParser(inputStream, true, props, new XMLMapperEntityResolver()),
-            environment, props);
+            environment,
+            props);
     }
 
     private XMLConfigBuilder(XPathParser parser, // XPath 解析器
                              String environment, // 当前使用的配置文件组 ID
                              Properties props) // 参数指定的配置项
     {
-        // 构造 Configuration 对象，并调用父类构造方法
+        // 构造 Configuration 对象
         super(new Configuration());
         ErrorContext.instance().resource("SQL Mapper Configuration");
         // 将参数指定的配置项记录到 Configuration#variables 属性中
