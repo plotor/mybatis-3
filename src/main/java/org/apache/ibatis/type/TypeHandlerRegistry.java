@@ -347,9 +347,10 @@ public final class TypeHandlerRegistry {
     @SuppressWarnings("unchecked")
     public <T> void register(TypeHandler<T> typeHandler) {
         boolean mappedTypeFound = false;
+        // 获取 MappedTypes 注解配置
         MappedTypes mappedTypes = typeHandler.getClass().getAnnotation(MappedTypes.class);
         if (mappedTypes != null) {
-            // 遍历注册该 typeHandler 能够处理的 java 类型
+            // 一个 TypeHandler 可以关联多个 java 类型，遍历逐一注册
             for (Class<?> handledType : mappedTypes.value()) {
                 this.register(handledType, typeHandler);
                 mappedTypeFound = true;
@@ -377,9 +378,10 @@ public final class TypeHandlerRegistry {
     }
 
     private <T> void register(Type javaType, TypeHandler<? extends T> typeHandler) {
+        // 获取 MappedJdbcTypes 注解配置
         MappedJdbcTypes mappedJdbcTypes = typeHandler.getClass().getAnnotation(MappedJdbcTypes.class);
         if (mappedJdbcTypes != null) {
-            // 遍历注册该 typeHandler 能够处理的 JDBC 类型
+            // 一个 TypeHandler 可以关联多个 JDBC 类型，遍历逐一注册
             for (JdbcType handledJdbcType : mappedJdbcTypes.value()) {
                 this.register(javaType, handledJdbcType, typeHandler);
             }

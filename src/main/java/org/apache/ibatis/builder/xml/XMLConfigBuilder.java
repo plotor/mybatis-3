@@ -107,7 +107,7 @@ public class XMLConfigBuilder extends BaseBuilder {
             throw new BuilderException("Each XMLConfigBuilder can only be used once.");
         }
         parsed = true;
-        // 解析 mybatis-config.xml 中的各项配置, 填充 Configuration 对象
+        // 解析 mybatis-config.xml 中的各项配置，填充 Configuration 对象
         this.parseConfiguration(parser.evalNode("/configuration"));
         return configuration;
     }
@@ -153,13 +153,14 @@ public class XMLConfigBuilder extends BaseBuilder {
         }
         // 解析 <setting/> 配置，封装成 Properties 对象
         Properties props = context.getChildrenAsProperties();
-        // 构造 Configuration 对应的 MetaClass 对象
+        // 构造 Configuration 对应的 MetaClass 对象，用于对 Configuration 类提供反射操作
         MetaClass metaConfig = MetaClass.forClass(Configuration.class, localReflectorFactory);
         // 遍历配置项，确保配置项是 MyBatis 可识别的
         for (Object key : props.keySet()) {
             // 属性对应的 setter 方法不存在
             if (!metaConfig.hasSetter(String.valueOf(key))) {
-                throw new BuilderException("The setting " + key + " is not known.  Make sure you spelled it correctly (case sensitive).");
+                throw new BuilderException(
+                    "The setting " + key + " is not known.  Make sure you spelled it correctly (case sensitive).");
             }
         }
         return props;
@@ -271,7 +272,8 @@ public class XMLConfigBuilder extends BaseBuilder {
             String url = context.getStringAttribute("url");
             // 这两种类型的配置是互斥的
             if (resource != null && url != null) {
-                throw new BuilderException("The properties element cannot specify both a URL and a resource based property file reference.  Please specify one or the other.");
+                throw new BuilderException("The properties element cannot specify both a URL " +
+                    "and a resource based property file reference.  Please specify one or the other.");
             }
             // 从类路径加载配置文件
             if (resource != null) {
