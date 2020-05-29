@@ -83,13 +83,13 @@ public class XMLScriptBuilder extends BaseBuilder {
         // 获取并处理所有的子标签
         NodeList children = node.getNode().getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
-            // 构造对应的 XNode 对象，期间会尝试解析所有的 ‘${}’ 占位符
+            // 构造对应的 XNode 对象，期间会尝试解析所有的 ${} 占位符
             XNode child = node.newXNode(children.item(i));
             if (child.getNode().getNodeType() == Node.CDATA_SECTION_NODE || child.getNode().getNodeType() == Node.TEXT_NODE) {
                 // 获取标签的 value 值
                 String data = child.getStringBody("");
                 TextSqlNode textSqlNode = new TextSqlNode(data);
-                // 基于是否存在未解析的占位符 ‘${}’ 判断是否是动态 SQL
+                // 基于是否存在未解析的占位符 ${} 判断是否是动态 SQL
                 if (textSqlNode.isDynamic()) {
                     contents.add(textSqlNode);
                     // 标记为动态 SQL

@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
  * @author Clinton Begin
  */
 public class TextSqlNode implements SqlNode {
+
     private final String text;
     private final Pattern injectionFilter;
 
@@ -48,7 +49,9 @@ public class TextSqlNode implements SqlNode {
 
     @Override
     public boolean apply(DynamicContext context) {
+        // BindingTokenParser 是内部类，基于 DynamicContext#bindings 中的属性解析 SQL 语句中的占位符
         GenericTokenParser parser = this.createParser(new BindingTokenParser(context, injectionFilter));
+        // 解析并记录 SQL 片段到 DynamicContext 中
         context.appendSql(parser.parse(text));
         return true;
     }

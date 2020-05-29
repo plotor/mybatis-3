@@ -73,12 +73,12 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
     }
 
     public void processBatch(MappedStatement ms, Statement stmt, Object parameter) {
-        // 获取 keyProperties 属性配置，用于指定主键，可能存在多个
+        // 获取 keyProperty 属性配置，用于指定生成结果所映射的目标属性，可能存在多个
         final String[] keyProperties = ms.getKeyProperties();
         if (keyProperties == null || keyProperties.length == 0) {
             return;
         }
-        // 获取数据库自动生成的主键
+        // 调用 Statement#getGeneratedKeys 方法获取数据库自动生成的主键
         try (ResultSet rs = stmt.getGeneratedKeys()) {
             // 获取 ResultSet 元数据信息
             final ResultSetMetaData rsmd = rs.getMetaData();
@@ -86,7 +86,7 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
             if (rsmd.getColumnCount() < keyProperties.length) {
                 // Error?
             } else {
-                // 填充目标属性
+                // 使用主键值填充 parameter 目标属性
                 this.assignKeys(configuration, rs, rsmd, keyProperties, parameter);
             }
         } catch (Exception e) {
@@ -124,16 +124,19 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
         if (params.isEmpty()) {
             return;
         }
+        // 遍历为每个目标属性配置创建对应的 KeyAssigner 分配器
         List<KeyAssigner> assignerList = new ArrayList<>();
         for (int i = 0; i < keyProperties.length; i++) {
             assignerList.add(new KeyAssigner(configuration, rsmd, i + 1, null, keyProperties[i]));
         }
+        // 遍历填充目标属性
         Iterator<?> iterator = params.iterator();
         while (rs.next()) {
             if (!iterator.hasNext()) {
                 throw new ExecutorException(String.format(MSG_TOO_MANY_KEYS, params.size()));
             }
             Object param = iterator.next();
+            // 基于 KeyAssigner 使用自增 ID 填充目标属性
             assignerList.forEach(x -> x.assign(rs, param));
         }
     }
@@ -257,8 +260,7 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
         private final String propertyName;
         private TypeHandler<?> typeHandler;
 
-        protected KeyAssigner(Configuration configuration, ResultSetMetaData rsmd, int columnPosition, String paramName,
-                              String propertyName) {
+        protected KeyAssigner(Configuration configuration, ResultSetMetaData rsmd, int columnPosition, String paramName, String propertyName) {
             super();
             this.configuration = configuration;
             this.rsmd = rsmd;
@@ -273,24 +275,24 @@ public class Jdbc3KeyGenerator implements KeyGenerator {
                 // If paramName is set, param is ParamMap
                 param = ((ParamMap<?>) param).get(paramName);
             }
-            // 创建实参对应的 MetaObject 对象
+            // 创建实参对应的 MetaObject 对象，以实现对于实参对象的反射操作
             MetaObject metaParam = configuration.newMetaObject(param);
             try {
                 if (typeHandler == null) {
-                    // 获取每个 keyProperty 对应的类型处理器
+                    // 创建目标属性对应的类型处理器
                     if (metaParam.hasSetter(propertyName)) {
                         Class<?> propertyType = metaParam.getSetterType(propertyName);
-                        typeHandler = typeHandlerRegistry.getTypeHandler(propertyType,
-                            JdbcType.forCode(rsmd.getColumnType(columnPosition)));
+                        typeHandler = typeHandlerRegistry.getTypeHandler(
+                            propertyType, JdbcType.forCode(rsmd.getColumnType(columnPosition)));
                     } else {
-                        throw new ExecutorException("No setter found for the keyProperty '" + propertyName + "' in '"
-                            + metaParam.getOriginalObject().getClass().getName() + "'.");
+                        throw new ExecutorException("No setter found for the keyProperty '"
+                            + propertyName + "' in '" + metaParam.getOriginalObject().getClass().getName() + "'.");
                     }
                 }
                 if (typeHandler == null) {
                     // Error?
                 } else {
-                    // 将生成的主键值与用户传入的参数相映射
+                    // 设置目标属性值
                     Object value = typeHandler.getResult(rs, columnPosition);
                     metaParam.setValue(propertyName, value);
                 }

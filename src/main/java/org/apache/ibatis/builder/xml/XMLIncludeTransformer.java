@@ -82,7 +82,7 @@ public class XMLIncludeTransformer {
             toInclude.getParentNode().removeChild(toInclude);
         } else if (source.getNodeType() == Node.ELEMENT_NODE) {
             if (included && !variablesContext.isEmpty()) {
-                // replace variables in attribute values
+                // 解析 ${} 占位符
                 NamedNodeMap attributes = source.getAttributes();
                 for (int i = 0; i < attributes.getLength(); i++) {
                     Node attr = attributes.item(i);
@@ -98,13 +98,13 @@ public class XMLIncludeTransformer {
         } else if (included
             && (source.getNodeType() == Node.TEXT_NODE || source.getNodeType() == Node.CDATA_SECTION_NODE)
             && !variablesContext.isEmpty()) {
-            // 替换占位符为 variablesContext 中对应的配置值，这里替换的是引用 <sql/> 节点中定义的语句片段中对应的占位符
+            // 替换占位符为 variablesContext 中对应的配置值，这里替换的是引用 <sql/> 标签中定义的语句片段中对应的占位符
             source.setNodeValue(PropertyParser.parse(source.getNodeValue(), variablesContext));
         }
     }
 
     private Node findSqlFragment(String refid, Properties variables) {
-        // 解析带有 ‘${}’ 占位符的字符串，将其中的占位符变量替换成 variables 中对应的属性值
+        // 解析带有 ${} 占位符的字符串，将其中的占位符变量替换成 variables 中对应的属性值
         refid = PropertyParser.parse(refid, variables);  // 注意：这里替换的并不是 <sql/> 语句片段中的占位符
         refid = builderAssistant.applyCurrentNamespace(refid, true);
         try {

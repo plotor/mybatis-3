@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>org.apache.ibatis.mapping.SqlSource</OriginalElement>
+  <nodes>
+    <node x="0.0" y="113.0">org.apache.ibatis.builder.annotation.ProviderSqlSource</node>
+    <node x="609.0" y="113.0">org.apache.ibatis.builder.StaticSqlSource</node>
+    <node x="221.00000000000003" y="113.0">org.apache.ibatis.scripting.xmltags.DynamicSqlSource</node>
+    <node x="349.5" y="0.0">org.apache.ibatis.mapping.SqlSource</node>
+    <node x="433.0" y="113.0">org.apache.ibatis.scripting.defaults.RawSqlSource</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="org.apache.ibatis.scripting.defaults.RawSqlSource" target="org.apache.ibatis.mapping.SqlSource">
+      <point x="0.0" y="-31.5" />
+      <point x="511.0" y="93.0" />
+      <point x="430.125" y="93.0" />
+      <point x="16.125" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.builder.annotation.ProviderSqlSource" target="org.apache.ibatis.mapping.SqlSource">
+      <point x="0.0" y="-31.5" />
+      <point x="100.5" y="83.0" />
+      <point x="365.625" y="83.0" />
+      <point x="-48.375" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.builder.StaticSqlSource" target="org.apache.ibatis.mapping.SqlSource">
+      <point x="0.0" y="-31.5" />
+      <point x="700.5" y="83.0" />
+      <point x="462.375" y="83.0" />
+      <point x="48.375" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.scripting.xmltags.DynamicSqlSource" target="org.apache.ibatis.mapping.SqlSource">
+      <point x="0.0" y="-31.5" />
+      <point x="317.0" y="93.0" />
+      <point x="397.875" y="93.0" />
+      <point x="-16.125" y="31.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="64.5" y="31.5" />
+  <SelectedNodes />
+  <Categories />
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+

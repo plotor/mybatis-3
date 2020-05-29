@@ -95,9 +95,9 @@ public class XMLMapperBuilder extends BaseBuilder {
         if (!configuration.isResourceLoaded(resource)) {
             // 加载并解析 <mapper/> 标签下的配置
             this.configurationElement(parser.evalNode("/mapper"));
-            // 标记该映射文件已被加载
+            // 标记该映射文件已被解析
             configuration.addLoadedResource(resource);
-            // 注册 Mapper 接口（<mapper namespace=""/> 配置对应的 namespace 属性）
+            // 注册当前映射文件关联的 Mapper 接口（标签 <mapper namespace=""/> 对应的 namespace 属性）
             this.bindMapperForNamespace();
         }
 
@@ -210,7 +210,7 @@ public class XMLMapperBuilder extends BaseBuilder {
 
     private void cacheRefElement(XNode context) {
         if (context != null) {
-            // 记录 <当前节点所在的 namespace, 引用缓存对象所在的 namespace> 到 Configuration 中
+            // 记录 <当前节点所在的 namespace, 引用缓存对象所在的 namespace> 映射关系到 Configuration 中
             configuration.addCacheRef(builderAssistant.getCurrentNamespace(), context.getStringAttribute("namespace"));
             // 构造缓存引用解析器 CacheRefResolver 对象
             CacheRefResolver cacheRefResolver = new CacheRefResolver(builderAssistant, context.getStringAttribute("namespace"));
@@ -227,14 +227,14 @@ public class XMLMapperBuilder extends BaseBuilder {
     private void cacheElement(XNode context) {
         if (context != null) {
             // 获取相应的是属性配置
-            String type = context.getStringAttribute("type", "PERPETUAL"); // type，缓存类型，可以指定自定义实现
+            String type = context.getStringAttribute("type", "PERPETUAL"); // 缓存实现类型，可以指定自定义实现
             Class<? extends Cache> typeClass = typeAliasRegistry.resolveAlias(type);
-            String eviction = context.getStringAttribute("eviction", "LRU"); // eviction，缓存策略
+            String eviction = context.getStringAttribute("eviction", "LRU"); // 缓存清除策略，默认是 LRU，还可以是 FIFO、SOFT，以及 WEAK
             Class<? extends Cache> evictionClass = typeAliasRegistry.resolveAlias(eviction);
-            Long flushInterval = context.getLongAttribute("flushInterval"); // flushInterval，刷新间隔
-            Integer size = context.getIntAttribute("size"); // size，缓存大小
-            boolean readWrite = !context.getBooleanAttribute("readOnly", false); // readOnly，是否只读
-            boolean blocking = context.getBooleanAttribute("blocking", false); // blocking，是否阻塞
+            Long flushInterval = context.getLongAttribute("flushInterval"); // 刷新间隔，单位：毫秒
+            Integer size = context.getIntAttribute("size"); // 缓存大小，默认为 1024
+            boolean readWrite = !context.getBooleanAttribute("readOnly", false); // 是否只读
+            boolean blocking = context.getBooleanAttribute("blocking", false); // 是否阻塞
             Properties props = context.getChildrenAsProperties();
             // 创建二级缓存，并填充 Configuration 对象
             builderAssistant.useNewCache(typeClass, evictionClass, flushInterval, size, readWrite, blocking, props);
@@ -283,14 +283,15 @@ public class XMLMapperBuilder extends BaseBuilder {
 
     private ResultMap resultMapElement(XNode resultMapNode, List<ResultMapping> additionalResultMappings, Class<?> enclosingType) {
         ErrorContext.instance().activity("processing " + resultMapNode.getValueBasedIdentifier());
-        // 获取 type 属性，支持 type、ofType、resultType，以及 javaType 配置
+        // 获取 type 属性，支持 type、ofType、resultType，以及 javaType 类型配置
         String type = resultMapNode.getStringAttribute("type",
             resultMapNode.getStringAttribute("ofType",
                 resultMapNode.getStringAttribute("resultType",
                     resultMapNode.getStringAttribute("javaType"))));
-        // 基于 TypeAliasRegistry 解析 type 属性对应的 Class 对象
+        // 基于 TypeAliasRegistry 解析 type 属性对应的实体类型
         Class<?> typeClass = this.resolveClass(type);
         if (typeClass == null) {
+            // 尝试基于 <association/> 子标签或 <case/> 子标签解析实体类型
             typeClass = this.inheritEnclosingType(resultMapNode, enclosingType);
         }
         Discriminator discriminator = null;
@@ -299,15 +300,15 @@ public class XMLMapperBuilder extends BaseBuilder {
         // 获取并遍历处理所有的子标签
         List<XNode> resultChildren = resultMapNode.getChildren();
         for (XNode resultChild : resultChildren) {
-            // 解析 <constructor/> 子标签
+            // 解析 <constructor/> 子标签，封装成为 ResultMapping 对象
             if ("constructor".equals(resultChild.getName())) {
                 this.processConstructorElement(resultChild, typeClass, resultMappings);
             }
-            // 解析 <discriminator/> 子标签
+            // 解析 <discriminator/> 子标签，封装成为 Discriminator 对象
             else if ("discriminator".equals(resultChild.getName())) {
                 discriminator = this.processDiscriminatorElement(resultChild, typeClass, resultMappings);
             }
-            // 解析 <association/>、<collection/>、<id/> 和 <result/> 子标签
+            // 解析 <association/>、<collection/>、<id/> 和 <result/> 子标签，封装成为 ResultMapping 对象
             else {
                 List<ResultFlag> flags = new ArrayList<>();
                 if ("id".equals(resultChild.getName())) {
@@ -326,7 +327,7 @@ public class XMLMapperBuilder extends BaseBuilder {
         ResultMapResolver resultMapResolver = new ResultMapResolver(
             builderAssistant, id, typeClass, extend, discriminator, resultMappings, autoMapping);
         try {
-            // 创建 ResultMap 对象，记录到 Configuration#resultMaps 中
+            // 基于解析得到的配置构造 ResultMap 对象，记录到 Configuration#resultMaps 中
             return resultMapResolver.resolve();
         } catch (IncompleteElementException e) {
             // 记录解析异常的 <resultMap/> 标签，后续尝试二次解析
@@ -358,7 +359,7 @@ public class XMLMapperBuilder extends BaseBuilder {
             if ("idArg".equals(argChild.getName())) {
                 flags.add(ResultFlag.ID); // 添加 ID 标识
             }
-            // 创建 ResultMapping 对象，记录到 resultMappings 集合中
+            // 封装标签配置为 ResultMapping 对象，记录到 resultMappings 集合中
             resultMappings.add(this.buildResultMappingFromContext(argChild, resultType, flags));
         }
     }
@@ -383,14 +384,14 @@ public class XMLMapperBuilder extends BaseBuilder {
                 this.processNestedResultMappings(caseChild, resultMappings, resultType));
             discriminatorMap.put(value, resultMap);
         }
-        // 创建 Discriminator 对象，本质上依赖于 Discriminator 的构造器构建
+        // 封装成 Discriminator 对象，本质上依赖于 Discriminator 的构造器构建
         return builderAssistant.buildDiscriminator(
             resultType, column, javaTypeClass, jdbcTypeEnum, typeHandlerClass, discriminatorMap);
     }
 
     private void sqlElement(List<XNode> list) {
         if (configuration.getDatabaseId() != null) {
-            // 获取当前运行数据库环境对应的 databaseId
+            // 获取当前运行环境对应的数据库标识
             this.sqlElement(list, configuration.getDatabaseId());
         }
         this.sqlElement(list, null);
@@ -399,14 +400,14 @@ public class XMLMapperBuilder extends BaseBuilder {
     private void sqlElement(List<XNode> list, String requiredDatabaseId) {
         // 遍历处理所有的 <sql/> 标签
         for (XNode context : list) {
-            // 获取 databaseId 属性
+            // 获取数据库标识 databaseId 属性
             String databaseId = context.getStringAttribute("databaseId");
             // 获取 id 属性
             String id = context.getStringAttribute("id");
             // 格式化 id，格式：namespace.id
             id = builderAssistant.applyCurrentNamespace(id, false);
             /*
-             * 判断 databaseId 与当前 Configuration 中配置的是否一致：
+             * 判断数据库标识 databaseId 与当前 Configuration 中配置的是否一致：
              * 1. 如果指定了 requiredDatabaseId，则 databaseId 必须和 requiredDatabaseId 一致
              * 2. 如果没有指定了 requiredDatabaseId，则 databaseId 必须为 null
              */
@@ -459,7 +460,7 @@ public class XMLMapperBuilder extends BaseBuilder {
         Class<? extends TypeHandler<?>> typeHandlerClass = this.resolveClass(typeHandler);
         // 获取 JdbcType 对应的具体枚举对象
         JdbcType jdbcTypeEnum = this.resolveJdbcType(jdbcType);
-        // 创建 ResultMapping 对象
+        // 封装成 ResultMapping 对象
         return builderAssistant.buildResultMapping(
             resultType, property, column, javaTypeClass, jdbcTypeEnum, nestedSelect, nestedResultMap,
             notNullColumn, columnPrefix, typeHandlerClass, flags, resultSet, foreignColumn, lazy);

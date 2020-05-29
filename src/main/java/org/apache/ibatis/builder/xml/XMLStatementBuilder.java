@@ -92,30 +92,31 @@ public class XMLStatementBuilder extends BaseBuilder {
         // 解析 <selectKey/> 子标签
         this.processSelectKeyNodes(id, parameterTypeClass, langDriver);
 
-        // 解析对应的 KeyGenerator 实现
+        // 解析对应的 KeyGenerator 实现，用于生成填充 keyProperty 属性指定的列值
         KeyGenerator keyGenerator;
         String keyStatementId = id + SelectKeyGenerator.SELECT_KEY_SUFFIX;
         keyStatementId = builderAssistant.applyCurrentNamespace(keyStatementId, true);
-        // 当前 SQL 语句标签下存在 <selectKey/> 配置，直接获取
+        // 当前 SQL 语句标签下存在 <selectKey/> 配置，直接获取对应的 SelectKeyGenerator
         if (configuration.hasKeyGenerator(keyStatementId)) {
             keyGenerator = configuration.getKeyGenerator(keyStatementId);
         }
         // 当前 SQL 语句标签下不存在 <selectKey/> 配置
         else {
-            // 依据当前节点的 useGeneratedKeys 配置，或全局的 useGeneratedKeys 配置，以及是否是 INSERT 方法来决定具体的 keyGenerator 实现
-            keyGenerator = context.getBooleanAttribute("useGeneratedKeys",  // （仅对 INSERT 和 UPDATE 有用）这会使用 JDBC 的 getGeneratedKeys 方法来取出由数据库内部生成的主键
+            // 依据当前标签的 useGeneratedKeys 配置，或全局的 useGeneratedKeys 配置，以及是否是 INSERT 方法来决定具体的 keyGenerator 实现
+            // 属性 useGeneratedKeys 仅对 INSERT 和 UPDATE 有用，使用 JDBC 的 getGeneratedKeys 方法取出由数据库内部生成的主键
+            keyGenerator = context.getBooleanAttribute("useGeneratedKeys",
                 configuration.isUseGeneratedKeys() && SqlCommandType.INSERT.equals(sqlCommandType))
                 ? Jdbc3KeyGenerator.INSTANCE : NoKeyGenerator.INSTANCE;
         }
 
         // 创建 SQL 语句标签对应的 SqlSource 对象
         SqlSource sqlSource = langDriver.createSqlSource(configuration, context, parameterTypeClass);
-        // 获取具体的 Statement 类型
+        // 获取具体的 Statement 类型，默认使用 PreparedStatement
         StatementType statementType = StatementType.valueOf(
             context.getStringAttribute("statementType", StatementType.PREPARED.toString()));
         // 设置批量返回的结果行数，默认值为 unset（依赖驱动）
         Integer fetchSize = context.getIntAttribute("fetchSize");
-        // 数据库执行超时时间，默认值为 unset（依赖驱动）
+        // 数据库执行超时时间（单位：秒），默认值为 unset（依赖驱动）
         Integer timeout = context.getIntAttribute("timeout");
         String parameterMap = context.getStringAttribute("parameterMap"); // 已废弃
         // 期望返回类型完全限定名或别名，对于集合类型应该是集合元素类型，而非集合类型本身
@@ -173,16 +174,17 @@ public class XMLStatementBuilder extends BaseBuilder {
 
         /* 获取相应属性配置 */
 
-        // 结果集类型
+        // 解析结果类型配置
         String resultType = nodeToHandle.getStringAttribute("resultType");
         Class<?> resultTypeClass = this.resolveClass(resultType);
+        // 解析 statementType 配置，默认使用 PreparedStatement
         StatementType statementType = StatementType.valueOf(
             nodeToHandle.getStringAttribute("statementType", StatementType.PREPARED.toString()));
-        // selectKey 生成结果应用的目标属性，多个用逗号分隔个
+        // 标签 <selectKey/> 生成结果应用的目标属性，多个用逗号分隔个
         String keyProperty = nodeToHandle.getStringAttribute("keyProperty");
         // 匹配属性的返回结果集中的列名称，多个以逗号分隔
         String keyColumn = nodeToHandle.getStringAttribute("keyColumn");
-        // 在操作语句前还是后执行
+        // 设置在目标语句前还是后执行
         boolean executeBefore = "BEFORE".equals(nodeToHandle.getStringAttribute("order", "AFTER"));
 
         // 设置默认值

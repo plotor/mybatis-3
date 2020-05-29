@@ -59,17 +59,17 @@ public class SelectKeyGenerator implements KeyGenerator {
     private void processGeneratedKeys(Executor executor, MappedStatement ms, Object parameter) {
         try {
             if (parameter != null && keyStatement != null && keyStatement.getKeyProperties() != null) {
-                // 获取 <selectKey/> 中配置的 keyProperty 属性
+                // 获取 keyProperty 属性配置，用于指定生成结果所映射的目标属性，可能存在多个
                 String[] keyProperties = keyStatement.getKeyProperties();
                 final Configuration configuration = ms.getConfiguration();
-                // 创建入参 parameter 对应的 MetaObject 对象
+                // 创建实参 parameter 对应的 MetaObject 对象，便于反射操作
                 final MetaObject metaParam = configuration.newMetaObject(parameter);
                 // 创建 SQL 执行器，并执行 <selectKey/> 中定义的 SQL 语句
                 Executor keyExecutor = configuration.newExecutor(executor.getTransaction(), ExecutorType.SIMPLE);
                 List<Object> values = keyExecutor.query(
                     keyStatement, parameter, RowBounds.DEFAULT, Executor.NO_RESULT_HANDLER);
 
-                /* 处理返回的主键对象 */
+                /* 处理 <selectKey/> 的返回值，填充目标属性 */
 
                 if (values.size() == 0) {
                     throw new ExecutorException("SelectKey returned no data.");

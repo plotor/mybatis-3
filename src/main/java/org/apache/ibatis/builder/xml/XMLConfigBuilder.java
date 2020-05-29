@@ -188,16 +188,16 @@ public class XMLConfigBuilder extends BaseBuilder {
     private void typeAliasesElement(XNode parent) {
         if (parent != null) {
             for (XNode child : parent.getChildren()) {
-                /*
-                 * 子节点是 <package name=""/>，
-                 * 如果指定了一个包名，MyBatis 会在包名下搜索需要的 Java Bean，并处理 @Alias 注解，
-                 * 在没有注解的情况下，会使用 Bean 的首字母小写的简单名称作为它的别名。
-                 */
+                // 子标签是 <package name=""/> 配置
                 if ("package".equals(child.getName())) {
+                    /*
+                     * 如果指定了一个包名，MyBatis 会在包名下搜索需要的 Java Bean，并处理 @Alias 注解，
+                     * 在没有注解的情况下，会使用 Bean 的首字母小写的简单名称作为它的别名。
+                     */
                     String typeAliasPackage = child.getStringAttribute("name");
                     configuration.getTypeAliasRegistry().registerAliases(typeAliasPackage);
                 }
-                // 子节点是 <typeAlias alias="" type=""/> 配置
+                // 子标签是 <typeAlias alias="" type=""/> 配置
                 else {
                     String alias = child.getStringAttribute("alias"); // 别名
                     String type = child.getStringAttribute("type"); // 类型限定名
@@ -325,7 +325,7 @@ public class XMLConfigBuilder extends BaseBuilder {
 
     private void environmentsElement(XNode context) throws Exception {
         if (context != null) {
-            // 未使用指定 environment 参数，获取 default 属性值
+            // 未通过参数指定生效的 environment 配置，获取 default 属性值
             if (environment == null) {
                 environment = context.getStringAttribute("default");
             }
@@ -333,7 +333,7 @@ public class XMLConfigBuilder extends BaseBuilder {
             for (XNode child : context.getChildren()) {
                 // 获取 id 属性配置
                 String id = child.getStringAttribute("id");
-                // 处理指定的 <environment/> 配置
+                // 处理指定生效的 <environment/> 配置
                 if (this.isSpecifiedEnvironment(id)) {
                     // 处理 <transactionManager/> 子标签
                     TransactionFactory txFactory = this.transactionManagerElement(child.evalNode("transactionManager"));

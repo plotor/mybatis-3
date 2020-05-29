@@ -91,14 +91,14 @@ public class CacheBuilder {
     }
 
     public Cache build() {
-        // 如果没有指定则设置缓存默认实现（以 PerpetualCache 作为默认实现，以 LruCache 作为默认装饰器）
+        // 如果没有指定自定义缓存实现类，则设置缓存默认实现（以 PerpetualCache 作为默认实现，以 LruCache 作为默认装饰器）
         this.setDefaultImplementations();
         // 反射创建缓存对象
         Cache cache = this.newBaseCacheInstance(implementation, id);
         // 初始化缓存对象
         this.setCacheProperties(cache);
         // issue #352, do not apply decorators to custom caches
-        // 如果缓存采用 PerpetualCache 实现（对应自定义缓存实现），则遍历构造装饰器对象，并应用属性配置
+        // 如果缓存采用 PerpetualCache 实现，则遍历使用注册的装饰器进行装饰
         if (PerpetualCache.class.equals(cache.getClass())) {
             // 遍历装饰器集合，基于反射方式装饰缓存对象
             for (Class<? extends Cache> decorator : decorators) {
