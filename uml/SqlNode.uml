@@ -4,8 +4,8 @@
   <OriginalElement>org.apache.ibatis.scripting.xmltags.SqlNode</OriginalElement>
   <nodes>
     <node x="941.0" y="133.0">org.apache.ibatis.scripting.xmltags.MixedSqlNode</node>
-    <node x="1117.0" y="133.0">org.apache.ibatis.scripting.xmltags.StaticTextSqlNode</node>
     <node x="158.0" y="246.0">org.apache.ibatis.scripting.xmltags.WhereSqlNode</node>
+    <node x="1117.0" y="133.0">org.apache.ibatis.scripting.xmltags.StaticTextSqlNode</node>
     <node x="246.0" y="133.0">org.apache.ibatis.scripting.xmltags.TextSqlNode</node>
     <node x="598.0" y="133.0">org.apache.ibatis.scripting.xmltags.ForEachSqlNode</node>
     <node x="1338.0" y="133.0">org.apache.ibatis.scripting.xmltags.VarDeclSqlNode</node>
@@ -78,7 +78,7 @@
       <point x="-6.9375" y="31.5" />
     </edge>
   </edges>
-  <settings layout="Hierarchic Group" zoom="1.0" x="756.0" y="154.5" />
+  <settings layout="Hierarchic Group" zoom="0.9507133592736705" x="761.0" y="140.5" />
   <SelectedNodes />
   <Categories />
   <SCOPE>All</SCOPE>
