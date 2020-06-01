@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>org.apache.ibatis.session.SqlSession</OriginalElement>
+  <nodes>
+    <node x="221.0" y="113.0">org.apache.ibatis.session.SqlSessionManager</node>
+    <node x="0.0" y="113.0">org.apache.ibatis.session.defaults.DefaultSqlSession</node>
+    <node x="219.0" y="0.0">org.apache.ibatis.session.SqlSession</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="org.apache.ibatis.session.SqlSessionManager" target="org.apache.ibatis.session.SqlSession">
+      <point x="0.0" y="-31.5" />
+      <point x="321.5" y="88.0" />
+      <point x="305.25" y="88.0" />
+      <point x="17.25" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.session.defaults.DefaultSqlSession" target="org.apache.ibatis.session.SqlSession">
+      <point x="0.0" y="-31.5" />
+      <point x="100.5" y="88.0" />
+      <point x="236.25" y="88.0" />
+      <point x="-51.75" y="31.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="211.0" y="88.0" />
+  <SelectedNodes />
+  <Categories />
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+

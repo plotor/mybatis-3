@@ -48,11 +48,15 @@ import java.util.Map;
  */
 public class DefaultSqlSession implements SqlSession {
 
+    /** 全局唯一的配置对象 */
     private final Configuration configuration;
+    /** SQL 语句执行器 */
     private final Executor executor;
-
+    /** 是否自动提交事务 */
     private final boolean autoCommit;
+    /** 标记当前缓存中是否存在脏数据 */
     private boolean dirty;
+    /** 记录已经打开的游标 */
     private List<Cursor<?>> cursorList;
 
     public DefaultSqlSession(Configuration configuration, Executor executor, boolean autoCommit) {
