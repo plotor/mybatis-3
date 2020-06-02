@@ -46,7 +46,11 @@ public class MapperProxyFactory<T> {
 
     @SuppressWarnings("unchecked")
     protected T newInstance(MapperProxy<T> mapperProxy) {
-        return (T) Proxy.newProxyInstance(mapperInterface.getClassLoader(), new Class[] {mapperInterface}, mapperProxy);
+        // 创建 Mapper 接口对应的动态代理对象（基于 JDK 内置的动态代理机制）
+        return (T) Proxy.newProxyInstance(
+            mapperInterface.getClassLoader(),
+            new Class[] {mapperInterface},
+            mapperProxy);
     }
 
     public T newInstance(SqlSession sqlSession) {

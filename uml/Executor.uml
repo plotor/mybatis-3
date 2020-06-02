@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>org.apache.ibatis.executor.Executor</OriginalElement>
+  <nodes>
+    <node x="311.25" y="0.0">org.apache.ibatis.executor.Executor</node>
+    <node x="374.5" y="113.0">org.apache.ibatis.executor.CachingExecutor</node>
+    <node x="0.0" y="226.0">org.apache.ibatis.executor.SimpleExecutor</node>
+    <node x="198.5" y="113.0">org.apache.ibatis.executor.BaseExecutor</node>
+    <node x="379.0" y="226.0">org.apache.ibatis.executor.ReuseExecutor</node>
+    <node x="194.0" y="226.0">org.apache.ibatis.executor.BatchExecutor</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="org.apache.ibatis.executor.ReuseExecutor" target="org.apache.ibatis.executor.BaseExecutor">
+      <point x="0.0" y="-31.5" />
+      <point x="461.5" y="201.0" />
+      <point x="328.5" y="201.0" />
+      <point x="52.0" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.executor.BaseExecutor" target="org.apache.ibatis.executor.Executor">
+      <point x="0.0" y="-31.5" />
+      <point x="276.5" y="88.0" />
+      <point x="341.25" y="88.0" />
+      <point x="-30.0" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.executor.CachingExecutor" target="org.apache.ibatis.executor.Executor">
+      <point x="0.0" y="-31.5" />
+      <point x="466.0" y="88.0" />
+      <point x="401.25" y="88.0" />
+      <point x="30.0" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.executor.SimpleExecutor" target="org.apache.ibatis.executor.BaseExecutor">
+      <point x="0.0" y="-31.5" />
+      <point x="87.0" y="201.0" />
+      <point x="224.5" y="201.0" />
+      <point x="-52.0" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.executor.BatchExecutor" target="org.apache.ibatis.executor.BaseExecutor">
+      <point x="0.0" y="-31.5" />
+      <point x="0.0" y="31.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="279.0" y="144.5" />
+  <SelectedNodes />
+  <Categories />
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+

@@ -3,9 +3,9 @@
   <ID>JAVA</ID>
   <OriginalElement>org.apache.ibatis.scripting.xmltags.SqlNode</OriginalElement>
   <nodes>
+    <node x="1117.0" y="133.0">org.apache.ibatis.scripting.xmltags.StaticTextSqlNode</node>
     <node x="941.0" y="133.0">org.apache.ibatis.scripting.xmltags.MixedSqlNode</node>
     <node x="158.0" y="246.0">org.apache.ibatis.scripting.xmltags.WhereSqlNode</node>
-    <node x="1117.0" y="133.0">org.apache.ibatis.scripting.xmltags.StaticTextSqlNode</node>
     <node x="246.0" y="133.0">org.apache.ibatis.scripting.xmltags.TextSqlNode</node>
     <node x="598.0" y="133.0">org.apache.ibatis.scripting.xmltags.ForEachSqlNode</node>
     <node x="1338.0" y="133.0">org.apache.ibatis.scripting.xmltags.VarDeclSqlNode</node>
@@ -35,17 +35,17 @@
       <point x="749.9375" y="103.0" />
       <point x="-20.8125" y="31.5" />
     </edge>
-    <edge source="org.apache.ibatis.scripting.xmltags.SetSqlNode" target="org.apache.ibatis.scripting.xmltags.TrimSqlNode">
-      <point x="0.0" y="-31.5" />
-      <point x="69.0" y="221.0" />
-      <point x="115.75" y="221.0" />
-      <point x="-36.75" y="31.5" />
-    </edge>
     <edge source="org.apache.ibatis.scripting.xmltags.IfSqlNode" target="org.apache.ibatis.scripting.xmltags.SqlNode">
       <point x="0.0" y="-31.5" />
       <point x="856.5" y="113.0" />
       <point x="777.6875" y="113.0" />
       <point x="6.9375" y="31.5" />
+    </edge>
+    <edge source="org.apache.ibatis.scripting.xmltags.SetSqlNode" target="org.apache.ibatis.scripting.xmltags.TrimSqlNode">
+      <point x="0.0" y="-31.5" />
+      <point x="69.0" y="221.0" />
+      <point x="115.75" y="221.0" />
+      <point x="-36.75" y="31.5" />
     </edge>
     <edge source="org.apache.ibatis.scripting.xmltags.MixedSqlNode" target="org.apache.ibatis.scripting.xmltags.SqlNode">
       <point x="0.0" y="-31.5" />
@@ -78,8 +78,10 @@
       <point x="-6.9375" y="31.5" />
     </edge>
   </edges>
-  <settings layout="Hierarchic Group" zoom="0.9507133592736705" x="761.0" y="140.5" />
-  <SelectedNodes />
+  <settings layout="Hierarchic Group" zoom="1.0" x="756.0" y="154.5" />
+  <SelectedNodes>
+    <node>org.apache.ibatis.scripting.xmltags.SqlNode</node>
+  </SelectedNodes>
   <Categories />
   <SCOPE>All</SCOPE>
   <VISIBILITY>private</VISIBILITY>
